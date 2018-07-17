@@ -1,0 +1,37 @@
+# Tests generated files
+.cache/
+.coverage
+.pytest_cache/
+.tox/
+
+# Build generated files
+docs/_build/
+build/
+dist/
+.eggs/
+*.egg-info/
+
+# Python compiled files
+__pycache__/
+*.py[cod]
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+[Dd]esktop.ini
+Thumbs.db
+*~
+*.bak
+
+# IDE generated files
+.project
+.pydevproject
+.spyproject
+.spyderproject
+.settings/
+.idea/
+.vscode/
