@@ -4,14 +4,16 @@
 import boto3 as _boto3
 from botocore.exceptions import ClientError as _ClientError
 
-from cloudstorageio import RawStorageIO as _RawStorageIO
+from cloudstorageio import (
+    ObjectIOBase as _ObjectIOBase,
+    BufferedObjectIOBase as _BufferedObjectIOBase)
 
 
 # TODO: 404 error handling
 
 
-class RawS3IO(_RawStorageIO):
-    """Raw binary S3 I/O"""
+class S3ObjectIO(_ObjectIOBase):
+    """Binary S3 Object I/O"""
 
     def __init__(self, name, mode='r', **boto3_session_args):
 
@@ -23,13 +25,13 @@ class RawS3IO(_RawStorageIO):
             name = 's3://' + path
 
         # Initializes storage
-        _RawStorageIO.__init__(self, name, mode)
+        _ObjectIOBase.__init__(self, name, mode)
 
         # Instantiates S3 client
         self._client = _boto3.session.Session(
             **boto3_session_args).client("s3")
 
-        # Prepares S3 I/O functions and arguments
+        # Prepares S3 I/O functions and common arguments
         self._get_object = self._client.get_object
         self._put_object = self._client.put_object
         self._head_object = self._client.head_object
@@ -82,11 +84,17 @@ class RawS3IO(_RawStorageIO):
         Returns:
             int: number of bytes read
         """
+        # Get and update stream positions
+        size = len(b)
+        with self._seek_lock:
+            start = self._seek
+            end = start + size
+            self._seek = end
+
         # Get object part from S3
         try:
             response = self._get_object(
-                Range='bytes=%d-%d' % (
-                    self._seek, self._seek + len(b) - 1),
+                Range='bytes=%d-%d' % (start, end - 1),
                 **self._client_kwargs)
 
         # Check for end of file
@@ -102,8 +110,12 @@ class RawS3IO(_RawStorageIO):
         body_size = len(body)
         b[:body_size] = body
 
-        # Update stream position
-        self._seek += body_size
+        # Update stream position if end of file
+        if body_size != size:
+            with self._seek_lock:
+                self._seek = start + body_size
+
+        # Return read size
         return body_size
 
     def readall(self):
@@ -113,23 +125,25 @@ class RawS3IO(_RawStorageIO):
         Returns:
             bytes: Object content
         """
-        # Get object starting from seek
-        if self._seek:
-            response = self._get_object(
-                Range='bytes=%d-' % self._seek,
-                **self._client_kwargs)
+        with self._seek_lock:
 
-        # Get object starting from object start
-        else:
-            response = self._get_object(
-                **self._client_kwargs)
+            # Get object starting from seek
+            if self._seek:
+                response = self._get_object(
+                    Range='bytes=%d-' % self._seek,
+                    **self._client_kwargs)
 
-        # Get object content
-        body = response['Body'].read()
+            # Get object starting from object start
+            else:
+                response = self._get_object(
+                    **self._client_kwargs)
 
-        # Update stream position
-        self._seek += len(body)
-        return body
+            # Get object content
+            body = response['Body'].read()
+
+            # Update stream position
+            self._seek += len(body)
+            return body
 
     def flush(self):
         """
@@ -139,3 +153,9 @@ class RawS3IO(_RawStorageIO):
         self._put_object(
             Body=memoryview(self._write_buffer).tobytes(),
             **self._client_kwargs)
+
+
+class S3BufferedObjectIO(_BufferedObjectIOBase):
+    """Buffered binary S3 Object I/O"""
+    # TODO: implement write with "multipart upload"
+    _RAW_CLASS = S3ObjectIO

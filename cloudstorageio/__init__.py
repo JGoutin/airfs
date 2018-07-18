@@ -4,9 +4,13 @@
 from abc import abstractmethod as _abstractmethod
 import io as _io
 import os as _os
+import threading as _threading
 
 # TODO: OSError for function depending on seekable, writable, ...
 # TODO: Check full exception, and IO interface behavior
+# TODO: Mode 'x'
+# TODO: Text IO wrapper
+# TODO: Auto sub class selection (open)
 
 # Generic functions to implement
 
@@ -48,28 +52,71 @@ def listdir(self):
     """"""
 
 
+def exists(self, path):
+    """"""
+
+
 # Storage classes
+# TODO: Move to cloudstorageio.abc
 
-class RawStorageIO(_io.RawIOBase):
-    """Raw binary storage I/O"""
+class ObjectIOBase(_io.RawIOBase):
+    """Base class for binary cloud storage object I/O.
 
-    def __init__(self, name, mode='r'):
+    Args:
+        name (str): URL or path to the file which will be opened.
+        mode (str): The mode can be 'r', 'w', 'x' for reading (default),
+            writing, exclusive creation.
+    """
+
+    def __init__(self, name, mode='r', **_):
         _io.RawIOBase.__init__(self)
         self._name = name
         self._mode = mode
-        self._seek = 0
-        self._seekable = True
 
-        if mode == 'w':
-            self._write_buffer = bytearray()
+        # Thread safe stream position
+        self._seek = 0
+        self._seek_lock = _threading.Lock()
+
+        # Select supported features based on mode
+        if mode in ('w', 'x'):
             self._readable = False
             self._writable = True
+
+            # In write mode, since it is not possible
+            # to random write on cloud storage,
+            # The full file needs to be write at once.
+            # This write buffer store data in wait to send
+            # it on storage on "flush()" call.
+            self._write_buffer = bytearray()
+
         elif mode == 'r':
             self._readable = True
             self._writable = False
+
         else:
             raise ValueError(
                 'Unsupported mode "%s"' % mode)
+
+        self._seekable = True
+
+    @_abstractmethod
+    def flush(self):
+        """
+        Flush the write buffers of the stream if applicable.
+        """
+
+    @_abstractmethod
+    def readinto(self, b):
+        """
+        Read bytes into a pre-allocated, writable bytes-like object b,
+        and return the number of bytes read.
+
+        Args:
+            b (bytes-like object): buffer.
+
+        Returns:
+            int: number of bytes read
+        """
 
     @_abstractmethod
     def getsize(self):
@@ -143,13 +190,14 @@ class RawStorageIO(_io.RawIOBase):
         Returns:
             int: The new absolute position.
         """
-        if whence == _os.SEEK_SET:
-            self._seek = offset
-        elif whence == _os.SEEK_CUR:
-            self._seek += offset
-        elif whence == _os.SEEK_END:
-            self._seek = offset + self.getsize()
-        return self._seek
+        with self._seek_lock:
+            if whence == _os.SEEK_SET:
+                self._seek = offset
+            elif whence == _os.SEEK_CUR:
+                self._seek += offset
+            elif whence == _os.SEEK_END:
+                self._seek = offset + self.getsize()
+            return self._seek
 
     def seekable(self):
         """
@@ -166,7 +214,8 @@ class RawStorageIO(_io.RawIOBase):
 
         Returns:
             int: Stream position."""
-        return self._seek
+        with self._seek_lock:
+            return self._seek
 
     def write(self, b):
         """
@@ -180,12 +229,14 @@ class RawStorageIO(_io.RawIOBase):
             int: The number of bytes written.
         """
         # This function write data in a buffer
-        # This buffer need to be flushed to write content on
+        # "flush()" need to be called really write content on
         # Cloud Storage
         size = len(b)
-        start = self._seek
-        self._seek += size
-        self._write_buffer[start:self._seek] = b
+        with self._seek_lock:
+            start = self._seek
+            end = start + size
+            self._seek = end
+        self._write_buffer[start:end] = b
         return size
 
     def writable(self):
@@ -199,5 +250,30 @@ class RawStorageIO(_io.RawIOBase):
         return self._writable
 
 
-class BufferedStorageIO(_io.BufferedIOBase):
-    """Buffered binary storage I/O"""
+class BufferedObjectIOBase(_io.BufferedIOBase):
+    """Base class for buffered binary cloud storage object I/O"""
+    # TODO: BufferedReader + BufferedIOBase interface
+    _RAW_CLASS = ObjectIOBase
+
+    def __init__(self, name, mode='r', **kwargs):
+        _io.BufferedIOBase.__init__(self)
+
+        self._raw = self._RAW_CLASS(name, mode, **kwargs)
+        self.read1 = self._raw.read
+        self.readinto1 = self._raw.readinto
+
+    @property
+    def raw(self):
+        """
+        The underlying raw stream (a RawIOBase instance) that Buffered IO deals with.
+
+        Returns:
+            io.RawIOBase subclass: Raw stream.
+        """
+        return self._raw
+
+    def detach(self):
+        """Separate the underlying raw stream from the buffer and return it.
+
+        After the raw stream has been detached, the buffer is in an unusable state."""
+        return self._raw
