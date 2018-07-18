@@ -252,10 +252,10 @@ class ObjectIOBase(_io.RawIOBase):
 
 class BufferedObjectIOBase(_io.BufferedIOBase):
     """Base class for buffered binary cloud storage object I/O"""
-    # TODO: BufferedReader + BufferedIOBase interface
+    # TODO: BufferedWriter/BufferedReader or BufferedIOBase interface
     _RAW_CLASS = ObjectIOBase
 
-    def __init__(self, name, mode='r', **kwargs):
+    def __init__(self, name, mode='r', buffer_size=_io.DEFAULT_BUFFER_SIZE, **kwargs):
         _io.BufferedIOBase.__init__(self)
 
         self._raw = self._RAW_CLASS(name, mode, **kwargs)
@@ -265,7 +265,7 @@ class BufferedObjectIOBase(_io.BufferedIOBase):
     @property
     def raw(self):
         """
-        The underlying raw stream (a RawIOBase instance) that Buffered IO deals with.
+        The underlying raw stream that Buffered IO deals with.
 
         Returns:
             io.RawIOBase subclass: Raw stream.
