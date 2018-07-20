@@ -217,7 +217,7 @@ class S3BufferedIO(_ObjectBufferedIOBase):
         # Upload part with workers
         e_tag = self._workers.submit(
             self._client.upload_part,
-            Body=memoryview(self._write_buffer).tobytes(),
+            Body=memoryview(self._write_buffer)[:self._buffer_seek].tobytes(),
             PartNumber=self._seek,
             UploadId=self._multipart_upload.id,
             **self._client_kwargs)
@@ -225,15 +225,11 @@ class S3BufferedIO(_ObjectBufferedIOBase):
         # Save part information
         self._parts.append(dict(ETag=e_tag, PartNumber=self._seek))
 
-        # Clear buffer and and advance part number/seek
-        self._seek += 1
-        self._write_buffer = bytearray(self._buffer_size)
-
     def _close_writable(self):
         """
         Close the object in write mode.
         """
-        # Wait uploads completion
+        # Wait parts upload completion
         for part in self._parts:
             part['ETag'] = part['ETag'].result()
 
@@ -241,6 +237,6 @@ class S3BufferedIO(_ObjectBufferedIOBase):
         self._multipart_upload.complete(
             MultipartUpload={'Parts': self._parts})
 
-        # Clear
+        # Cleanup
         self._multipart_upload = None
         self._parts.clear()

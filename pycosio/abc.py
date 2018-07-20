@@ -192,7 +192,7 @@ class ObjectRawIOBase(_io.RawIOBase, ObjectIOBase):
             self._write_buffer = bytearray()
 
             if 'a' in mode:
-                self._write_buffer[:] = self.readall()
+                memoryview(self._write_buffer)[:] = self.readall()
 
     def flush(self):
         """
@@ -258,7 +258,7 @@ class ObjectRawIOBase(_io.RawIOBase, ObjectIOBase):
         # Copy to bytes-like object
         read_size = len(read_data)
         if read_size:
-            b[:read_size] = read_data
+            memoryview(b)[:read_size] = read_data
 
             # Update stream position if end of file
             if read_size != size:
@@ -303,7 +303,7 @@ class ObjectRawIOBase(_io.RawIOBase, ObjectIOBase):
             start = self._seek
             end = start + size
             self._seek = end
-        self._write_buffer[start:end] = b
+        memoryview(self._write_buffer)[start:end] = b
         return size
 
 
@@ -360,7 +360,10 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
     @_abstractmethod
     def _close_writable(self):
         """
-        Close the object in write mode.
+        Closes the object in write mode.
+
+        Performs any finalization operation required to
+        complete the object writing on the cloud.
         """
 
     def flush(self):
@@ -369,12 +372,23 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
         """
         if self._writable:
             with self._seek_lock:
+                # Write buffer to cloud object
                 self._flush()
+
+                # Clear the buffer
+                self._write_buffer = bytearray(self._buffer_size)
+                self._buffer_seek = 0
+
+                # Advance seek
+                # Seek is number of buffer written
+                self._seek += 1
 
     @_abstractmethod
     def _flush(self):
         """
         Flush the write buffers of the stream if applicable.
+
+        In write mode, send the buffer content to the cloud object.
         """
 
     def getmtime(self):
@@ -530,4 +544,46 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
         if not self._writable:
             raise _io.UnsupportedOperation('write')
 
-        # TODO: Implementation
+        size = len(b)
+        buffer_size = self._buffer_size
+
+        with self._seek_lock:
+            end = self._buffer_seek
+            write_buffer = self._write_buffer
+
+            while size > 0:
+                # Get range to copy
+                start = end
+                end = start + size
+
+                if end > buffer_size:
+                    # End of buffer, need flush after copy
+                    end = buffer_size
+                    flush = True
+                else:
+                    flush = False
+
+                buffer_range = end - start
+
+                # Update not remaining data size
+                size -= buffer_range
+
+                # Copy data
+                memoryview(write_buffer)[start:end] = (
+                    memoryview(b)[-size: -size + buffer_range])
+
+                # Flush buffer if needed
+                if flush:
+                    # Update buffer seek
+                    # Needed to write the good amount of data
+                    self._buffer_seek = end
+
+                    # Flush
+                    self._flush()
+
+                    # Clear buffer
+                    self._write_buffer = bytearray(buffer_size)
+                    end = 0
+
+            # Update buffer seek
+            self._buffer_seek = end
