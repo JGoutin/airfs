@@ -26,7 +26,7 @@ class ObjectIOBase(_io.IOBase):
 
         # Thread safe stream position
         self._seek = 0
-        self._seek_lock = _threading.RLock()
+        self._seek_lock = _threading.Lock()
 
         # Select supported features based on mode
         self._writable = False
@@ -296,7 +296,7 @@ class ObjectRawIOBase(_io.RawIOBase, ObjectIOBase):
             raise _io.UnsupportedOperation('write')
 
         # This function write data in a buffer
-        # "flush()" need to be called really write content on
+        # "flush()" need to be called to really write content on
         # Cloud Storage
         size = len(b)
         with self._seek_lock:
