@@ -1,6 +1,7 @@
 # coding=utf-8
 """Amazon Web Services S3"""
 
+from contextlib import contextmanager as _contextmanager
 import boto3 as _boto3
 from botocore.exceptions import ClientError as _ClientError
 
@@ -9,13 +10,42 @@ from pycosio.abc import (
     ObjectBufferedIOBase as _ObjectBufferedIOBase)
 
 
-# TODO: 404 error handling
+@_contextmanager
+def _handle_io_exceptions():
+    """
+    Handle boto exception and convert to class
+    IO exceptions
+
+    Raises:
+        OSError subclasses: IO error.
+    """
+    try:
+        yield
+
+    except _ClientError as exception:
+        error = exception.response['Error']
+        code = error['Code']
+
+        # File not found
+        if code == '404':
+            raise FileNotFoundError(error['Message'])
+
+        # Unauthorized
+        elif code == '403':
+            raise PermissionError(error['Message'])
 
 
 class S3RawIO(_ObjectRawIOBase):
-    """Binary S3 Object I/O"""
+    """Binary S3 Object I/O
 
-    def __init__(self, name, mode='r', **boto3_session_args):
+    Args:
+        name (str): URL or path to the file which will be opened.
+        mode (str): The mode can be 'r' (default), 'w', 'a'
+            for reading (default), writing or appending
+        boto3_session_kwargs: Boto3 Session keyword arguments.
+    """
+
+    def __init__(self, name, mode='r', **boto3_session_kwargs):
 
         # Splits URL scheme is any
         try:
@@ -29,7 +59,7 @@ class S3RawIO(_ObjectRawIOBase):
 
         # Instantiates S3 client
         self._client = _boto3.session.Session(
-            **boto3_session_args).client("s3")
+            **boto3_session_kwargs).client("s3")
 
         # Prepares S3 I/O functions and common arguments
         self._get_object = self._client.get_object
@@ -46,7 +76,8 @@ class S3RawIO(_ObjectRawIOBase):
         Returns:
             dict: Object metadata.
         """
-        return self._head_object(**self._client_kwargs)
+        with _handle_io_exceptions():
+            return self._head_object(**self._client_kwargs)
 
     def getsize(self):
         """
@@ -73,145 +104,143 @@ class S3RawIO(_ObjectRawIOBase):
         """
         return self._get_metadata()['LastModified'].timestamp()
 
-    def readinto(self, b):
+    def _read_range(self, start, end):
         """
-        Read bytes into a pre-allocated, writable bytes-like object b,
-        and return the number of bytes read.
+        Read a range of bytes in stream.
 
         Args:
-            b (bytes-like object): buffer.
+            start (int): Start stream position.
+            end (int): End stream position.
 
         Returns:
-            int: number of bytes read
+            bytes: number of bytes read
         """
-        # Get and update stream positions
-        size = len(b)
-        with self._seek_lock:
-            start = self._seek
-            end = start + size
-            self._seek = end
-
         # Get object part from S3
         try:
-            response = self._get_object(
-                Range='bytes=%d-%d' % (start, end - 1),
-                **self._client_kwargs)
+            with _handle_io_exceptions():
+                response = self._get_object(
+                    Range='bytes=%d-%d' % (start, end - 1),
+                    **self._client_kwargs)
 
         # Check for end of file
         except _ClientError as exception:
             if exception.response['Error'][
                     'Code'] == 'InvalidRange':
                 # EOF
-                return 0
+                return bytes()
             raise
 
         # Get object content
-        body = response['Body'].read()
-        body_size = len(body)
-        b[:body_size] = body
+        return response['Body'].read()
 
-        # Update stream position if end of file
-        if body_size != size:
-            with self._seek_lock:
-                self._seek = start + body_size
-
-        # Return read size
-        return body_size
-
-    def readall(self):
+    def _readall(self):
         """
         Read and return all the bytes from the stream until EOF.
 
         Returns:
             bytes: Object content
         """
-        with self._seek_lock:
-
-            # Get object starting from seek
+        # Get object from seek to EOF
+        with _handle_io_exceptions():
             if self._seek:
                 response = self._get_object(
                     Range='bytes=%d-' % self._seek,
                     **self._client_kwargs)
 
-            # Get object starting from object start
+            # Get object full content
             else:
-                response = self._get_object(
-                    **self._client_kwargs)
+                response = self._get_object(**self._client_kwargs)
 
-            # Get object content
-            body = response['Body'].read()
+        # Get object content
+        return response['Body'].read()
 
-            # Update stream position
-            self._seek += len(body)
-            return body
-
-    def flush(self):
+    def _flush(self):
         """
         Flush the write buffers of the stream if applicable.
         """
-        # This send to S3 the entire file
-        self._put_object(
-            Body=memoryview(self._write_buffer).tobytes(),
-            **self._client_kwargs)
+        # Sends to S3 the entire file at once
+        with _handle_io_exceptions():
+            self._put_object(
+                Body=memoryview(self._write_buffer).tobytes(),
+                **self._client_kwargs)
 
 
 class S3BufferedIO(_ObjectBufferedIOBase):
-    """Buffered binary S3 Object I/O"""
-    # TODO: implement write with "multipart upload"
+    """Buffered binary S3 Object I/O
+
+    Args:
+        name (str): URL or path to the file which will be opened.
+        mode (str): The mode can be 'r' (default), 'w'.
+            for reading (default) or writing
+        max_workers (int): The maximum number of threads that can be used to
+            execute the given calls.
+        workers_type (str): Parallel workers type: 'thread' or 'process'.
+        boto3_session_kwargs: Boto3 Session keyword arguments.
+    """
+
     _RAW_CLASS = S3RawIO
 
-    def __init__(self, *args, **kwargs):
-        _ObjectBufferedIOBase.__init__(self, *args, **kwargs)
+    #: Default buffer_size value in bytes (Use Boto3 8MB default value)
+    DEFAULT_BUFFER_SIZE = 8388608
+
+    def __init__(self, name, mode='r', buffer_size=None,
+                 max_workers=None, workers_type='thread',
+                 **boto3_session_kwargs):
+
+        _ObjectBufferedIOBase.__init__(
+            self, name, mode=mode, buffer_size=buffer_size,
+            max_workers=max_workers, workers_type=workers_type,
+            **boto3_session_kwargs)
+
+        # Use multipart upload as write buffered mode
+        if self._writable:
+            self._multipart_upload = None
+            self._parts = []
 
         # Use same client as RAW class, but keep theses names
         # protected to this module
         self._client = self._raw._client
         self._client_kwargs = self._raw._client_kwargs
-        self._multipart_upload = None
-        self._parts = []
 
-    def _flush(self, end_of_object=False):
+    def _flush(self):
         """
         Flush the write buffers of the stream.
-
-        Args:
-            end_of_object (bool): If True, mark the writing as completed.
-                Any following write will start from the start of object.
         """
-        with self._seek_lock:
-            # Initialize multi-part upload
-            if not self._write_initialized:
-                self._seek = 1
+        # Initialize multi-part upload
+        if self._multipart_upload is None:
+            self._seek = 0
+            with _handle_io_exceptions():
                 self._multipart_upload = self._client.Bucket(
                     self._client_kwargs['Bucket']).Object(
                         self._client_kwargs['Key']).initiate_multipart_upload()
 
-            # Upload part with workers
-            e_tag = self._workers.submit(
-                self._client.upload_part,
-                Body=memoryview(self._write_buffer).tobytes(),
-                PartNumber=self._seek,
-                UploadId=self._multipart_upload.id,
-                **self._client_kwargs)
+        # Upload part with workers
+        e_tag = self._workers.submit(
+            self._client.upload_part,
+            Body=memoryview(self._write_buffer).tobytes(),
+            PartNumber=self._seek,
+            UploadId=self._multipart_upload.id,
+            **self._client_kwargs)
 
-            # Save part information
-            self._parts.append(dict(ETag=e_tag, PartNumber=self._seek))
+        # Save part information
+        self._parts.append(dict(ETag=e_tag, PartNumber=self._seek))
 
-            # Clear buffer and and advance part number/seek
-            self._seek += 1
-            self._write_buffer = bytearray(self._buffer_size)
+        # Clear buffer and and advance part number/seek
+        self._seek += 1
+        self._write_buffer = bytearray(self._buffer_size)
 
-            # Complete multi-part upload
-            if end_of_object:
+    def _close_writable(self):
+        """
+        Close the object in write mode.
+        """
+        # Wait uploads completion
+        for part in self._parts:
+            part['ETag'] = part['ETag'].result()
 
-                # Wait uploads completion
-                for part in self._parts:
-                    part['ETag'] = part['ETag'].result()
+        # Complete multipart upload
+        self._multipart_upload.complete(
+            MultipartUpload={'Parts': self._parts})
 
-                # Complete multipart upload
-                self._multipart_upload.complete(
-                    MultipartUpload={'Parts': self._parts})
-
-                # Clear
-                self._multipart_upload = None
-                self._parts.clear()
+        # Clear
+        self._multipart_upload = None
+        self._parts.clear()
