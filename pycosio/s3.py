@@ -4,15 +4,15 @@
 import boto3 as _boto3
 from botocore.exceptions import ClientError as _ClientError
 
-from cloudstorageio import (
-    ObjectIOBase as _ObjectIOBase,
-    BufferedObjectIOBase as _BufferedObjectIOBase)
+from pycosio.abc import (
+    ObjectRawIOBase as _ObjectRawIOBase,
+    ObjectBufferedIOBase as _ObjectBufferedIOBase)
 
 
 # TODO: 404 error handling
 
 
-class S3ObjectIO(_ObjectIOBase):
+class S3RawIO(_ObjectRawIOBase):
     """Binary S3 Object I/O"""
 
     def __init__(self, name, mode='r', **boto3_session_args):
@@ -25,7 +25,7 @@ class S3ObjectIO(_ObjectIOBase):
             name = 's3://' + path
 
         # Initializes storage
-        _ObjectIOBase.__init__(self, name, mode)
+        _ObjectRawIOBase.__init__(self, name, mode)
 
         # Instantiates S3 client
         self._client = _boto3.session.Session(
@@ -99,8 +99,8 @@ class S3ObjectIO(_ObjectIOBase):
 
         # Check for end of file
         except _ClientError as exception:
-            error_code = exception.response['Error']['Code']
-            if error_code == 'InvalidRange':
+            if exception.response['Error'][
+                    'Code'] == 'InvalidRange':
                 # EOF
                 return 0
             raise
@@ -155,7 +155,63 @@ class S3ObjectIO(_ObjectIOBase):
             **self._client_kwargs)
 
 
-class S3BufferedObjectIO(_BufferedObjectIOBase):
+class S3BufferedIO(_ObjectBufferedIOBase):
     """Buffered binary S3 Object I/O"""
     # TODO: implement write with "multipart upload"
-    _RAW_CLASS = S3ObjectIO
+    _RAW_CLASS = S3RawIO
+
+    def __init__(self, *args, **kwargs):
+        _ObjectBufferedIOBase.__init__(self, *args, **kwargs)
+
+        # Use same client as RAW class, but keep theses names
+        # protected to this module
+        self._client = self._raw._client
+        self._client_kwargs = self._raw._client_kwargs
+        self._multipart_upload = None
+        self._parts = []
+
+    def _flush(self, end_of_object=False):
+        """
+        Flush the write buffers of the stream.
+
+        Args:
+            end_of_object (bool): If True, mark the writing as completed.
+                Any following write will start from the start of object.
+        """
+        with self._seek_lock:
+            # Initialize multi-part upload
+            if not self._write_initialized:
+                self._seek = 1
+                self._multipart_upload = self._client.Bucket(
+                    self._client_kwargs['Bucket']).Object(
+                        self._client_kwargs['Key']).initiate_multipart_upload()
+
+            # Upload part with workers
+            e_tag = self._workers.submit(
+                self._client.upload_part,
+                Body=memoryview(self._write_buffer).tobytes(),
+                PartNumber=self._seek,
+                UploadId=self._multipart_upload.id,
+                **self._client_kwargs)
+
+            # Save part information
+            self._parts.append(dict(ETag=e_tag, PartNumber=self._seek))
+
+            # Clear buffer and and advance part number/seek
+            self._seek += 1
+            self._write_buffer = bytearray(self._buffer_size)
+
+            # Complete multi-part upload
+            if end_of_object:
+
+                # Wait uploads completion
+                for part in self._parts:
+                    part['ETag'] = part['ETag'].result()
+
+                # Complete multipart upload
+                self._multipart_upload.complete(
+                    MultipartUpload={'Parts': self._parts})
+
+                # Clear
+                self._multipart_upload = None
+                self._parts.clear()

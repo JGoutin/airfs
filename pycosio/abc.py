@@ -1,65 +1,23 @@
 # coding=utf-8
-"""Cloud storage I/O"""
+"""Cloud storage abstract classes"""
 
 from abc import abstractmethod as _abstractmethod
 import io as _io
 import os as _os
 import threading as _threading
-
-# TODO: OSError for function depending on seekable, writable, ...
-# TODO: Check full exception, and IO interface behavior
-# TODO: Text IO wrapper
-# TODO: Auto sub class selection (open)
-
-# Generic functions to implement
+import concurrent.futures as _futures
 
 
-def open():
-    """"""
-
-
-def copy():
-    """"""
-
-
-def getsize(path):
+class ObjectIOBase(_io.IOBase):
     """
-    Return the size, in bytes, of path.
+    Base class to handle cloud object.
 
-    Returns:
-        int: Size in bytes.
-
-    Raises:
-         OSError: if the file does not exist or is inaccessible.
+    Args:
+        name (str): URL or path to the file which will be opened.
+        mode (str): The mode can be 'r' (default), 'w', 'x', 'a'
+            for reading (default), writing, exclusive creation or appending
+            Add a '+' to the mode to allow simultaneous reading and writing.
     """
-
-
-def getmtime(path):
-    """
-    Return the time of last access of path.
-
-    Returns:
-        float: The number of seconds since the epoch
-            (see the time module).
-
-    Raises:
-         OSError: if the file does not exist or is inaccessible.
-    """
-
-
-def listdir(self):
-    """"""
-
-
-def exists(self, path):
-    """"""
-
-
-# Storage classes
-# TODO: Move to cloudstorageio.abc
-
-class _ObjectBase(_io.IOBase):
-    """Base class to handle cloud object."""
 
     def __init__(self, name, mode='r'):
         _io.IOBase.__init__(self)
@@ -158,13 +116,13 @@ class _ObjectBase(_io.IOBase):
         return self._writable
 
 
-class ObjectIOBase(_io.RawIOBase, _ObjectBase):
+class ObjectRawIOBase(_io.RawIOBase, ObjectIOBase):
     """Base class for binary cloud storage object I/O.
 
     In write mode, this class needs enough memory to store the entire object
     to write. In append mode, the cloud object is read and stored in memory
     on instantiation.
-    For big objects use BufferedObjectIOBase that can performs operations
+    For big objects use ObjectBufferedIOBase that can performs operations
     with less memory.
 
     In read mode, this class random access to the cloud object and
@@ -177,13 +135,12 @@ class ObjectIOBase(_io.RawIOBase, _ObjectBase):
         name (str): URL or path to the file which will be opened.
         mode (str): The mode can be 'r' (default), 'w', 'x', 'a'
             for reading (default), writing, exclusive creation or appending
-            writing, exclusive creation.
             Add a '+' to the mode to allow simultaneous reading and writing.
     """
 
     def __init__(self, name, mode='r', **_):
         _io.RawIOBase.__init__(self)
-        _ObjectBase.__init__(self, name, mode=mode)
+        ObjectIOBase.__init__(self, name, mode=mode)
 
         if self._writable:
             # In write mode, since it is not possible
@@ -279,29 +236,66 @@ class ObjectIOBase(_io.RawIOBase, _ObjectBase):
         return size
 
 
-class BufferedObjectIOBase(_io.BufferedIOBase, _ObjectBase):
-    """Base class for buffered binary cloud storage object I/O"""
-    _RAW_CLASS = ObjectIOBase
+class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
+    """
+    Base class for buffered binary cloud storage object I/O
 
-    def __init__(self, name, mode='r', buffer_size=_io.DEFAULT_BUFFER_SIZE, **kwargs):
+    Args:
+        name (str): URL or path to the file which will be opened.
+        mode (str): The mode can be 'r' (default), 'w', 'x'
+            for reading (default), writing, exclusive creation
+        max_workers (int): The maximum number of threads that can be used to
+            execute the given calls.
+        workers_type (str): Parallel workers type: 'thread' or 'process'.
+    """
+    _RAW_CLASS = ObjectRawIOBase
+
+    def __init__(self, name, mode='r', buffer_size=_io.DEFAULT_BUFFER_SIZE,
+                 max_workers=None, workers_type='thread', **kwargs):
+
+        # Instantiate raw IO
         self._raw = self._RAW_CLASS(name, mode=mode, **kwargs)
-        _io.BufferedIOBase.__init__(self)
-        _ObjectBase.__init__(self, name, mode=mode)
 
+        # Initialize class
+        _io.BufferedIOBase.__init__(self)
+        ObjectIOBase.__init__(self, name, mode=mode)
+
+        # Initialize parallel processing
+        self._workers_pool = None
+        self._workers_count = max_workers
+        self._workers_type = workers_type
+
+        # Initialize write mode
         if self._writable:
             self._write_buffer = bytearray(buffer_size)
             self._buffer_seek = 0
             self._buffer_size = buffer_size
-            self._part_number = 1
             self._seekable = False
             self._write_initialized = False
 
     @property
-    def raw(self):
-        """The underlying raw stream
+    def _workers(self):
+        """Executor pool
 
         Returns:
-            ObjectIOBase subclass: Raw stream.
+            concurrent.futures.Executor: Executor pool"""
+        # Lazy instantiate workers pool on first call
+        if self._workers_pool is None:
+            self._workers_pool = (
+                _futures.ThreadPoolExecutor if self._workers_type == 'thread'
+                else _futures.ProcessPoolExecutor)(
+                max_worker=self._workers_count)
+
+        # Get worker pool
+        return self._workers_pool
+
+    @property
+    def raw(self):
+        """
+        The underlying raw stream
+
+        Returns:
+            ObjectRawIOBase subclass: Raw stream.
         """
         return self._raw
 
@@ -345,24 +339,28 @@ class BufferedObjectIOBase(_io.BufferedIOBase, _ObjectBase):
 
     @_abstractmethod
     def read(self, size=-1):
-        """Read and return up to size bytes,
+        """
+        Read and return up to size bytes,
         with at most one call to the underlying raw stream’s.
 
         Use at most one call to the underlying raw stream’s read method.
 
         Args:
             size (int): Number of bytes to read. -1 to read the
-                stream until end."""
+                stream until end.
+        """
 
     def read1(self, size=-1):
-        """Read and return up to size bytes,
+        """
+        Read and return up to size bytes,
         with at most one call to the underlying raw stream’s.
 
         Use at most one call to the underlying raw stream’s read method.
 
         Args:
             size (int): Number of bytes to read. -1 to read the
-                stream until end."""
+                stream until end.
+        """
         return self._raw.read(size)
 
     @_abstractmethod
