@@ -25,14 +25,12 @@ def _handle_io_exceptions():
     except _ClientError as exception:
         error = exception.response['Error']
         code = error['Code']
-
-        # File not found
-        if code == '404':
-            raise FileNotFoundError(error['Message'])
-
-        # Unauthorized
-        elif code == '403':
-            raise PermissionError(error['Message'])
+        exc_type = {
+            '404': FileNotFoundError,
+            '403': PermissionError}.get(code)
+        if exc_type is not None:
+            raise exc_type(error['Message'])
+        raise
 
 
 class S3RawIO(_ObjectRawIOBase):
@@ -215,15 +213,15 @@ class S3BufferedIO(_ObjectBufferedIOBase):
                         self._client_kwargs['Key']).initiate_multipart_upload()
 
         # Upload part with workers
+        part_number = self._seek + 1
         e_tag = self._workers.submit(
             self._client.upload_part,
             Body=memoryview(self._write_buffer)[:self._buffer_seek].tobytes(),
-            PartNumber=self._seek,
-            UploadId=self._multipart_upload.id,
+            PartNumber=part_number, UploadId=self._multipart_upload.id,
             **self._client_kwargs)
 
         # Save part information
-        self._parts.append(dict(ETag=e_tag, PartNumber=self._seek))
+        self._parts.append(dict(ETag=e_tag, PartNumber=part_number))
 
     def _close_writable(self):
         """

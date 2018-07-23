@@ -218,16 +218,18 @@ def test_object_buffered_base_io():
     # TODO: implementation
 
     # Tests write
-    assert not len(flushed)
+    assert bytes(flushed) == b''
     object_io = DummyBufferedIO(name, mode='w')
     assert object_io.write(250 * one_byte) == 250
     assert object_io._buffer_seek == 50
+    assert bytes(object_io._write_buffer) == 50 * one_byte + 50 * b'\x00'
     assert object_io._seek == 2
     assert len(flushed) == 200
+    assert bytes(flushed) == 200 * one_byte
 
     object_io.flush()
     assert object_io._seek == 3
-    assert len(flushed) == 250
+    assert bytes(flushed) == 250 * one_byte
     assert object_io._buffer_seek == 0
 
     # Test read in write mode

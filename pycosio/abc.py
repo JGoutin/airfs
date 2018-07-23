@@ -257,10 +257,10 @@ class ObjectRawIOBase(_io.RawIOBase, ObjectIOBase):
         if read_size:
             memoryview(b)[:read_size] = read_data
 
-            # Update stream position if end of file
-            if read_size != size:
-                with self._seek_lock:
-                    self._seek = start + read_size
+        # Update stream position if end of file
+        if read_size != size:
+            with self._seek_lock:
+                self._seek = start + read_size
 
         # Return read size
         return read_size
@@ -331,6 +331,8 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
 
         # Instantiate raw IO
         self._raw = self._RAW_CLASS(name, mode=mode, **kwargs)
+        self._mode = self._raw.mode
+        self._name = self._raw.name
 
         # Initialize class
         _io.BufferedIOBase.__init__(self)
@@ -533,12 +535,13 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
             raise _io.UnsupportedOperation('write')
 
         size = len(b)
+        b_view = memoryview(b)
         size_left = size
         buffer_size = self._buffer_size
 
         with self._seek_lock:
             end = self._buffer_seek
-            write_buffer = self._write_buffer
+            buffer_view = memoryview(self._write_buffer)
 
             while size_left > 0:
                 # Get range to copy
@@ -559,8 +562,8 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
                 size_left -= buffer_range
 
                 # Copy data
-                memoryview(write_buffer)[start:end] = (
-                    memoryview(b)[b_start: b_start + buffer_range])
+                buffer_view[start:end] = (
+                    b_view[b_start: b_start + buffer_range])
 
                 # Flush buffer if needed
                 if flush:
@@ -577,6 +580,7 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
 
                     # Clear buffer
                     self._write_buffer = bytearray(buffer_size)
+                    buffer_view = memoryview(self._write_buffer)
                     end = 0
 
             # Update buffer seek
