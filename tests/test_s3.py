@@ -182,36 +182,28 @@ def test_s3_buffered_io():
     client_args = dict(Bucket=bucket, Key=key_value)
     path = '%s/%s' % (bucket, key_value)
 
-    class DummyMultipartUpload:
-        """Dummy Multipart"""
-        id = 123
+    class Client:
+        """Dummy client"""
 
         @staticmethod
-        def complete(**kwargs):
-            """Check result"""
+        def create_multipart_upload(**kwargs):
+            """Checks arguments and returns fake result"""
+            for key, value in client_args.items():
+                assert key in kwargs
+                assert kwargs[key] == value
+            return dict(UploadId=123)
+
+        @staticmethod
+        def complete_multipart_upload(**kwargs):
+            """Checks arguments and returns fake result"""
+            for key, value in client_args.items():
+                assert key in kwargs
+                assert kwargs[key] == value
             uploaded_parts = kwargs['MultipartUpload']['Parts']
             assert 10 == len(uploaded_parts)
             for index, part in enumerate(uploaded_parts):
                 assert part['PartNumber'] == index + 1
                 assert part['ETag'] == 456
-
-    class Client:
-        """Dummy client"""
-        class Bucket:
-
-            """Dummy Bucket"""
-            def __init__(self, bucket_name):
-                assert bucket_name == bucket
-
-            class Object:
-                """Dummy object"""
-                def __init__(self, key):
-                    assert key == key_value
-
-                @staticmethod
-                def initiate_multipart_upload():
-                    """Returns fake result"""
-                    return DummyMultipartUpload()
 
         @staticmethod
         def upload_part(**kwargs):
@@ -224,7 +216,7 @@ def test_s3_buffered_io():
             for key, value in client_args.items():
                 assert key in kwargs
                 assert kwargs[key] == value
-            return 456
+            return dict(ETag=456)
 
     s3object = S3BufferedIO(path, mode='w')
     s3object._client = Client()

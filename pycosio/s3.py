@@ -192,7 +192,7 @@ class S3BufferedIO(_ObjectBufferedIOBase):
 
         # Use multipart upload as write buffered mode
         if self._writable:
-            self._multipart_upload = None
+            self._upload_id = None
             self._parts = []
 
         # Use same client as RAW class, but keep theses names
@@ -205,23 +205,22 @@ class S3BufferedIO(_ObjectBufferedIOBase):
         Flush the write buffers of the stream.
         """
         # Initialize multi-part upload
-        if self._multipart_upload is None:
+        if self._upload_id is None:
             self._seek = 0
             with _handle_io_exceptions():
-                self._multipart_upload = self._client.Bucket(
-                    self._client_kwargs['Bucket']).Object(
-                        self._client_kwargs['Key']).initiate_multipart_upload()
+                self._upload_id = self._client.create_multipart_upload(
+                    **self._client_kwargs)['UploadId']
 
         # Upload part with workers
         part_number = self._seek + 1
-        e_tag = self._workers.submit(
+        response = self._workers.submit(
             self._client.upload_part,
             Body=memoryview(self._write_buffer)[:self._buffer_seek].tobytes(),
-            PartNumber=part_number, UploadId=self._multipart_upload.id,
+            PartNumber=part_number, UploadId=self._upload_id,
             **self._client_kwargs)
 
         # Save part information
-        self._parts.append(dict(ETag=e_tag, PartNumber=part_number))
+        self._parts.append(dict(response=response, PartNumber=part_number))
 
     def _close_writable(self):
         """
@@ -229,12 +228,14 @@ class S3BufferedIO(_ObjectBufferedIOBase):
         """
         # Wait parts upload completion
         for part in self._parts:
-            part['ETag'] = part['ETag'].result()
+            part['ETag'] = part.pop('response').result()['ETag']
 
         # Complete multipart upload
-        self._multipart_upload.complete(
-            MultipartUpload={'Parts': self._parts})
+        self._client.complete_multipart_upload(
+            MultipartUpload={'Parts': self._parts},
+            UploadId=self._upload_id,
+            **self._client_kwargs)
 
         # Cleanup
-        self._multipart_upload = None
+        self._upload_id = None
         self._parts.clear()
