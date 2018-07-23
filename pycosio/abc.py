@@ -189,10 +189,11 @@ class ObjectRawIOBase(_io.RawIOBase, ObjectIOBase):
             # The full file needs to be write at once.
             # This write buffer store data in wait to send
             # it on storage on "flush()" call.
-            self._write_buffer = bytearray()
-
             if 'a' in mode:
+                self._write_buffer = bytearray(self.getsize())
                 memoryview(self._write_buffer)[:] = self.readall()
+            else:
+                self._write_buffer = bytearray()
 
     def flush(self):
         """
@@ -227,12 +228,7 @@ class ObjectRawIOBase(_io.RawIOBase, ObjectIOBase):
         Returns:
             bytes: Object content
         """
-        # This method is not abstract because it is possible to
-        # use RawIOBase behavior By default
-        # (uses "readinto" to performs "readall").
-        # But this may no be optimal and should be overriden if
-        # better specific implementation exists.
-        return _io.RawIOBase.readall(self)
+        return self._read_range(self._seek, self.getsize())
 
     def readinto(self, b):
         """
@@ -303,7 +299,11 @@ class ObjectRawIOBase(_io.RawIOBase, ObjectIOBase):
             start = self._seek
             end = start + size
             self._seek = end
-        memoryview(self._write_buffer)[start:end] = b
+
+        buffer = self._write_buffer
+        if end <= len(buffer):
+            buffer = memoryview(buffer)
+        buffer[start:end] = b
         return size
 
 
@@ -380,7 +380,7 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
                 self._buffer_seek = 0
 
                 # Advance seek
-                # Seek is number of buffer written
+                # This is the number of buffer flushed
                 self._seek += 1
 
     @_abstractmethod
@@ -501,19 +501,6 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
         """
         return self._raw.readinto(b)
 
-    def tell(self):
-        """Return the current stream position.
-
-        Returns:
-            int: Stream position."""
-        with self._seek_lock:
-            if self._writable:
-                # Seek is number the number of buffer written
-                # So current position in bytes is:
-                # number_of_written_buffer * buffer_size + current_buffer_seek
-                return self._seek * self._buffer_size + self._buffer_seek
-            return self._seek
-
     @property
     def _workers(self):
         """Executor pool
@@ -525,7 +512,7 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
             self._workers_pool = (
                 _futures.ThreadPoolExecutor if self._workers_type == 'thread'
                 else _futures.ProcessPoolExecutor)(
-                max_worker=self._workers_count)
+                max_workers=self._workers_count)
 
         # Get worker pool
         return self._workers_pool
@@ -545,16 +532,17 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
             raise _io.UnsupportedOperation('write')
 
         size = len(b)
+        size_left = size
         buffer_size = self._buffer_size
 
         with self._seek_lock:
             end = self._buffer_seek
             write_buffer = self._write_buffer
 
-            while size > 0:
+            while size_left > 0:
                 # Get range to copy
                 start = end
-                end = start + size
+                end = start + size_left
 
                 if end > buffer_size:
                     # End of buffer, need flush after copy
@@ -566,11 +554,12 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
                 buffer_range = end - start
 
                 # Update not remaining data size
-                size -= buffer_range
+                b_start = size - size_left
+                size_left -= buffer_range
 
                 # Copy data
                 memoryview(write_buffer)[start:end] = (
-                    memoryview(b)[-size: -size + buffer_range])
+                    memoryview(b)[b_start: b_start + buffer_range])
 
                 # Flush buffer if needed
                 if flush:
@@ -581,9 +570,14 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
                     # Flush
                     self._flush()
 
+                    # Update global seek, this is the number
+                    # of buffer flushed
+                    self._seek += 1
+
                     # Clear buffer
                     self._write_buffer = bytearray(buffer_size)
                     end = 0
 
             # Update buffer seek
             self._buffer_seek = end
+            return size

@@ -140,8 +140,8 @@ class S3RawIO(_ObjectRawIOBase):
         Returns:
             bytes: Object content
         """
-        # Get object from seek to EOF
         with _handle_io_exceptions():
+            # Get object from seek to EOF
             if self._seek:
                 response = self._get_object(
                     Range='bytes=%d-' % self._seek,
