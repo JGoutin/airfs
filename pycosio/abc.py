@@ -1,5 +1,6 @@
 # coding=utf-8
 """Cloud storage abstract classes"""
+from __future__ import absolute_import
 
 from abc import abstractmethod as _abstractmethod
 import io as _io
