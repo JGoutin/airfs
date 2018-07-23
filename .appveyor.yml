@@ -1,0 +1,27 @@
+environment:
+    matrix:
+        - PYTHON: "C:\\Python37-x64"
+        - PYTHON: "C:\\Python36-x64"
+        - PYTHON: "C:\\Python35-x64"
+        - PYTHON: "C:\\Python34-x64"
+        - PYTHON: "C:\\Python27-x64"
+platform:
+    - x64
+
+build: off
+
+install:
+    # Python environment
+    - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+    - "python -m pip install --upgrade setuptools pip wheel pytest coverage pytest-cov codecov"
+
+    # Installs all package dependencies
+    - "python -m pip install -e .[all]"
+
+test_script:
+    # Runs tests
+    - "py.test -v --cov=pycosio --cov-report=term-missing"
+
+after_test:
+    # Sends coverage to codecov.io
+    - "codecov"
