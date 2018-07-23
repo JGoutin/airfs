@@ -33,6 +33,16 @@ def _handle_io_exceptions():
         raise
 
 
+def _upload_part(**kwargs):
+    """
+    Upload part with picklable S3 client
+
+    Args:
+        kwargs: see boto3 upload_part
+    """
+    return _boto3.client('s3').upload_part(**kwargs)
+
+
 class S3RawIO(_ObjectRawIOBase):
     """Binary S3 Object I/O
 
@@ -200,6 +210,11 @@ class S3BufferedIO(_ObjectBufferedIOBase):
         self._client = self._raw._client
         self._client_kwargs = self._raw._client_kwargs
 
+        # Multi processing needs external function
+        self._upload_part = (
+            self._client.upload_part
+            if self._workers_type == 'thread' else _upload_part)
+
     def _flush(self):
         """
         Flush the write buffers of the stream.
@@ -214,7 +229,7 @@ class S3BufferedIO(_ObjectBufferedIOBase):
         # Upload part with workers
         part_number = self._seek + 1
         response = self._workers.submit(
-            self._client.upload_part,
+            self._upload_part,
             Body=memoryview(self._write_buffer)[:self._buffer_seek].tobytes(),
             PartNumber=part_number, UploadId=self._upload_id,
             **self._client_kwargs)
