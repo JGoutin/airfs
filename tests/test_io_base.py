@@ -149,6 +149,10 @@ def test_object_raw_base_io():
     assert object_io.tell() == size
     assert bytes(object_io._write_buffer) == size * one_byte
 
+    # Test HTTP range
+    assert ObjectRawIOBase._http_range(10, 50) == 'bytes=10-49'
+    assert ObjectRawIOBase._http_range(10) == 'bytes=10-'
+
 
 def test_object_buffered_base_io():
     """Tests pycosio.io_base.ObjectBufferedIOBase"""
@@ -224,6 +228,7 @@ def test_object_buffered_base_io():
     assert object_io.write(250 * one_byte) == 250
     assert object_io._buffer_seek == 50
     assert bytes(object_io._write_buffer) == 50 * one_byte + 50 * b'\x00'
+    assert object_io._get_buffer().tobytes() == 50 * one_byte
     assert object_io._seek == 2
     assert len(flushed) == 200
     assert bytes(flushed) == 200 * one_byte

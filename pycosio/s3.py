@@ -126,7 +126,7 @@ class S3RawIO(_ObjectRawIOBase):
         try:
             with _handle_io_exceptions():
                 response = self._get_object(
-                    Range='bytes=%d-%d' % (start, end - 1),
+                    Range=self._http_range(start, end),
                     **self._client_kwargs)
 
         # Check for end of file
@@ -151,7 +151,7 @@ class S3RawIO(_ObjectRawIOBase):
             # Get object from seek to EOF
             if self._seek:
                 response = self._get_object(
-                    Range='bytes=%d-' % self._seek,
+                    Range=self._http_range(self._seek),
                     **self._client_kwargs)
 
             # Get object full content
@@ -223,21 +223,18 @@ class S3BufferedIO(_ObjectBufferedIOBase):
         """
         # Initialize multi-part upload
         if self._upload_id is None:
-            self._seek = 0
             with _handle_io_exceptions():
                 self._upload_id = self._client.create_multipart_upload(
                     **self._client_kwargs)['UploadId']
 
         # Upload part with workers
-        part_number = self._seek + 1
         response = self._workers.submit(
-            self._upload_part,
-            Body=memoryview(self._write_buffer)[:self._buffer_seek].tobytes(),
-            PartNumber=part_number, UploadId=self._upload_id,
+            self._upload_part, Body=self._get_buffer().tobytes(),
+            PartNumber=self._seek, UploadId=self._upload_id,
             **self._client_kwargs)
 
         # Save part information
-        self._parts.append(dict(response=response, PartNumber=part_number))
+        self._parts.append(dict(response=response, PartNumber=self._seek))
 
     def _close_writable(self):
         """
@@ -252,7 +249,3 @@ class S3BufferedIO(_ObjectBufferedIOBase):
             MultipartUpload={'Parts': self._parts},
             UploadId=self._upload_id,
             **self._client_kwargs)
-
-        # Cleanup
-        self._upload_id = None
-        self._parts = []

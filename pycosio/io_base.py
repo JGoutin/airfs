@@ -209,6 +209,21 @@ class ObjectRawIOBase(_io.RawIOBase, ObjectIOBase):
         Flush the write buffers of the stream if applicable.
         """
 
+    @staticmethod
+    def _http_range(start=0, end=0):
+        """
+        Returns an HTTP Range request for a specified python range.
+
+        Args:
+            start (int): Start of the range.
+            end (int): End of the range. 0 To not specify end.
+        Returns:
+            str: range.
+        """
+        if end:
+            return 'bytes=%d-%d' % (start, end - 1)
+        return 'bytes=%d-' % start
+
     def readall(self):
         """
         Read and return all the bytes from the stream until EOF.
@@ -361,6 +376,7 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
         """
         if self._writable:
             with self._seek_lock:
+                self._seek += 1
                 self._flush()
                 self._close_writable()
 
@@ -379,16 +395,17 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
         """
         if self._writable:
             with self._seek_lock:
+                # Advance seek
+                # This is the number of buffer flushed
+                # including the current one
+                self._seek += 1
+
                 # Write buffer to cloud object
                 self._flush()
 
                 # Clear the buffer
                 self._write_buffer = bytearray(self._buffer_size)
                 self._buffer_seek = 0
-
-                # Advance seek
-                # This is the number of buffer flushed
-                self._seek += 1
 
     @_abstractmethod
     def _flush(self):
@@ -397,6 +414,16 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
 
         In write mode, send the buffer content to the cloud object.
         """
+
+    def _get_buffer(self):
+        """
+        Get a memory view of the current write buffer
+        until its seek value.
+
+        Returns:
+            memoryview: buffer view.
+        """
+        return memoryview(self._write_buffer)[:self._buffer_seek]
 
     def getmtime(self):
         """
@@ -575,12 +602,12 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
                     # Needed to write the good amount of data
                     self._buffer_seek = end
 
-                    # Flush
-                    self._flush()
-
                     # Update global seek, this is the number
                     # of buffer flushed
                     self._seek += 1
+
+                    # Flush
+                    self._flush()
 
                     # Clear buffer
                     self._write_buffer = bytearray(buffer_size)
