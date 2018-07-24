@@ -45,6 +45,7 @@ PACKAGE_INFO = dict(
     install_requires=['setuptools', 'futures; python_version == "2.7"'],
     extras_require={
         # Storage specific requirements
+        'http': ['requests'],
         's3': ['boto3']},
     setup_requires=['setuptools'],
     tests_require=['pytest'],
