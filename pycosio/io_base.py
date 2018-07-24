@@ -14,7 +14,7 @@ class ObjectIOBase(_io.IOBase):
 
     Args:
         name (str): URL or path to the file which will be opened.
-        mode (str): The mode can be 'r' (default), 'w', 'a'
+        mode (str): The mode can be 'r', 'w', 'a'
             for reading (default), writing or appending
     """
 
@@ -175,7 +175,7 @@ class ObjectRawIOBase(_io.RawIOBase, ObjectIOBase):
 
     Args:
         name (str): URL or path to the file which will be opened.
-        mode (str): The mode can be 'r' (default), 'w', 'a'
+        mode (str): The mode can be 'r', 'w', 'a'
             for reading (default), writing or appending
     """
 
@@ -216,7 +216,8 @@ class ObjectRawIOBase(_io.RawIOBase, ObjectIOBase):
 
         Args:
             start (int): Start of the range.
-            end (int): End of the range. 0 To not specify end.
+            end (int): End of the range.
+                0 To not specify end.
         Returns:
             str: range.
         """
@@ -232,7 +233,15 @@ class ObjectRawIOBase(_io.RawIOBase, ObjectIOBase):
             bytes: Object content
         """
         with self._seek_lock:
-            data = self._readall()
+            # Get data starting from seek
+            if self._seek and self._seekable:
+                data = self._read_range(self._seek)
+
+            # Get all data
+            else:
+                data = self._readall()
+
+            # Update seek
             self._seek += len(data)
         return data
 
@@ -243,7 +252,7 @@ class ObjectRawIOBase(_io.RawIOBase, ObjectIOBase):
         Returns:
             bytes: Object content
         """
-        return self._read_range(self._seek, self.getsize())
+        return self._read_range(0)
 
     def readinto(self, b):
         """
@@ -280,13 +289,14 @@ class ObjectRawIOBase(_io.RawIOBase, ObjectIOBase):
         return read_size
 
     @_abstractmethod
-    def _read_range(self, start, end):
+    def _read_range(self, start, end=0):
         """
         Read a range of bytes in stream.
 
         Args:
             start (int): Start stream position.
             end (int): End stream position.
+                0 To not specify end.
 
         Returns:
             bytes: number of bytes read

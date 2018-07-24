@@ -47,7 +47,7 @@ class S3RawIO(_ObjectRawIOBase):
 
     Args:
         name (str): URL or path to the file which will be opened.
-        mode (str): The mode can be 'r' (default), 'w', 'a'
+        mode (str): The mode can be 'r', 'w', 'a'
             for reading (default), writing or appending
         boto3_session_kwargs: Boto3 Session keyword arguments.
     """
@@ -111,13 +111,14 @@ class S3RawIO(_ObjectRawIOBase):
         """
         return _to_timestamp(self._get_metadata()['LastModified'])
 
-    def _read_range(self, start, end):
+    def _read_range(self, start, end=0):
         """
         Read a range of bytes in stream.
 
         Args:
             start (int): Start stream position.
             end (int): End stream position.
+                0 To not specify end.
 
         Returns:
             bytes: number of bytes read
@@ -148,18 +149,8 @@ class S3RawIO(_ObjectRawIOBase):
             bytes: Object content
         """
         with _handle_io_exceptions():
-            # Get object from seek to EOF
-            if self._seek:
-                response = self._get_object(
-                    Range=self._http_range(self._seek),
-                    **self._client_kwargs)
-
-            # Get object full content
-            else:
-                response = self._get_object(**self._client_kwargs)
-
-        # Get object content
-        return response['Body'].read()
+            return self._get_object(
+                **self._client_kwargs)['Body'].read()
 
     def _flush(self):
         """
@@ -177,8 +168,7 @@ class S3BufferedIO(_ObjectBufferedIOBase):
 
     Args:
         name (str): URL or path to the file which will be opened.
-        mode (str): The mode can be 'r' (default), 'w'.
-            for reading (default) or writing
+        mode (str): The mode can be 'r', 'w' for reading (default) or writing
         max_workers (int): The maximum number of threads that can be used to
             execute the given calls.
         workers_type (str): Parallel workers type: 'thread' or 'process'.

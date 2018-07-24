@@ -6,13 +6,14 @@ import os
 
 import pytest
 
+from tests.utilities import BYTE, SIZE
+
 
 def test_object_base_io():
     """Tests pycosio.io_base.ObjectIOBase"""
     from pycosio.io_base import ObjectIOBase
 
     # Mock sub class
-    size = 100
     name = 'name'
 
     class DummyIO(ObjectIOBase):
@@ -24,7 +25,7 @@ def test_object_base_io():
 
         def getsize(self):
             """Returns fake result"""
-            return size
+            return SIZE
 
     # Tests mode
     object_io = DummyIO(name, mode='r')
@@ -58,8 +59,8 @@ def test_object_base_io():
     assert object_io.tell() == 10
     assert object_io.seek(10, os.SEEK_CUR) == 20
     assert object_io.tell() == 20
-    assert object_io.seek(-10, os.SEEK_END) == size - 10
-    assert object_io.tell() == size - 10
+    assert object_io.seek(-10, os.SEEK_END) == SIZE - 10
+    assert object_io.tell() == SIZE - 10
 
     with pytest.raises(ValueError):
         object_io.seek(10, 10)
@@ -79,7 +80,6 @@ def test_object_raw_base_io():
     name = 'name'
     size = 10000
     flushed = bytearray()
-    one_byte = b'0'
 
     class DummyIO(ObjectRawIOBase):
         """Dummy IO"""
@@ -96,15 +96,17 @@ def test_object_raw_base_io():
             """Flush in a buffer"""
             flushed[:] = self._write_buffer
 
-        def _read_range(self, start, end):
+        def _read_range(self, start, end=0):
             """Read fake bytes"""
-            return ((size if end > size else end) - start) * one_byte
+            if end == 0:
+                end = size
+            return ((size if end > size else end) - start) * BYTE
 
     # Test readinto
     object_io = DummyIO(name, mode='r')
     buffer = bytearray(100)
     assert object_io.readinto(buffer) == 100
-    assert bytes(buffer) == 100 * one_byte
+    assert bytes(buffer) == 100 * BYTE
     assert object_io.tell() == 100
     assert object_io.readinto(bytearray(100)) == 100
     assert object_io.tell() == 200
@@ -112,31 +114,31 @@ def test_object_raw_base_io():
 
     # Test read with size (call readinto)
     object_io.seek(200)
-    assert object_io.read(100) == 100 * one_byte
+    assert object_io.read(100) == 100 * BYTE
     assert object_io.tell() == 300
 
     # Test readall
     object_io.seek(300)
-    assert object_io.readall() == (size - 300) * one_byte
+    assert object_io.readall() == (size - 300) * BYTE
     assert object_io.tell() == size
 
     # Test read without size (call readall)
     object_io.seek(300)
-    assert object_io.read() == (size - 300) * one_byte
+    assert object_io.read() == (size - 300) * BYTE
     assert object_io.tell() == size
 
     # Test write in read mode
     with pytest.raises(io.UnsupportedOperation):
-        object_io.write(one_byte)
+        object_io.write(BYTE)
 
     # Test write
     object_io = DummyIO(name, mode='w')
-    assert object_io.write(10 * one_byte) == 10
+    assert object_io.write(10 * BYTE) == 10
     assert object_io.tell() == 10
-    assert object_io.write(10 * one_byte) == 10
+    assert object_io.write(10 * BYTE) == 10
     assert object_io.tell() == 20
     object_io.seek(10)
-    assert object_io.write(10 * one_byte) == 10
+    assert object_io.write(10 * BYTE) == 10
     assert object_io.tell() == 20
 
     # Test flush
@@ -147,7 +149,7 @@ def test_object_raw_base_io():
     # Test append
     object_io = DummyIO(name, mode='a')
     assert object_io.tell() == size
-    assert bytes(object_io._write_buffer) == size * one_byte
+    assert bytes(object_io._write_buffer) == size * BYTE
 
     # Test HTTP range
     assert ObjectRawIOBase._http_range(10, 50) == 'bytes=10-49'
@@ -162,7 +164,6 @@ def test_object_buffered_base_io():
     name = 'name'
     size = 10000
     flushed = bytearray()
-    one_byte = b'0'
 
     class DummyRawIO(ObjectRawIOBase):
         """Dummy IO"""
@@ -180,7 +181,7 @@ def test_object_buffered_base_io():
 
         def _read_range(self, start, end):
             """Read fake bytes"""
-            return ((size if end > size else end) - start) * one_byte
+            return ((size if end > size else end) - start) * BYTE
 
     class DummyBufferedIO(ObjectBufferedIOBase):
         """Dummy buffered IO"""
@@ -207,15 +208,15 @@ def test_object_buffered_base_io():
     assert object_io.getmtime() == object_io.raw.getmtime()
 
     assert object_io.raw.tell() == 0
-    assert object_io.peek(10) == 10 * one_byte
+    assert object_io.peek(10) == 10 * BYTE
     assert object_io.raw.tell() == 0
 
-    assert object_io.read1(10) == 10 * one_byte
+    assert object_io.read1(10) == 10 * BYTE
     assert object_io.raw.tell() == 10
 
     buffer = bytearray(10)
     assert object_io.readinto1(buffer) == 10
-    assert bytes(buffer) == 10 * one_byte
+    assert bytes(buffer) == 10 * BYTE
     assert object_io.raw.tell() == 20
 
     # Tests read
@@ -225,17 +226,17 @@ def test_object_buffered_base_io():
     # Tests write
     assert bytes(flushed) == b''
     object_io = DummyBufferedIO(name, mode='w')
-    assert object_io.write(250 * one_byte) == 250
+    assert object_io.write(250 * BYTE) == 250
     assert object_io._buffer_seek == 50
-    assert bytes(object_io._write_buffer) == 50 * one_byte + 50 * b'\x00'
-    assert object_io._get_buffer().tobytes() == 50 * one_byte
+    assert bytes(object_io._write_buffer) == 50 * BYTE + 50 * b'\x00'
+    assert object_io._get_buffer().tobytes() == 50 * BYTE
     assert object_io._seek == 2
     assert len(flushed) == 200
-    assert bytes(flushed) == 200 * one_byte
+    assert bytes(flushed) == 200 * BYTE
 
     object_io.flush()
     assert object_io._seek == 3
-    assert bytes(flushed) == 250 * one_byte
+    assert bytes(flushed) == 250 * BYTE
     assert object_io._buffer_seek == 0
 
     # Test read in write mode
@@ -246,7 +247,7 @@ def test_object_buffered_base_io():
     # Test write in read mode
     object_io = DummyBufferedIO(name, mode='r')
     with pytest.raises(io.UnsupportedOperation):
-        object_io.write(one_byte)
+        object_io.write(BYTE)
 
     # Test workers type
     object_io = DummyBufferedIO(name, workers_type='thread')
