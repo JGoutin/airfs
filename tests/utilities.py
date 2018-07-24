@@ -46,9 +46,9 @@ def parse_range(header):
     return content
 
 
-def check_metadata_methods(io_object, m_time):
+def check_head_methods(io_object, m_time):
     """
-    Tests metadata methods.
+    Tests head methods.
 
     args:
         io_object (pycosio.io_base.ObjectIOBase subclass):

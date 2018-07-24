@@ -7,7 +7,7 @@ from wsgiref.handlers import format_date_time
 import pytest
 import requests
 
-from tests.utilities import parse_range, check_metadata_methods, check_raw_read_methods
+from tests.utilities import parse_range, check_head_methods, check_raw_read_methods
 
 
 def test_handle_http_errors():
@@ -95,8 +95,8 @@ def test_http_raw_io():
     try:
         httpobject = HTTPRawIO('http://accelize.com')
 
-        # Tests _get_metadata
-        check_metadata_methods(httpobject, m_time)
+        # Tests _head
+        check_head_methods(httpobject, m_time)
 
         # Tests read
         check_raw_read_methods(httpobject)

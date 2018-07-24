@@ -3,7 +3,7 @@
 from datetime import datetime
 import io
 import time
-from tests.utilities import BYTE, SIZE, parse_range, check_metadata_methods, check_raw_read_methods
+from tests.utilities import BYTE, SIZE, parse_range, check_head_methods, check_raw_read_methods
 
 import pytest
 
@@ -124,8 +124,8 @@ def test_s3_raw_io():
         assert s3object._client_kwargs == client_args
         assert s3object.name == url
 
-        # Tests _get_metadata
-        check_metadata_methods(s3object, m_time)
+        # Tests _head
+        check_head_methods(s3object, m_time)
 
         # Tests read
         check_raw_read_methods(s3object)

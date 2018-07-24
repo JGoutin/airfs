@@ -76,7 +76,7 @@ class S3RawIO(_ObjectRawIOBase):
         bucket_name, key = path.split('/', 1)
         self._client_kwargs = dict(Bucket=bucket_name, Key=key)
 
-    def _get_metadata(self):
+    def _head(self):
         """
         Returns object metadata.
 
@@ -96,7 +96,7 @@ class S3RawIO(_ObjectRawIOBase):
         Raises:
              OSError: if the file does not exist or is inaccessible.
         """
-        return self._get_metadata()['ContentLength']
+        return self._head()['ContentLength']
 
     def getmtime(self):
         """
@@ -109,7 +109,7 @@ class S3RawIO(_ObjectRawIOBase):
         Raises:
              OSError: if the file does not exist or is inaccessible.
         """
-        return _to_timestamp(self._get_metadata()['LastModified'])
+        return _to_timestamp(self._head()['LastModified'])
 
     def _read_range(self, start, end=0):
         """
