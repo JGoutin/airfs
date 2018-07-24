@@ -5,7 +5,8 @@ from contextlib import contextmanager as _contextmanager
 import boto3 as _boto3
 from botocore.exceptions import ClientError as _ClientError
 
-from pycosio.abc import (
+from pycosio._compat import to_timestamp as _to_timestamp
+from pycosio.io_base import (
     ObjectRawIOBase as _ObjectRawIOBase,
     ObjectBufferedIOBase as _ObjectBufferedIOBase)
 
@@ -24,18 +25,16 @@ def _handle_io_exceptions():
 
     except _ClientError as exception:
         error = exception.response['Error']
-        code = error['Code']
-        exc_type = {
-            '404': FileNotFoundError,
-            '403': PermissionError}.get(code)
-        if exc_type is not None:
-            raise exc_type(error['Message'])
+        if error['Code'] in ('403', '404'):
+            raise OSError(error['Message'])
         raise
 
 
 def _upload_part(**kwargs):
     """
-    Upload part with picklable S3 client
+    Upload part with picklable S3 client.
+
+    Used with ProcessPoolExecutor
 
     Args:
         kwargs: see boto3 upload_part
@@ -110,7 +109,7 @@ class S3RawIO(_ObjectRawIOBase):
         Raises:
              OSError: if the file does not exist or is inaccessible.
         """
-        return self._get_metadata()['LastModified'].timestamp()
+        return _to_timestamp(self._get_metadata()['LastModified'])
 
     def _read_range(self, start, end):
         """
@@ -188,8 +187,11 @@ class S3BufferedIO(_ObjectBufferedIOBase):
 
     _RAW_CLASS = S3RawIO
 
-    #: Default buffer_size value in bytes (Use Boto3 8MB default value)
+    #: Default buffer_size value in bytes (Boto3 8MB default buffer)
     DEFAULT_BUFFER_SIZE = 8388608
+
+    #: Minimal buffer_size in bytes (S3 multipart upload minimal part size)
+    MINIMUM_BUFFER_SIZE = 5242880
 
     def __init__(self, name, mode='r', buffer_size=None,
                  max_workers=None, workers_type='thread',
@@ -253,4 +255,4 @@ class S3BufferedIO(_ObjectBufferedIOBase):
 
         # Cleanup
         self._upload_id = None
-        self._parts.clear()
+        self._parts = []

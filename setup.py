@@ -7,7 +7,7 @@ run "./setup.py --help-commands" for help.
 from datetime import datetime
 from os import chdir, environ
 from os.path import dirname, abspath, join
-from sys import argv, version_info
+from sys import argv
 
 from setuptools import setup, find_packages
 
@@ -44,8 +44,8 @@ PACKAGE_INFO = dict(
     python_requires='>=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*',
     install_requires=['setuptools', 'futures; python_version == "2.7"'],
     extras_require={
-        # CSP specific requirements
-        'AWS': ['boto3']},
+        # Storage specific requirements
+        's3': ['boto3']},
     setup_requires=['setuptools'],
     tests_require=['pytest'],
     packages=find_packages(exclude=['docs', 'tests']),

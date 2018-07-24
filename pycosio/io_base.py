@@ -1,12 +1,11 @@
 # coding=utf-8
 """Cloud storage abstract classes"""
-from __future__ import absolute_import
-
 from abc import abstractmethod as _abstractmethod
 import io as _io
 import os as _os
 import threading as _threading
-import concurrent.futures as _futures
+from concurrent.futures import ProcessPoolExecutor as _ProcessPoolExecutor
+from pycosio._compat import ThreadPoolExecutor as _ThreadPoolExecutor
 
 
 class ObjectIOBase(_io.IOBase):
@@ -326,6 +325,9 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
     #: Default buffer_size value in bytes (Default to io.DEFAULT_BUFFER_SIZE)
     DEFAULT_BUFFER_SIZE = _io.DEFAULT_BUFFER_SIZE
 
+    #: Minimal buffer_size value in bytes
+    MINIMUM_BUFFER_SIZE = 1
+
     def __init__(self, name, mode='r', buffer_size=None,
                  max_workers=None, workers_type='thread', **kwargs):
 
@@ -347,6 +349,8 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
         if self._writable:
             self._buffer_seek = 0
             self._buffer_size = buffer_size or self.DEFAULT_BUFFER_SIZE
+            if self._buffer_size < self.MINIMUM_BUFFER_SIZE:
+                self._buffer_size = self.MINIMUM_BUFFER_SIZE
             self._write_buffer = bytearray(self._buffer_size)
             self._seekable = False
 
@@ -513,8 +517,8 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
         # Lazy instantiate workers pool on first call
         if self._workers_pool is None:
             self._workers_pool = (
-                _futures.ThreadPoolExecutor if self._workers_type == 'thread'
-                else _futures.ProcessPoolExecutor)(
+                _ThreadPoolExecutor if self._workers_type == 'thread'
+                else _ProcessPoolExecutor)(
                 max_workers=self._workers_count)
 
         # Get worker pool

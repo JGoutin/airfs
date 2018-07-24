@@ -1,5 +1,5 @@
 # coding=utf-8
-"""Test pycosio.abc"""
+"""Test pycosio.io_base"""
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 import io
 import os
@@ -8,8 +8,8 @@ import pytest
 
 
 def test_object_base_io():
-    """Tests pycosio.abc.ObjectIOBase"""
-    from pycosio.abc import ObjectIOBase
+    """Tests pycosio.io_base.ObjectIOBase"""
+    from pycosio.io_base import ObjectIOBase
 
     # Mock sub class
     size = 100
@@ -72,8 +72,8 @@ def test_object_base_io():
 
 
 def test_object_raw_base_io():
-    """Tests pycosio.abc.ObjectRawIOBase"""
-    from pycosio.abc import ObjectRawIOBase
+    """Tests pycosio.io_base.ObjectRawIOBase"""
+    from pycosio.io_base import ObjectRawIOBase
 
     # Mock sub class
     name = 'name'
@@ -151,8 +151,8 @@ def test_object_raw_base_io():
 
 
 def test_object_buffered_base_io():
-    """Tests pycosio.abc.ObjectBufferedIOBase"""
-    from pycosio.abc import ObjectBufferedIOBase, ObjectRawIOBase
+    """Tests pycosio.io_base.ObjectBufferedIOBase"""
+    from pycosio.io_base import ObjectBufferedIOBase, ObjectRawIOBase
 
     # Mock sub class
     name = 'name'
@@ -182,6 +182,7 @@ def test_object_buffered_base_io():
         """Dummy buffered IO"""
         _RAW_CLASS = DummyRawIO
         DEFAULT_BUFFER_SIZE = 100
+        MINIMUM_BUFFER_SIZE = 10
 
         def __init(self, *arg, **kwargs):
             ObjectBufferedIOBase.__init__(self, *arg, **kwargs)
@@ -247,3 +248,11 @@ def test_object_buffered_base_io():
     assert isinstance(object_io._workers, ThreadPoolExecutor)
     object_io = DummyBufferedIO(name, workers_type='process')
     assert isinstance(object_io._workers, ProcessPoolExecutor)
+
+    # Test buffer size
+    object_io = DummyBufferedIO(name, mode='w')
+    assert object_io._buffer_size == DummyBufferedIO.DEFAULT_BUFFER_SIZE
+    object_io = DummyBufferedIO(name, mode='w', buffer_size=1000)
+    assert object_io._buffer_size == 1000
+    object_io = DummyBufferedIO(name, mode='w', buffer_size=1)
+    assert object_io._buffer_size == DummyBufferedIO.MINIMUM_BUFFER_SIZE
