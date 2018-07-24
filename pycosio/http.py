@@ -142,3 +142,18 @@ class HTTPBufferedIO(_ObjectBufferedIOBase):
     """
 
     _RAW_CLASS = HTTPRawIO
+
+    def _close_writable(self):
+        """
+        Closes the object in write mode.
+
+        Performs any finalization operation required to
+        complete the object writing on the cloud.
+        """
+
+    def _flush(self):
+        """
+        Flush the write buffers of the stream if applicable.
+
+        In write mode, send the buffer content to the cloud object.
+        """
