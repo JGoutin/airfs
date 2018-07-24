@@ -48,8 +48,13 @@ def test_s3_raw_io():
     size = 100
     m_time = time.time()
     s3object = None
+    one_byte = b'0'
+    raises_exception = False
 
     # Mocks boto3 client
+
+    client_error_response = {
+        'Error': {'Code': 'Error', 'Message': 'Error'}}
 
     class Client:
         """Dummy client"""
@@ -139,12 +144,6 @@ def test_s3_raw_io():
         # Tests _get_metadata
         assert s3object.getmtime() == pytest.approx(m_time, 1e-3)
         assert s3object.getsize() == size
-
-        # Mocks get_object
-        one_byte = b'0'
-        raises_exception = False
-        client_error_response = {
-            'Error': {'Code': 'Error', 'Message': 'Error'}}
 
         # Tests _read_all
         assert s3object.readall() == size * one_byte
