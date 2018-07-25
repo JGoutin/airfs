@@ -47,7 +47,7 @@ PACKAGE_INFO = dict(
         # Storage specific requirements
         'http': ['requests'],
         's3': ['boto3'],
-        'swift': ['python-swiftclient']},
+        'swift': ['python-swiftclient', 'python-keystoneclient']},
     setup_requires=['setuptools'],
     tests_require=['pytest'],
     packages=find_packages(exclude=['docs', 'tests']),
