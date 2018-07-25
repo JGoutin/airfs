@@ -439,9 +439,9 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
                     self._flush()
                     self._close_writable()
 
+                # If closed and data lower than buffer size
+                # flush data with raw stream to reduce IO calls
                 elif self._buffer_seek:
-                    # If closed and data lower than buffer size
-                    # flush data with raw stream to reduce IO calls
                     self.raw._write_buffer = self._write_buffer
                     self.raw._seek = self._buffer_seek
                     self.raw.flush()
