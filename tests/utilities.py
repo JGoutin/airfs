@@ -46,7 +46,7 @@ def parse_range(header):
     return content
 
 
-def check_head_methods(io_object, m_time):
+def check_head_methods(io_object, m_time, size=SIZE):
     """
     Tests head methods.
 
@@ -55,7 +55,7 @@ def check_head_methods(io_object, m_time):
             Object to test
     """
     assert io_object.getmtime() == pytest.approx(m_time, 1)
-    assert io_object.getsize() == SIZE
+    assert io_object.getsize() == size
 
 
 def check_raw_read_methods(io_object):

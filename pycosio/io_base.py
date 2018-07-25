@@ -1,10 +1,13 @@
 # coding=utf-8
 """Cloud storage abstract classes"""
 from abc import abstractmethod as _abstractmethod
+from concurrent.futures import ProcessPoolExecutor as _ProcessPoolExecutor
+from email.utils import parsedate as _parsedate
 import io as _io
 import os as _os
 import threading as _threading
-from concurrent.futures import ProcessPoolExecutor as _ProcessPoolExecutor
+from time import mktime as _mktime
+
 from pycosio._compat import ThreadPoolExecutor as _ThreadPoolExecutor
 
 
@@ -208,6 +211,47 @@ class ObjectRawIOBase(_io.RawIOBase, ObjectIOBase):
         """
         Flush the write buffers of the stream if applicable.
         """
+
+    def getsize(self):
+        """
+        Return the size, in bytes, of path.
+
+        Returns:
+            int: Size in bytes.
+
+        Raises:
+             OSError: if the file does not exist or is inaccessible.
+        """
+        # By default, assumes that information are in a standard HTTP header
+        return int({
+            key.lower(): value
+            for key, value in self._head().items()}['content-length'])
+
+    def getmtime(self):
+        """
+        Return the time of last access of path.
+
+        Returns:
+            float: The number of seconds since the epoch
+                (see the time module).
+
+        Raises:
+             OSError: if the file does not exist or is inaccessible.
+        """
+        # By default, assumes that information are in a standard HTTP header
+        return _mktime(_parsedate({
+            key.lower(): value
+            for key, value in self._head().items()}['last-modified']))
+
+    def _head(self):
+        """
+        Returns object HTTP header.
+
+        Returns:
+            dict: HTTP header.
+        """
+        # Do no use an abstract method because this method may not
+        # be used every time
 
     @staticmethod
     def _http_range(start=0, end=0):

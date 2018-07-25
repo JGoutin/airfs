@@ -3,10 +3,12 @@
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 import io
 import os
+import time
+from wsgiref.handlers import format_date_time
 
 import pytest
 
-from tests.utilities import BYTE, SIZE
+from tests.utilities import BYTE, SIZE, check_head_methods
 
 
 def test_object_base_io():
@@ -80,13 +82,10 @@ def test_object_raw_base_io():
     name = 'name'
     size = 10000
     flushed = bytearray()
+    m_time = time.time()
 
     class DummyIO(ObjectRawIOBase):
         """Dummy IO"""
-
-        def getmtime(self):
-            """Do nothing"""
-            return 0.0
 
         def getsize(self):
             """Returns fake result"""
@@ -95,6 +94,11 @@ def test_object_raw_base_io():
         def _flush(self):
             """Flush in a buffer"""
             flushed[:] = self._write_buffer
+
+        def _head(self):
+            """Returns fake result"""
+            return {'Content-Length': str(SIZE),
+                    'Last-Modified': format_date_time(m_time)}
 
         def _read_range(self, start, end=0):
             """Read fake bytes"""
@@ -126,6 +130,9 @@ def test_object_raw_base_io():
     object_io.seek(300)
     assert object_io.read() == (size - 300) * BYTE
     assert object_io.tell() == size
+
+    # Tests _head
+    check_head_methods(object_io, m_time, size)
 
     # Test write in read mode
     with pytest.raises(io.UnsupportedOperation):

@@ -8,28 +8,28 @@ from tests.utilities import BYTE, SIZE, parse_range, check_head_methods, check_r
 import pytest
 
 
-def test_handle_io_exceptions():
-    """Test pycosio.s3._handle_io_exceptions"""
-    from pycosio.s3 import _handle_io_exceptions
+def test_handle_client_error():
+    """Test pycosio.s3._handle_client_error"""
+    from pycosio.s3 import _handle_client_error
     from botocore.exceptions import ClientError
 
     response = {'Error': {'Code': 'ErrorCode', 'Message': 'Error'}}
 
     # Any error
     with pytest.raises(ClientError):
-        with _handle_io_exceptions():
+        with _handle_client_error():
             raise ClientError(response, 'testing')
 
     # 404 error
     response['Error']['Code'] = '404'
     with pytest.raises(OSError):
-        with _handle_io_exceptions():
+        with _handle_client_error():
             raise ClientError(response, 'testing')
 
     # 403 error
     response['Error']['Code'] = '403'
     with pytest.raises(OSError):
-        with _handle_io_exceptions():
+        with _handle_client_error():
             raise ClientError(response, 'testing')
 
 
@@ -135,9 +135,8 @@ def test_s3_raw_io():
         with pytest.raises(ClientError):
             assert s3object.read(10)
 
-        s3object = S3RawIO(url, mode='w')
-
         # Tests _flush
+        s3object = S3RawIO(url, mode='w')
         assert not put_object_called
         s3object.write(50 * BYTE)
         s3object.flush()
@@ -189,7 +188,6 @@ def test_s3_buffered_io():
         @staticmethod
         def upload_part(**kwargs):
             """Checks arguments and returns fake result"""
-            print(1)
             assert kwargs['PartNumber'] > 0
             assert kwargs['PartNumber'] <= 10
             assert kwargs['Body'] == BYTE * (

@@ -12,7 +12,7 @@ from pycosio.io_base import (
 
 
 @_contextmanager
-def _handle_io_exceptions():
+def _handle_client_error():
     """
     Handle boto exception and convert to class
     IO exceptions
@@ -85,7 +85,7 @@ class S3RawIO(_ObjectRawIOBase):
         Returns:
             dict: Object metadata.
         """
-        with _handle_io_exceptions():
+        with _handle_client_error():
             return self._head_object(**self._client_kwargs)
 
     def getsize(self):
@@ -127,7 +127,7 @@ class S3RawIO(_ObjectRawIOBase):
         """
         # Get object part from S3
         try:
-            with _handle_io_exceptions():
+            with _handle_client_error():
                 response = self._get_object(
                     Range=self._http_range(start, end),
                     **self._client_kwargs)
@@ -150,7 +150,7 @@ class S3RawIO(_ObjectRawIOBase):
         Returns:
             bytes: Object content
         """
-        with _handle_io_exceptions():
+        with _handle_client_error():
             return self._get_object(
                 **self._client_kwargs)['Body'].read()
 
@@ -159,7 +159,7 @@ class S3RawIO(_ObjectRawIOBase):
         Flush the write buffers of the stream if applicable.
         """
         # Sends to S3 the entire file at once
-        with _handle_io_exceptions():
+        with _handle_client_error():
             self._put_object(
                 Body=memoryview(self._write_buffer).tobytes(),
                 **self._client_kwargs)
@@ -218,7 +218,7 @@ class S3BufferedIO(_ObjectBufferedIOBase):
         """
         # Initialize multi-part upload
         if 'UploadId' not in self._upload_args:
-            with _handle_io_exceptions():
+            with _handle_client_error():
                 self._upload_args['UploadId'] = self._client.create_multipart_upload(
                     **self._client_kwargs)['UploadId']
 

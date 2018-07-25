@@ -2,8 +2,6 @@
 """Access file over HTTP"""
 
 from io import UnsupportedOperation as _UnsupportedOperation
-from email.utils import parsedate as _parsedate
-from time import mktime as _mktime
 
 import requests as _requests
 
@@ -57,38 +55,13 @@ class HTTPRawIO(_ObjectRawIOBase):
 
     def _head(self):
         """
-        Returns HTTP header.
+        Returns object HTTP header.
 
         Returns:
             dict: HTTP header.
         """
         return _handle_http_errors(
             self._request('HEAD', self._name)).headers
-
-    def getsize(self):
-        """
-        Return the size, in bytes, of path.
-
-        Returns:
-            int: Size in bytes.
-
-        Raises:
-             OSError: if the file does not exist or is inaccessible.
-        """
-        return int(self._head()['Content-Length'])
-
-    def getmtime(self):
-        """
-        Return the time of last access of path.
-
-        Returns:
-            float: The number of seconds since the epoch
-                (see the time module).
-
-        Raises:
-             OSError: if the file does not exist or is inaccessible.
-        """
-        return _mktime(_parsedate(self._head()['Last-Modified']))
 
     def _read_range(self, start, end=0):
         """

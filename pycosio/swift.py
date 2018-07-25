@@ -1,13 +1,31 @@
 # coding=utf-8
 """OpenStack Swift"""
+from contextlib import contextmanager as _contextmanager
 
 import swiftclient as _swift
+from swiftclient.exceptions import ClientException as _ClientException
 
 from pycosio.io_base import (
     ObjectRawIOBase as _ObjectRawIOBase,
     ObjectBufferedIOBase as _ObjectBufferedIOBase)
 
-# TODO: Exception handling
+
+@_contextmanager
+def _handle_client_exception():
+    """
+    Handle Swift exception and convert to class
+    IO exceptions
+
+    Raises:
+        OSError subclasses: IO error.
+    """
+    try:
+        yield
+
+    except _ClientException as exception:
+        if exception.http_status in (403, 404):
+            raise OSError(exception.http_reason)
+        raise
 
 
 class SwiftRawIO(_ObjectRawIOBase):
@@ -19,12 +37,6 @@ class SwiftRawIO(_ObjectRawIOBase):
             for reading (default), writing or appending
         swift_connection_kwargs: Swift connection keyword arguments.
     """
-
-    # Default OpenStack auth-URL to use (str)
-    OPENSTACK_AUTH_URL = None
-
-    # Default Interface to use (str)
-    OPENSTACK_INTERFACE = None
 
     def __init__(self, name, mode='r', **swift_connection_kwargs):
 
@@ -52,37 +64,13 @@ class SwiftRawIO(_ObjectRawIOBase):
 
     def _head(self):
         """
-        Returns object metadata.
+        Returns object HTTP header.
 
         Returns:
-            dict: Object metadata.
+            dict: HTTP header.
         """
-        return self._head_object(*self._client_args)
-
-    def getsize(self):
-        """
-        Return the size, in bytes, of path.
-
-        Returns:
-            int: Size in bytes.
-
-        Raises:
-             OSError: if the file does not exist or is inaccessible.
-        """
-        # TODO:
-
-    def getmtime(self):
-        """
-        Return the time of last access of path.
-
-        Returns:
-            float: The number of seconds since the epoch
-                (see the time module).
-
-        Raises:
-             OSError: if the file does not exist or is inaccessible.
-        """
-        # TODO:
+        with _handle_client_exception():
+            return self._head_object(*self._client_args)
 
     def _read_range(self, start, end=0):
         """
@@ -96,11 +84,18 @@ class SwiftRawIO(_ObjectRawIOBase):
         Returns:
             bytes: number of bytes read
         """
-        return self._get_object(
-            *self._client_args,
-            headers=dict(Range=self._http_range(start, end))
-            )[1]
-        # TODO: EOF handling
+        try:
+            with _handle_client_exception():
+                return self._get_object(
+                    *self._client_args,
+                    headers=dict(
+                        Range=self._http_range(start, end)))[1]
+
+        except _ClientException as exception:
+            if exception.http_status == 416:
+                # EOF
+                return b''
+            raise
 
     def _readall(self):
         """
@@ -109,15 +104,17 @@ class SwiftRawIO(_ObjectRawIOBase):
         Returns:
             bytes: Object content
         """
-        return self._get_object(*self._client_args)[1]
+        with _handle_client_exception():
+            return self._get_object(*self._client_args)[1]
 
     def _flush(self):
         """
         Flush the write buffers of the stream if applicable.
         """
         container, obj = self._client_args
-        self._put_object(
-            container, obj, memoryview(self._write_buffer))
+        with _handle_client_exception():
+            self._put_object(
+                container, obj, memoryview(self._write_buffer))
 
 
 class SwiftBufferedIO(_ObjectBufferedIOBase):

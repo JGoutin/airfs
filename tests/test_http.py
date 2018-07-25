@@ -5,7 +5,6 @@ import time
 from wsgiref.handlers import format_date_time
 
 import pytest
-import requests
 
 from tests.utilities import parse_range, check_head_methods, check_raw_read_methods
 
@@ -49,6 +48,7 @@ def test_handle_http_errors():
 def test_http_raw_io():
     """Tests pycosio.http.HTTPRawIO"""
     from pycosio.http import HTTPRawIO
+    import requests
 
     # Initializes some variables
     m_time = time.time()
@@ -56,6 +56,7 @@ def test_http_raw_io():
     # Mocks requests
 
     class Response:
+        """Fake response"""
         def __init__(self):
             self.status_code = 200
 
@@ -66,7 +67,7 @@ def test_http_raw_io():
                        format_date_time(m_time)}
 
     class Session:
-
+        """Fake Session"""
         def __init__(self, *_, **__):
             """Do nothing"""
 
