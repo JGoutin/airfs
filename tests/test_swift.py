@@ -1,5 +1,6 @@
 # coding=utf-8
 """Test pycosio.swift"""
+import json
 import time
 from wsgiref.handlers import format_date_time
 
@@ -86,6 +87,7 @@ def test_swift_raw_io():
             """Check arguments and returns fake result"""
             assert container == container_name
             assert obj == object_name
+            assert contents
             put_object_called.append(1)
 
 
@@ -115,6 +117,72 @@ def test_swift_raw_io():
         swift_object.write(50 * BYTE)
         swift_object.flush()
         assert put_object_called == [1]
+
+    # Restore mocked functions
+    finally:
+        swiftclient.client.Connection = swiftclient_client_connection
+
+
+def test_swift_buffered_io():
+    """Tests pycosio.swift.SwiftBufferedIO"""
+    from pycosio.swift import SwiftBufferedIO
+    import swiftclient
+
+    # Initializes some variables
+    container_name = 'container'
+    object_name = 'object'
+    path = '/'.join((container_name, object_name))
+
+    # Mocks swiftclient
+
+    class Connection:
+        """Fake Connection"""
+        def __init__(self, *_, **__):
+            """Do nothing"""
+            self.called = 0
+
+        @staticmethod
+        def get_object(*_, **__):
+            """Do nothing"""
+
+        @staticmethod
+        def head_object(*_, **__):
+            """Do nothing"""
+
+        def put_object(self, container, obj, contents, query_string=None, **_):
+            """Check arguments and returns fake result"""
+            assert container == container_name
+
+            # Check manifest
+            if query_string:
+                assert obj == object_name
+                manifest = json.loads(contents)
+                assert len(manifest) == self.called
+                for part in manifest:
+                    assert part['etag'] == '123'
+                    assert part['path'].startswith(
+                        '/'.join((container, object_name)))
+
+            # Check part
+            else:
+                assert obj.startswith(object_name)
+                assert contents
+                self.called += 1
+
+            # Returns ETag
+            return '123'
+
+    swiftclient_client_connection = swiftclient.client.Connection
+    swiftclient.client.Connection = Connection
+
+    # Tests
+    try:
+        # Write and flush using multipart upload
+        swift_object = SwiftBufferedIO(path, mode='w')
+        swift_object._buffer_size = 10
+
+        swift_object.write(BYTE * 95)
+        swift_object.close()
 
     # Restore mocked functions
     finally:
