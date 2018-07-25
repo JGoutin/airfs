@@ -386,9 +386,14 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
         """
         if self._writable:
             with self._seek_lock:
-                self._seek += 1
-                self._flush()
-                self._close_writable()
+                # Flush on close only if bytes written
+                # This avoid no required process/thread
+                # creation and network call.
+                # This step is performed by raw stream.
+                if self._buffer_seek:
+                    self._seek += 1
+                    self._flush()
+                    self._close_writable()
 
     @_abstractmethod
     def _close_writable(self):

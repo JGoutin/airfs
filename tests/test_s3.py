@@ -189,6 +189,7 @@ def test_s3_buffered_io():
         @staticmethod
         def upload_part(**kwargs):
             """Checks arguments and returns fake result"""
+            print(1)
             assert kwargs['PartNumber'] > 0
             assert kwargs['PartNumber'] <= 10
             assert kwargs['Body'] == BYTE * (
@@ -227,12 +228,16 @@ def test_s3_buffered_io():
     try:
         # Write and flush using multipart upload
         s3object = S3BufferedIO(path, mode='w')
+        assert s3object._upload_part is s3object._client.upload_part
         s3object._buffer_size = 10
 
         s3object.write(BYTE * 95)
         s3object.close()
 
-        # upload_part for ProcessPoolExecutor
+        # Upload_part for ProcessPoolExecutor
+        s3object = S3BufferedIO(path, mode='w', workers_type='process')
+        assert s3object._upload_part is _upload_part
+
         assert _upload_part(
             Body=BYTE * 10, PartNumber=1, UploadId=123,
             **client_args) == dict(ETag=456)

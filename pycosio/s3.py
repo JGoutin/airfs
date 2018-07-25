@@ -30,16 +30,18 @@ def _handle_io_exceptions():
         raise
 
 
-def _upload_part(**kwargs):
+def _upload_part(boto3_session_kwargs=None, **kwargs):
     """
     Upload part with picklable S3 client.
 
     Used with ProcessPoolExecutor
 
     Args:
+        boto3_session_kwargs (dict): Boto3 Session keyword arguments.
         kwargs: see boto3 upload_part
     """
-    return _boto3.client('s3').upload_part(**kwargs)
+    return _boto3.session.Session(
+        **(boto3_session_kwargs or {})).client('s3').upload_part(**kwargs)
 
 
 class S3RawIO(_ObjectRawIOBase):
@@ -192,36 +194,38 @@ class S3BufferedIO(_ObjectBufferedIOBase):
             max_workers=max_workers, workers_type=workers_type,
             **boto3_session_kwargs)
 
-        # Use multipart upload as write buffered mode
-        if self._writable:
-            self._upload_id = None
-            self._parts = []
-
         # Use same client as RAW class, but keep theses names
         # protected to this module
         self._client = self._raw._client
         self._client_kwargs = self._raw._client_kwargs
 
-        # Multi processing needs external function
-        self._upload_part = (
-            self._client.upload_part
-            if self._workers_type == 'thread' else _upload_part)
+        # Use multipart upload as write buffered mode
+        if self._writable:
+            self._parts = []
+            self._upload_args = self._client_kwargs.copy()
+
+            if self._workers_type == 'thread':
+                self._upload_part = self._client.upload_part
+
+            # Multi processing needs external function
+            else:
+                self._upload_part = _upload_part
+                self._upload_args['boto3_session_kwargs'] = boto3_session_kwargs
 
     def _flush(self):
         """
         Flush the write buffers of the stream.
         """
         # Initialize multi-part upload
-        if self._upload_id is None:
+        if 'UploadId' not in self._upload_args:
             with _handle_io_exceptions():
-                self._upload_id = self._client.create_multipart_upload(
+                self._upload_args['UploadId'] = self._client.create_multipart_upload(
                     **self._client_kwargs)['UploadId']
 
         # Upload part with workers
         response = self._workers.submit(
             self._upload_part, Body=self._get_buffer().tobytes(),
-            PartNumber=self._seek, UploadId=self._upload_id,
-            **self._client_kwargs)
+            PartNumber=self._seek, **self._upload_args)
 
         # Save part information
         self._parts.append(dict(response=response, PartNumber=self._seek))
@@ -237,5 +241,5 @@ class S3BufferedIO(_ObjectBufferedIOBase):
         # Complete multipart upload
         self._client.complete_multipart_upload(
             MultipartUpload={'Parts': self._parts},
-            UploadId=self._upload_id,
+            UploadId=self._upload_args['UploadId'],
             **self._client_kwargs)
