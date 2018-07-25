@@ -1,6 +1,7 @@
 # coding=utf-8
 """OpenStack Swift"""
 from contextlib import contextmanager as _contextmanager
+from json import dumps as _dumps
 
 import swiftclient as _swift
 from swiftclient.exceptions import ClientException as _ClientException
@@ -131,14 +132,47 @@ class SwiftBufferedIO(_ObjectBufferedIOBase):
 
     _RAW_CLASS = SwiftRawIO
 
+    def __init__(self, name, mode='r', buffer_size=None,
+                 max_workers=None, workers_type='thread',
+                 **swift_connection_kwargs):
+
+        _ObjectBufferedIOBase.__init__(
+            self, name, mode=mode, buffer_size=buffer_size,
+            max_workers=max_workers, workers_type=workers_type,
+            **swift_connection_kwargs)
+
+        # Use same client as RAW class, but keep theses names
+        # protected to this module
+        self._put_object = self.raw._put_object
+        self._container, self._object_name = self._raw._client_args
+
+        if self._writable:
+            self._parts = []
+            self._part_name = self._object_name + '.part%03d'
+
     def _flush(self):
         """
         Flush the write buffers of the stream.
         """
-        # TODO:
+        # Upload part with workers
+        part_name = self._part_name % self._seek
+        response = self._workers.submit(
+            self._put_object, self._container, part_name,
+            self._get_buffer().tobytes())
+
+        # Save part information
+        self._parts.append(dict(response=response, path=part_name))
 
     def _close_writable(self):
         """
         Close the object in write mode.
         """
-        # TODO:
+        # Wait parts upload completion
+        for part in self._parts:
+            part['etag'] = part.pop('response').result()['etag']
+
+        # Upload manifest file
+        with _handle_client_exception():
+            self._put_object(
+                self._container, self._object_name,
+                _dumps(self._parts), query_string='multipart-manifest=put')
