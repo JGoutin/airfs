@@ -56,7 +56,7 @@ class S3RawIO(_ObjectRawIOBase):
 
     def __init__(self, name, mode='r', **boto3_session_kwargs):
 
-        # Splits URL scheme is any
+        # Splits URL scheme if any
         try:
             path = name.split('://')[1]
         except IndexError:

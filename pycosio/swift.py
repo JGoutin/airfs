@@ -17,6 +17,7 @@ class SwiftRawIO(_ObjectRawIOBase):
         name (str): URL or path to the file which will be opened.
         mode (str): The mode can be 'r', 'w', 'a'
             for reading (default), writing or appending
+        swift_connection_kwargs: Swift connection keyword arguments.
     """
 
     # Default OpenStack auth-URL to use (str)
@@ -25,9 +26,9 @@ class SwiftRawIO(_ObjectRawIOBase):
     # Default Interface to use (str)
     OPENSTACK_INTERFACE = None
 
-    def __init__(self, name, mode='r'):
+    def __init__(self, name, mode='r', **swift_connection_kwargs):
 
-        # Splits URL scheme is any
+        # Splits URL scheme if any
         try:
             path = name.split('://')[1]
         except IndexError:
@@ -39,8 +40,7 @@ class SwiftRawIO(_ObjectRawIOBase):
 
         # Instantiates Swift connection
         self._connection = _swift.client.Connection(
-            # TODO: args
-        )
+            **swift_connection_kwargs)
 
         # Prepares Swift I/O functions and common arguments
         self._get_object = self._connection.get_object
@@ -129,6 +129,7 @@ class SwiftBufferedIO(_ObjectBufferedIOBase):
         max_workers (int): The maximum number of threads that can be used to
             execute the given calls.
         workers_type (str): Parallel workers type: 'thread' or 'process'.
+        swift_connection_kwargs: Swift connection keyword arguments.
     """
 
     _RAW_CLASS = SwiftRawIO
