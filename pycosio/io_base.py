@@ -434,10 +434,17 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
                 # This avoid no required process/thread
                 # creation and network call.
                 # This step is performed by raw stream.
-                if self._buffer_seek:
+                if self._buffer_seek and self._seek:
                     self._seek += 1
                     self._flush()
                     self._close_writable()
+
+                elif self._buffer_seek:
+                    # If closed and data lower than buffer size
+                    # flush data with raw stream to reduce IO calls
+                    self.raw._write_buffer = self._write_buffer
+                    self.raw._seek = self._buffer_seek
+                    self.raw.flush()
 
     @_abstractmethod
     def _close_writable(self):

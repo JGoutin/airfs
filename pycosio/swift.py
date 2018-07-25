@@ -37,6 +37,8 @@ class SwiftRawIO(_ObjectRawIOBase):
         mode (str): The mode can be 'r', 'w', 'a'
             for reading (default), writing or appending
         swift_connection_kwargs: Swift connection keyword arguments.
+            This is generally OpenStack credentials and configuration.
+            (see "swiftclient.client.Connection" for more information)
     """
 
     def __init__(self, name, mode='r', **swift_connection_kwargs):
@@ -128,6 +130,8 @@ class SwiftBufferedIO(_ObjectBufferedIOBase):
             execute the given calls.
         workers_type (str): Parallel workers type: 'thread' or 'process'.
         swift_connection_kwargs: Swift connection keyword arguments.
+            This is generally OpenStack credentials and configuration.
+            (see "swiftclient.client.Connection" for more information)
     """
 
     _RAW_CLASS = SwiftRawIO
@@ -147,34 +151,33 @@ class SwiftBufferedIO(_ObjectBufferedIOBase):
         self._container, self._object_name = self._raw._client_args
 
         if self._writable:
-            self._parts = []
-            self._part_name = self._object_name + '.%03d'
+            self._manifest = []
+            self._segment_name = self._object_name + '.%03d'
 
     def _flush(self):
         """
         Flush the write buffers of the stream.
         """
-        # Upload part with workers
-        part_name = self._part_name % self._seek
+        # Upload segment with workers
+        name = self._segment_name % self._seek
         response = self._workers.submit(
-            self._put_object, self._container, part_name,
+            self._put_object, self._container, name,
             self._get_buffer().tobytes())
 
-        # Save part information
-        self._parts.append(dict(etag=response, path=part_name))
+        # Save segment information in manifest
+        self._manifest.append(dict(etag=response, path='/'.join((
+            self._container, name))))
 
     def _close_writable(self):
         """
         Close the object in write mode.
         """
-        # Wait parts upload completion
-        for part in self._parts:
-            part['etag'] = part['etag'].result()
-            part['path'] = '/'.join((
-                self._container, part['path']))
+        # Wait segments upload completion
+        for segment in self._manifest:
+            segment['etag'] = segment['etag'].result()
 
         # Upload manifest file
         with _handle_client_exception():
             self._put_object(
                 self._container, self._object_name,
-                _dumps(self._parts), query_string='multipart-manifest=put')
+                _dumps(self._manifest), query_string='multipart-manifest=put')

@@ -37,7 +37,10 @@ def _upload_part(boto3_session_kwargs=None, **kwargs):
     Used with ProcessPoolExecutor
 
     Args:
-        boto3_session_kwargs (dict): Boto3 Session keyword arguments.
+        boto3_session_kwargs: Boto3 Session keyword arguments.
+            This is generally AWS credentials and configuration.
+            This is generally not required if running on AWS EC2 instances.
+            (see "boto3.session.Session" for more information)
         kwargs: see boto3 upload_part
     """
     return _boto3.session.Session(
@@ -52,6 +55,9 @@ class S3RawIO(_ObjectRawIOBase):
         mode (str): The mode can be 'r', 'w', 'a'
             for reading (default), writing or appending
         boto3_session_kwargs: Boto3 Session keyword arguments.
+            This is generally AWS credentials and configuration.
+            Optional if running on AWS EC2 instances.
+            (see "boto3.session.Session" for more information)
     """
 
     def __init__(self, name, mode='r', **boto3_session_kwargs):
@@ -175,6 +181,9 @@ class S3BufferedIO(_ObjectBufferedIOBase):
             execute the given calls.
         workers_type (str): Parallel workers type: 'thread' or 'process'.
         boto3_session_kwargs: Boto3 Session keyword arguments.
+            This is generally AWS credentials and configuration.
+            Optional if running on AWS EC2 instances.
+            (see "boto3.session.Session" for more information)
     """
 
     _RAW_CLASS = S3RawIO

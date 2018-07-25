@@ -171,6 +171,7 @@ def test_object_buffered_base_io():
     name = 'name'
     size = 10000
     flushed = bytearray()
+    raw_flushed = bytearray()
 
     class DummyRawIO(ObjectRawIOBase):
         """Dummy IO"""
@@ -185,8 +186,9 @@ def test_object_buffered_base_io():
 
         def _flush(self):
             """Do nothing"""
+            raw_flushed.extend(self._write_buffer[:self._seek])
 
-        def _read_range(self, start, end):
+        def _read_range(self, start, end=0):
             """Read fake bytes"""
             return ((size if end > size else end) - start) * BYTE
 
@@ -245,6 +247,12 @@ def test_object_buffered_base_io():
     assert object_io._seek == 3
     assert bytes(flushed) == 250 * BYTE
     assert object_io._buffer_seek == 0
+
+    assert bytes(raw_flushed) == b''
+    object_io = DummyBufferedIO(name, mode='w')
+    assert object_io.write(10 * BYTE) == 10
+    object_io.close()
+    assert bytes(raw_flushed) == 10 * BYTE
 
     # Test read in write mode
     object_io = DummyBufferedIO(name, mode='w')
