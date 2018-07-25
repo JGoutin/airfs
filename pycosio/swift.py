@@ -148,7 +148,7 @@ class SwiftBufferedIO(_ObjectBufferedIOBase):
 
         if self._writable:
             self._parts = []
-            self._part_name = self._object_name + '.part%03d'
+            self._part_name = self._object_name + '.%03d'
 
     def _flush(self):
         """
@@ -161,7 +161,7 @@ class SwiftBufferedIO(_ObjectBufferedIOBase):
             self._get_buffer().tobytes())
 
         # Save part information
-        self._parts.append(dict(response=response, path=part_name))
+        self._parts.append(dict(etag=response, path=part_name))
 
     def _close_writable(self):
         """
@@ -169,7 +169,9 @@ class SwiftBufferedIO(_ObjectBufferedIOBase):
         """
         # Wait parts upload completion
         for part in self._parts:
-            part['etag'] = part.pop('response').result()['etag']
+            part['etag'] = part['etag'].result()
+            part['path'] = '/'.join((
+                self._container, part['path']))
 
         # Upload manifest file
         with _handle_client_exception():
