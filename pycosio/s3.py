@@ -94,7 +94,7 @@ class S3RawIO(_ObjectRawIOBase):
         with _handle_client_error():
             return self._head_object(**self._client_kwargs)
 
-    def getsize(self):
+    def _getsize(self):
         """
         Return the size, in bytes, of path.
 
@@ -106,7 +106,7 @@ class S3RawIO(_ObjectRawIOBase):
         """
         return self._head()['ContentLength']
 
-    def getmtime(self):
+    def _getmtime(self):
         """
         Return the time of last access of path.
 

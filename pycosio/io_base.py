@@ -46,7 +46,7 @@ class ObjectIOBase(_io.IOBase):
             raise ValueError('Invalid mode "%s"' % mode)
 
     @_abstractmethod
-    def getmtime(self):
+    def _getmtime(self):
         """
         Return the time of last access of path.
 
@@ -59,7 +59,7 @@ class ObjectIOBase(_io.IOBase):
         """
 
     @_abstractmethod
-    def getsize(self):
+    def _getsize(self):
         """
         Return the size, in bytes, of path.
 
@@ -126,7 +126,7 @@ class ObjectIOBase(_io.IOBase):
             elif whence == _os.SEEK_CUR:
                 self._seek += offset
             elif whence == _os.SEEK_END:
-                self._seek = offset + self.getsize()
+                self._seek = offset + self._getsize()
             else:
                 raise ValueError(
                     'Unsupported whence "%s"' % whence)
@@ -193,7 +193,7 @@ class ObjectRawIOBase(_io.RawIOBase, ObjectIOBase):
             # This write buffer store data in wait to send
             # it on storage on "flush()" call.
             if 'a' in mode:
-                self._write_buffer = bytearray(self.getsize())
+                self._write_buffer = bytearray(self._getsize())
                 memoryview(self._write_buffer)[:] = self.readall()
             else:
                 self._write_buffer = bytearray()
@@ -212,7 +212,7 @@ class ObjectRawIOBase(_io.RawIOBase, ObjectIOBase):
         Flush the write buffers of the stream if applicable.
         """
 
-    def getsize(self):
+    def _getsize(self):
         """
         Return the size, in bytes, of path.
 
@@ -227,7 +227,7 @@ class ObjectRawIOBase(_io.RawIOBase, ObjectIOBase):
             key.lower(): value
             for key, value in self._head().items()}['content-length'])
 
-    def getmtime(self):
+    def _getmtime(self):
         """
         Return the time of last access of path.
 
@@ -491,7 +491,7 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
         """
         return memoryview(self._write_buffer)[:self._buffer_seek]
 
-    def getmtime(self):
+    def _getmtime(self):
         """
         Return the time of last access of path.
 
@@ -502,9 +502,9 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
         Raises:
              OSError: if the file does not exist or is inaccessible.
         """
-        return self.raw.getmtime()
+        return self.raw._getmtime()
 
-    def getsize(self):
+    def _getsize(self):
         """
         Return the size, in bytes, of path.
 
@@ -514,7 +514,7 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
         Raises:
              OSError: if the file does not exist or is inaccessible.
         """
-        return self.raw.getsize()
+        return self.raw._getsize()
 
     def peek(self, size=-1):
         """

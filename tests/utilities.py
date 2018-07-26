@@ -54,8 +54,8 @@ def check_head_methods(io_object, m_time, size=SIZE):
         io_object (pycosio.io_base.ObjectIOBase subclass):
             Object to test
     """
-    assert io_object.getmtime() == pytest.approx(m_time, 1)
-    assert io_object.getsize() == size
+    assert io_object._getmtime() == pytest.approx(m_time, 1)
+    assert io_object._getsize() == size
 
 
 def check_raw_read_methods(io_object):

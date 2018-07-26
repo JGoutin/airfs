@@ -21,11 +21,11 @@ def test_object_base_io():
     class DummyIO(ObjectIOBase):
         """Dummy IO"""
 
-        def getmtime(self):
+        def _getmtime(self):
             """Do nothing"""
             return 0.0
 
-        def getsize(self):
+        def _getsize(self):
             """Returns fake result"""
             return SIZE
 
@@ -87,7 +87,7 @@ def test_object_raw_base_io():
     class DummyIO(ObjectRawIOBase):
         """Dummy IO"""
 
-        def getsize(self):
+        def _getsize(self):
             """Returns fake result"""
             return size
 
@@ -176,11 +176,11 @@ def test_object_buffered_base_io():
     class DummyRawIO(ObjectRawIOBase):
         """Dummy IO"""
 
-        def getmtime(self):
+        def _getmtime(self):
             """Do nothing"""
             return 0.0
 
-        def getsize(self):
+        def _getsize(self):
             """Returns fake result"""
             return size
 
@@ -213,8 +213,8 @@ def test_object_buffered_base_io():
     # Test raw
     object_io = DummyBufferedIO(name, mode='r')
     assert isinstance(object_io.raw, object_io._RAW_CLASS)
-    assert object_io.getsize() == object_io.raw.getsize()
-    assert object_io.getmtime() == object_io.raw.getmtime()
+    assert object_io._getsize() == object_io.raw._getsize()
+    assert object_io._getmtime() == object_io.raw._getmtime()
 
     assert object_io.raw.tell() == 0
     assert object_io.peek(10) == 10 * BYTE
