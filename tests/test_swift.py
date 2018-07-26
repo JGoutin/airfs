@@ -67,7 +67,6 @@ def test_swift_raw_io():
             try:
                 content = parse_range(headers)
             except ValueError:
-                print(1)
                 raise swiftclient.ClientException(
                     'error', http_status=416)
 
