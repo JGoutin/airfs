@@ -42,3 +42,6 @@ def getmtime(path):
     Raises:
          OSError: if the file does not exist or is inaccessible.
     """
+
+def listdir():
+    """"""

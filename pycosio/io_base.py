@@ -45,31 +45,6 @@ class ObjectIOBase(_io.IOBase):
         else:
             raise ValueError('Invalid mode "%s"' % mode)
 
-    @_abstractmethod
-    def _getmtime(self):
-        """
-        Return the time of last access of path.
-
-        Returns:
-            float: The number of seconds since the epoch
-                (see the time module).
-
-        Raises:
-             OSError: if the file does not exist or is inaccessible.
-        """
-
-    @_abstractmethod
-    def _getsize(self):
-        """
-        Return the size, in bytes, of path.
-
-        Returns:
-            int: Size in bytes.
-
-        Raises:
-             OSError: if the file does not exist or is inaccessible.
-        """
-
     @property
     def mode(self):
         """
@@ -99,38 +74,6 @@ class ObjectIOBase(_io.IOBase):
             bool: Supports reading.
         """
         return self._readable
-
-    def seek(self, offset, whence=_os.SEEK_SET):
-        """
-        Change the stream position to the given byte offset.
-
-        Args:
-            offset: Offset is interpreted relative to the position indicated by whence.
-            whence: The default value for whence is SEEK_SET. Values for whence are:
-                SEEK_SET or 0 – start of the stream (the default);
-                offset should be zero or positive
-                SEEK_CUR or 1 – current stream position;
-                offset may be negative
-                SEEK_END or 2 – end of the stream;
-                offset is usually negative
-
-        Returns:
-            int: The new absolute position.
-        """
-        if not self._seekable:
-            raise _io.UnsupportedOperation('seek')
-
-        with self._seek_lock:
-            if whence == _os.SEEK_SET:
-                self._seek = offset
-            elif whence == _os.SEEK_CUR:
-                self._seek += offset
-            elif whence == _os.SEEK_END:
-                self._seek = offset + self._getsize()
-            else:
-                raise ValueError(
-                    'Unsupported whence "%s"' % whence)
-            return self._seek
 
     def seekable(self):
         """
@@ -250,7 +193,7 @@ class ObjectRawIOBase(_io.RawIOBase, ObjectIOBase):
         Returns:
             dict: HTTP header.
         """
-        # Do no use an abstract method because this method may not
+        # This is not an abstract method because this may not
         # be used every time
 
     @staticmethod
@@ -262,12 +205,28 @@ class ObjectRawIOBase(_io.RawIOBase, ObjectIOBase):
             start (int): Start of the range.
             end (int): End of the range.
                 0 To not specify end.
+
         Returns:
             str: range.
         """
         if end:
             return 'bytes=%d-%d' % (start, end - 1)
         return 'bytes=%d-' % start
+
+    def _peek(self, size=-1):
+        """
+        Return bytes from the stream without advancing the position.
+
+        Args:
+            size (int): Number of bytes to read. -1 to read the full
+                stream.
+
+        Returns:
+            bytes: bytes read
+        """
+        with self._seek_lock:
+            seek = self._seek
+        return self._read_range(seek, seek + size)
 
     def readall(self):
         """
@@ -346,6 +305,38 @@ class ObjectRawIOBase(_io.RawIOBase, ObjectIOBase):
             bytes: number of bytes read
         """
 
+    def seek(self, offset, whence=_os.SEEK_SET):
+        """
+        Change the stream position to the given byte offset.
+
+        Args:
+            offset: Offset is interpreted relative to the position indicated by whence.
+            whence: The default value for whence is SEEK_SET. Values for whence are:
+                SEEK_SET or 0 – start of the stream (the default);
+                offset should be zero or positive
+                SEEK_CUR or 1 – current stream position;
+                offset may be negative
+                SEEK_END or 2 – end of the stream;
+                offset is usually negative
+
+        Returns:
+            int: The new absolute position.
+        """
+        if not self._seekable:
+            raise _io.UnsupportedOperation('seek')
+
+        with self._seek_lock:
+            if whence == _os.SEEK_SET:
+                self._seek = offset
+            elif whence == _os.SEEK_CUR:
+                self._seek += offset
+            elif whence == _os.SEEK_END:
+                self._seek = offset + self._getsize()
+            else:
+                raise ValueError(
+                    'Unsupported whence "%s"' % whence)
+            return self._seek
+
     def write(self, b):
         """
         Write the given bytes-like object, b, to the underlying raw stream,
@@ -384,6 +375,9 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
         name (str): URL or path to the file which will be opened.
         mode (str): The mode can be 'r' (default), 'w'.
             for reading (default) or writing
+        buffer_size (int): The size of buffer. 0 for no limit.
+        max_buffers (int): The maximum number of buffers to preload in read mode
+            or awaiting flush in write mode.
         max_workers (int): The maximum number of threads that can be used to
             execute the given calls.
         workers_type (str): Parallel workers type: 'thread' or 'process'.
@@ -398,12 +392,15 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
     MINIMUM_BUFFER_SIZE = 1
 
     def __init__(self, name, mode='r', buffer_size=None,
-                 max_workers=None, workers_type='thread', **kwargs):
+                 max_buffers=0, max_workers=None, workers_type='thread',
+                 **kwargs):
 
         # Instantiate raw IO
         self._raw = self._RAW_CLASS(name, mode=mode, **kwargs)
         self._mode = self._raw.mode
         self._name = self._raw.name
+        self._getmtime = self._raw._getmtime
+        self._getsize = self._raw._getsize
 
         # Initialize class
         _io.BufferedIOBase.__init__(self)
@@ -413,6 +410,7 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
         self._workers_pool = None
         self._workers_count = max_workers
         self._workers_type = workers_type
+        self._max_buffers = max_buffers
 
         # Initialize write mode
         if self._writable:
@@ -422,6 +420,11 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
                 self._buffer_size = self.MINIMUM_BUFFER_SIZE
             self._write_buffer = bytearray(self._buffer_size)
             self._seekable = False
+
+        # Initialize read mode
+        elif self._readable:
+            self._read_queue = dict()
+            self._read_range = self.raw._read_range
 
     def close(self):
         """
@@ -491,31 +494,6 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
         """
         return memoryview(self._write_buffer)[:self._buffer_seek]
 
-    def _getmtime(self):
-        """
-        Return the time of last access of path.
-
-        Returns:
-            float: The number of seconds since the epoch
-                (see the time module).
-
-        Raises:
-             OSError: if the file does not exist or is inaccessible.
-        """
-        return self.raw._getmtime()
-
-    def _getsize(self):
-        """
-        Return the size, in bytes, of path.
-
-        Returns:
-            int: Size in bytes.
-
-        Raises:
-             OSError: if the file does not exist or is inaccessible.
-        """
-        return self.raw._getsize()
-
     def peek(self, size=-1):
         """
         Return bytes from the stream without advancing the position.
@@ -528,11 +506,28 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
             bytes: bytes read
         """
         with self._seek_lock:
-            seek = self._raw.tell()
-            try:
-                return self._raw.read(size)
-            finally:
-                self._raw.seek(seek)
+            self._raw.seek(self._seek)
+            return self._raw._peek(size)
+
+    def _preload_range(self):
+        """Preload data for reading"""
+        queue = self._read_queue
+        size = self._buffer_size
+        start = self._seek
+        end = start + size * self._max_buffers
+        workers_submit = self._workers.submit
+
+        # Drops buffer out of current range
+        for seek in queue:
+            if seek < start or seek > end:
+                del queue[seek]
+
+        # Launch buffer preloading for current range
+        read_range = self._read_range
+        for seek in range(start, end, size):
+            if seek not in queue:
+                queue[seek] = workers_submit(
+                    read_range, seek, seek + size)
 
     @property
     def raw(self):
@@ -554,11 +549,19 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
         Args:
             size (int): Number of bytes to read. -1 to read the
                 stream until end.
+
+        Returns:
+            bytes: Object content
         """
         if not self._readable:
             raise _io.UnsupportedOperation('read')
 
-        # TODO: Implementation
+        if size != -1:
+            buffer = bytearray(size)
+        else:
+            buffer = bytearray()
+        self.readinto(buffer)
+        return memoryview(buffer).tobytes()
 
     def read1(self, size=-1):
         """
@@ -570,6 +573,9 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
         Args:
             size (int): Number of bytes to read. -1 to read the
                 stream until end.
+
+        Returns:
+            bytes: Object content
         """
         return self._raw.read(size)
 
@@ -584,7 +590,91 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
         Returns:
             int: number of bytes read
         """
-        # TODO: Implementation
+        with self._seek_lock:
+            # Gets seek
+            seek = self._seek
+
+            # Initializes queue
+            queue = self._read_queue
+            previous_index = -1
+            if seek == 0:
+                # Starts initial preloading on first call
+                self._preload_range()
+
+            # Initializes read data buffer
+            size = len(b)
+            if size:
+                # Preallocated buffer:
+                # Use memory view to avoid copies
+                b_view = memoryview(b)
+                size_left = size
+            else:
+                # Dynamic buffer:
+                # Can't avoid copy, read until EOF
+                b_view = b
+                size_left = -1
+            b_end = 0
+
+            # Starts reading
+            while size_left > 0 or size_left == -1:
+
+                # Finds buffer position in queue and buffer seek
+                start = seek % size
+                queue_index = seek - start
+
+                # Gets preloaded buffer
+                if previous_index != queue_index:
+                    buffer = queue[queue_index]
+                    try:
+                        # Get buffer from future
+                        queue[queue_index] = buffer = buffer.result()
+                    except AttributeError:
+                        pass
+                    buffer_view = memoryview(buffer)
+                    data_size = len(buffer)
+
+                # Checks if end of file reached
+                if not data_size:
+                    break
+
+                # Gets theoretical range to copy
+                if size_left != -1:
+                    end = start + size_left
+                else:
+                    end = data_size - start
+
+                # Checks for end of buffer
+                if end >= data_size:
+                    # Adjusts range to copy
+                    end = data_size
+
+                    # Removes consumed buffer from queue
+                    del queue[queue_index]
+
+                    # Append another buffer preload at end of queue
+                    index = queue_index + self._buffer_size * self._max_buffers
+                    queue[index] = self._workers.submit(
+                        self._read_range, index, index + self._buffer_size)
+
+                # Gets read size, updates seek and updates size left
+                read_size = end - start
+                if size_left != -1:
+                    size_left -= read_size
+                seek += read_size
+
+                # Defines read buffer range
+                b_start = b_end
+                b_end = b_start + read_size
+
+                # Copy data from preload buffer to read buffer
+                b_view[b_start:b_end] = buffer_view[start:end]
+
+            # Updates seek and sync raw
+            self._seek = seek
+            self._raw.seek(seek)
+
+        # Returns read size
+        return b_end
 
     def readinto1(self, b):
         """
@@ -600,6 +690,36 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
             int: number of bytes read
         """
         return self._raw.readinto(b)
+
+    def seek(self, offset, whence=_os.SEEK_SET):
+        """
+        Change the stream position to the given byte offset.
+
+        Args:
+            offset: Offset is interpreted relative to the position indicated by whence.
+            whence: The default value for whence is SEEK_SET. Values for whence are:
+                SEEK_SET or 0 – start of the stream (the default);
+                offset should be zero or positive
+                SEEK_CUR or 1 – current stream position;
+                offset may be negative
+                SEEK_END or 2 – end of the stream;
+                offset is usually negative
+
+        Returns:
+            int: The new absolute position.
+        """
+        if not self._seekable:
+            raise _io.UnsupportedOperation('seek')
+
+        # Only read mode is seekable
+        with self._seek_lock:
+            # Set seek using raw method and
+            # sync buffered seek with raw seek
+            self.raw.seek(offset, whence)
+            self._seek = self.raw._seek
+
+            # Preload starting from current seek
+            self._preload_range()
 
     @property
     def _workers(self):

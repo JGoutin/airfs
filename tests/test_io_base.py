@@ -15,63 +15,30 @@ def test_object_base_io():
     """Tests pycosio.io_base.ObjectIOBase"""
     from pycosio.io_base import ObjectIOBase
 
-    # Mock sub class
     name = 'name'
 
-    class DummyIO(ObjectIOBase):
-        """Dummy IO"""
-
-        def _getmtime(self):
-            """Do nothing"""
-            return 0.0
-
-        def _getsize(self):
-            """Returns fake result"""
-            return SIZE
-
     # Tests mode
-    object_io = DummyIO(name, mode='r')
+    object_io = ObjectIOBase(name, mode='r')
     assert object_io.name == name
     assert object_io.mode == 'r'
     assert object_io.readable()
     assert object_io.seekable()
     assert not object_io.writable()
 
-    object_io = DummyIO(name, mode='w')
+    object_io = ObjectIOBase(name, mode='w')
     assert object_io.mode == 'w'
     assert not object_io.readable()
     assert object_io.seekable()
     assert object_io.writable()
 
-    object_io = DummyIO(name, mode='a')
+    object_io = ObjectIOBase(name, mode='a')
     assert object_io.mode == 'a'
     assert not object_io.readable()
     assert object_io.seekable()
     assert object_io.writable()
 
     with pytest.raises(ValueError):
-        DummyIO(name, mode='z')
-
-    # Test seek/tell
-    object_io = DummyIO(name)
-    assert object_io.tell() == 0
-    assert object_io.seek(10) == 10
-    assert object_io.tell() == 10
-    assert object_io.seek(10, os.SEEK_SET) == 10
-    assert object_io.tell() == 10
-    assert object_io.seek(10, os.SEEK_CUR) == 20
-    assert object_io.tell() == 20
-    assert object_io.seek(-10, os.SEEK_END) == SIZE - 10
-    assert object_io.tell() == SIZE - 10
-
-    with pytest.raises(ValueError):
-        object_io.seek(10, 10)
-
-    object_io._seekable = False
-    with pytest.raises(io.UnsupportedOperation):
-        object_io.seek(0)
-    with pytest.raises(io.UnsupportedOperation):
-        object_io.tell()
+        ObjectIOBase(name, mode='z')
 
 
 def test_object_raw_base_io():
@@ -105,6 +72,27 @@ def test_object_raw_base_io():
             if end == 0:
                 end = size
             return ((size if end > size else end) - start) * BYTE
+
+    # Test seek/tell
+    object_io = DummyIO(name)
+    assert object_io.tell() == 0
+    assert object_io.seek(10) == 10
+    assert object_io.tell() == 10
+    assert object_io.seek(10, os.SEEK_SET) == 10
+    assert object_io.tell() == 10
+    assert object_io.seek(10, os.SEEK_CUR) == 20
+    assert object_io.tell() == 20
+    assert object_io.seek(-10, os.SEEK_END) == size - 10
+    assert object_io.tell() == size - 10
+
+    with pytest.raises(ValueError):
+        object_io.seek(10, 10)
+
+    object_io._seekable = False
+    with pytest.raises(io.UnsupportedOperation):
+        object_io.seek(0)
+    with pytest.raises(io.UnsupportedOperation):
+        object_io.tell()
 
     # Test readinto
     object_io = DummyIO(name, mode='r')
