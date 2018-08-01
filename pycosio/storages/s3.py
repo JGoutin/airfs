@@ -213,7 +213,6 @@ class S3BufferedIO(_ObjectBufferedIOBase):
 
         # Use multipart upload as write buffered mode
         if self._writable:
-            self._parts = []
             self._upload_args = self._client_kwargs.copy()
 
             if self._workers_type == 'thread':
@@ -240,18 +239,19 @@ class S3BufferedIO(_ObjectBufferedIOBase):
             PartNumber=self._seek, **self._upload_args)
 
         # Save part information
-        self._parts.append(dict(response=response, PartNumber=self._seek))
+        self._write_futures.append(
+            dict(response=response, PartNumber=self._seek))
 
     def _close_writable(self):
         """
         Close the object in write mode.
         """
         # Wait parts upload completion
-        for part in self._parts:
+        for part in self._write_futures:
             part['ETag'] = part.pop('response').result()['ETag']
 
         # Complete multipart upload
         self._client.complete_multipart_upload(
-            MultipartUpload={'Parts': self._parts},
+            MultipartUpload={'Parts': self._write_futures},
             UploadId=self._upload_args['UploadId'],
             **self._client_kwargs)

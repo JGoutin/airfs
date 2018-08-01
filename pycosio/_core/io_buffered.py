@@ -5,6 +5,7 @@ from concurrent.futures import ProcessPoolExecutor
 from io import BufferedIOBase, UnsupportedOperation, DEFAULT_BUFFER_SIZE
 from math import ceil
 from os import SEEK_SET
+from time import sleep
 
 from pycosio._core.compat import ThreadPoolExecutor
 from pycosio._core.io_base import ObjectIOBase
@@ -34,6 +35,10 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
 
     #: Minimal buffer_size value in bytes
     MINIMUM_BUFFER_SIZE = 1
+
+    # Time to wait before try a new flush
+    # if number of buffer currently in flush > max_buffer
+    _FLUSH_WAIT = 0.01
 
     def __init__(self, name, mode='r', buffer_size=None,
                  max_buffers=0, max_workers=None, workers_type='thread',
@@ -66,6 +71,7 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
             self._buffer_seek = 0
             self._write_buffer = bytearray(self._buffer_size)
             self._seekable = False
+            self._write_futures = []
 
         # Initialize read mode
         elif self._readable:
@@ -412,12 +418,11 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
         if not self._writable:
             raise UnsupportedOperation('write')
 
-        # TODO: Block write based on max_buffers
-
         size = len(b)
         b_view = memoryview(b)
         size_left = size
         buffer_size = self._buffer_size
+        max_buffers = self._max_buffers
 
         with self._seek_lock:
             end = self._buffer_seek
@@ -454,6 +459,16 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
                     # Update global seek, this is the number
                     # of buffer flushed
                     self._seek += 1
+
+                    # Block flush based on maximum number of
+                    # buffers in flush progress
+                    if max_buffers:
+                        futures = self._write_futures
+                        flush_wait = self._FLUSH_WAIT
+                        while sum(
+                                1 for future in futures
+                                if not future.done()) >= max_buffers:
+                            sleep(flush_wait)
 
                     # Flush
                     self._flush()

@@ -152,7 +152,6 @@ class SwiftBufferedIO(_ObjectBufferedIOBase):
         self._container, self._object_name = self._raw._client_args
 
         if self._writable:
-            self._manifest = []
             self._segment_name = self._object_name + '.%03d'
 
     def _flush(self):
@@ -166,19 +165,20 @@ class SwiftBufferedIO(_ObjectBufferedIOBase):
             self._get_buffer().tobytes())
 
         # Save segment information in manifest
-        self._manifest.append(dict(etag=response, path='/'.join((
-            self._container, name))))
+        self._write_futures.append(dict(
+            etag=response, path='/'.join((
+                self._container, name))))
 
     def _close_writable(self):
         """
         Close the object in write mode.
         """
         # Wait segments upload completion
-        for segment in self._manifest:
+        for segment in self._write_futures:
             segment['etag'] = segment['etag'].result()
 
         # Upload manifest file
         with _handle_client_exception():
             self._put_object(
                 self._container, self._object_name,
-                _dumps(self._manifest), query_string='multipart-manifest=put')
+                _dumps(self._write_futures), query_string='multipart-manifest=put')
