@@ -43,19 +43,21 @@ class SwiftRawIO(_ObjectRawIOBase):
 
     def __init__(self, name, mode='r', **swift_connection_kwargs):
 
-        # Splits URL scheme if any
-        try:
-            path = name.split('://')[1]
-        except IndexError:
-            path = name
-            name = 'swift://' + path
-
-        # Initializes storage
-        _ObjectRawIOBase.__init__(self, name, mode)
-
         # Instantiates Swift connection
         self._connection = _swift.client.Connection(
             **swift_connection_kwargs)
+
+        # Get path from URL
+        for url_base in (
+                self._connection.get_auth()[0] + '/', '://'):
+            try:
+                path = name.split(url_base)[1]
+                break
+            except IndexError:
+                path = name
+
+        # Initializes storage
+        _ObjectRawIOBase.__init__(self, name, mode)
 
         # Prepares Swift I/O functions and common arguments
         self._get_object = self._connection.get_object

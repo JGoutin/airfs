@@ -43,7 +43,7 @@ def test_swift_raw_io():
     m_time = time.time()
     container_name = 'container'
     object_name = 'object'
-    path = '/'.join((container_name, object_name))
+    path = '/'.join(('http:/', container_name, object_name))
     raises_exception = False
     put_object_called = []
 
@@ -53,6 +53,11 @@ def test_swift_raw_io():
         """Fake Connection"""
         def __init__(self, *_, **__):
             """Do nothing"""
+
+        @staticmethod
+        def get_auth():
+            """Do Nothing"""
+            return '###',
 
         @staticmethod
         def get_object(container, obj, headers=None, **_):
@@ -139,6 +144,11 @@ def test_swift_buffered_io():
         def __init__(self, *_, **__):
             """Do nothing"""
             self.called = 0
+
+        @staticmethod
+        def get_auth():
+            """Do Nothing"""
+            return '###',
 
         @staticmethod
         def get_object(*_, **__):
