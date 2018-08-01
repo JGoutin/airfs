@@ -25,6 +25,7 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         name (str): URL or path to the file which will be opened.
         mode (str): The mode can be 'r', 'w', 'a'
             for reading (default), writing or appending
+        storage_kwargs: Storage specific key arguments.
     """
 
     def __init__(self, name, mode='r', **storage_kwargs):
