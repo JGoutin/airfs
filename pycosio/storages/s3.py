@@ -62,13 +62,6 @@ class S3RawIO(_ObjectRawIOBase):
 
     def __init__(self, name, mode='r', **boto3_session_kwargs):
 
-        # Splits URL scheme if any
-        try:
-            path = name.split('://')[1]
-        except IndexError:
-            path = name
-            name = 's3://' + path
-
         # Initializes storage
         _ObjectRawIOBase.__init__(self, name, mode)
 
@@ -81,7 +74,7 @@ class S3RawIO(_ObjectRawIOBase):
         self._put_object = self._client.put_object
         self._head_object = self._client.head_object
 
-        bucket_name, key = path.split('/', 1)
+        bucket_name, key = self._path.split('/', 1)
         self._client_kwargs = dict(Bucket=bucket_name, Key=key)
 
     @_ObjectRawIOBase._memoize
@@ -172,6 +165,14 @@ class S3RawIO(_ObjectRawIOBase):
             self._put_object(
                 Body=memoryview(self._write_buffer).tobytes(),
                 **self._client_kwargs)
+
+    @staticmethod
+    def _get_prefix(*_, **__):
+        """Return URL prefixes for this storage.
+
+        Returns:
+            tuple of str: URL prefixes"""
+        return 's3://',
 
 
 class S3BufferedIO(_ObjectBufferedIOBase):

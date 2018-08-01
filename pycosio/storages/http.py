@@ -103,6 +103,14 @@ class HTTPRawIO(_ObjectRawIOBase):
         Flush the write buffers of the stream if applicable.
         """
 
+    @staticmethod
+    def _get_prefix(*_, **__):
+        """Return URL prefixes for this storage.
+
+        Returns:
+            tuple of str: URL prefixes"""
+        return 'http://', 'https://'
+
 
 class HTTPBufferedIO(_ObjectBufferedIOBase):
     """Buffered binary HTTP Object I/O

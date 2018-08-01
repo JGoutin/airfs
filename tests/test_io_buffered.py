@@ -46,6 +46,11 @@ def test_object_buffered_base_io():
             """Read fake bytes"""
             return ((size if end > size else end) - start) * BYTE
 
+        @staticmethod
+        def _get_prefix(*_, **__):
+            """Return fake result"""
+            return '://',
+
     class DummyBufferedIO(ObjectBufferedIOBase):
         """Dummy buffered IO"""
         _RAW_CLASS = DummyRawIO

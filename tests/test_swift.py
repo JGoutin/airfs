@@ -43,7 +43,7 @@ def test_swift_raw_io():
     m_time = time.time()
     container_name = 'container'
     object_name = 'object'
-    path = '/'.join(('http:/', container_name, object_name))
+    path = '/'.join((container_name, object_name))
     raises_exception = False
     put_object_called = []
 

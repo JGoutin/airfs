@@ -27,9 +27,19 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
             for reading (default), writing or appending
     """
 
-    def __init__(self, name, mode='r', **_):
+    def __init__(self, name, mode='r', **storage_kwargs):
         RawIOBase.__init__(self)
         ObjectIOBase.__init__(self, name, mode=mode)
+
+        # Get storage local path from URL
+        for prefix in self._get_prefix(**storage_kwargs):
+            try:
+                self._path = name.split(prefix)[1]
+                break
+            except IndexError:
+                continue
+        else:
+            self._path = name
 
         if self._writable:
             # In write mode, since it is not possible
@@ -58,22 +68,6 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         """
 
     @ObjectIOBase._memoize
-    def _getsize(self):
-        """
-        Return the size, in bytes, of path.
-
-        Returns:
-            int: Size in bytes.
-
-        Raises:
-             OSError: if the file does not exist or is inaccessible.
-        """
-        # By default, assumes that information are in a standard HTTP header
-        return int({
-            key.lower(): value
-            for key, value in self._head().items()}['content-length'])
-
-    @ObjectIOBase._memoize
     def _getmtime(self):
         """
         Return the time of last access of path.
@@ -89,6 +83,33 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         return mktime(parsedate({
             key.lower(): value
             for key, value in self._head().items()}['last-modified']))
+
+    @staticmethod
+    @abstractmethod
+    def _get_prefix(*args, **kwargs):
+        """Return URL prefixes for this storage.
+
+        Args:
+            args, kwargs: Storage specific arguments.
+
+        Returns:
+            tuple of str: URL prefixes"""
+
+    @ObjectIOBase._memoize
+    def _getsize(self):
+        """
+        Return the size, in bytes, of path.
+
+        Returns:
+            int: Size in bytes.
+
+        Raises:
+             OSError: if the file does not exist or is inaccessible.
+        """
+        # By default, assumes that information are in a standard HTTP header
+        return int({
+            key.lower(): value
+            for key, value in self._head().items()}['content-length'])
 
     @ObjectIOBase._memoize
     def _head(self):

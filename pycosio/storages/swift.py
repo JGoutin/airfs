@@ -43,28 +43,19 @@ class SwiftRawIO(_ObjectRawIOBase):
 
     def __init__(self, name, mode='r', **swift_connection_kwargs):
 
+        # Initializes storage
+        _ObjectRawIOBase.__init__(self, name, mode)
+
         # Instantiates Swift connection
         self._connection = _swift.client.Connection(
             **swift_connection_kwargs)
-
-        # Get path from URL
-        for url_base in (
-                self._connection.get_auth()[0] + '/', '://'):
-            try:
-                path = name.split(url_base)[1]
-                break
-            except IndexError:
-                path = name
-
-        # Initializes storage
-        _ObjectRawIOBase.__init__(self, name, mode)
 
         # Prepares Swift I/O functions and common arguments
         self._get_object = self._connection.get_object
         self._put_object = self._connection.put_object
         self._head_object = self._connection.head_object
 
-        container, object_name = path.split('/', 1)
+        container, object_name = self._path.split('/', 1)
         self._client_args = (container, object_name)
 
     @_ObjectRawIOBase._memoize
@@ -121,6 +112,18 @@ class SwiftRawIO(_ObjectRawIOBase):
         with _handle_client_exception():
             self._put_object(
                 container, obj, memoryview(self._write_buffer))
+
+    @staticmethod
+    def _get_prefix(*args, **kwargs):
+        """Return URL prefix for this storage.
+
+        Args:
+            args, kwargs: Swift connection arguments.
+
+        Returns:
+            tuple of str: URL prefixes"""
+        return _swift.client.Connection(
+            *args, **kwargs).get_auth()[0] + '/',
 
 
 class SwiftBufferedIO(_ObjectBufferedIOBase):

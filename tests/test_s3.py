@@ -122,7 +122,7 @@ def test_s3_raw_io():
 
         s3object = S3RawIO(path)
         assert s3object._client_kwargs == client_args
-        assert s3object.name == url
+        assert s3object.name == path
 
         # Tests _head
         check_head_methods(s3object, m_time)

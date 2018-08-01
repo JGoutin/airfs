@@ -43,13 +43,22 @@ class ObjectIOBase(IOBase):
 
     @staticmethod
     def _memoize(method):
-        """"""
+        """Caches method result.
+
+        Args:
+            method (function): Method
+
+        Returns:
+            function: Memoized method."""
         method_name = method.__name__
 
         def patched(self, *args, **kwargs):
             """Patched method"""
+            # Gets value from cache
             try:
                 return self._cache[method_name]
+
+            # Evaluates and cache value
             except KeyError:
                 result = self._cache[method_name] = method(
                     self, *args, **kwargs)

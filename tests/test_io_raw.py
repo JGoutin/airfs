@@ -42,6 +42,11 @@ def test_object_raw_base_io():
                 end = size
             return ((size if end > size else end) - start) * BYTE
 
+        @staticmethod
+        def _get_prefix(*_, **__):
+            """Return fake result"""
+            return '://',
+
     # Test seek/tell
     object_io = DummyIO(name)
     assert object_io.tell() == 0
