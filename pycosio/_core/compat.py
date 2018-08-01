@@ -2,10 +2,10 @@
 """Python old versions compatibility"""
 
 import concurrent.futures as _futures
-from sys import version_info
+from sys import version_info as _py
 
 # Python 2 compatibility
-if version_info[0] == 2:
+if _py[0] == 2:
 
     # Missing .timestamp() method of "datetime.datetime"
     import time as _time
@@ -22,7 +22,7 @@ else:
 
 
 # Python 3.4 compatibility
-if version_info[0] == 3 and version_info[1] == 4:
+if _py[0] == 3 and _py[1] == 4:
 
     # "max_workers" as keyword argument for ThreadPoolExecutor
     from os import cpu_count as _cpu_count

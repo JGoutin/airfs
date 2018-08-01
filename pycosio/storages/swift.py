@@ -6,7 +6,7 @@ from json import dumps as _dumps
 import swiftclient as _swift
 from swiftclient.exceptions import ClientException as _ClientException
 
-from pycosio.io_base import (
+from pycosio.io import (
     ObjectRawIOBase as _ObjectRawIOBase,
     ObjectBufferedIOBase as _ObjectBufferedIOBase)
 
@@ -65,6 +65,7 @@ class SwiftRawIO(_ObjectRawIOBase):
         container, object_name = path.split('/', 1)
         self._client_args = (container, object_name)
 
+    @_ObjectRawIOBase._memoize
     def _head(self):
         """
         Returns object HTTP header.

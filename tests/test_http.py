@@ -11,7 +11,7 @@ from tests.utilities import parse_range, check_head_methods, check_raw_read_meth
 
 def test_handle_http_errors():
     """Test pycosio.http._handle_http_errors"""
-    from pycosio.http import _handle_http_errors
+    from pycosio.storages.http import _handle_http_errors
 
     # Mocks response
     class Response:
@@ -47,7 +47,7 @@ def test_handle_http_errors():
 
 def test_http_raw_io():
     """Tests pycosio.http.HTTPRawIO"""
-    from pycosio.http import HTTPRawIO
+    from pycosio.storages.http import HTTPRawIO
     import requests
 
     # Initializes some variables

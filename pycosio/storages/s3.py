@@ -5,8 +5,8 @@ from contextlib import contextmanager as _contextmanager
 import boto3 as _boto3
 from botocore.exceptions import ClientError as _ClientError
 
-from pycosio._compat import to_timestamp as _to_timestamp
-from pycosio.io_base import (
+from pycosio._core.compat import to_timestamp as _to_timestamp
+from pycosio.io import (
     ObjectRawIOBase as _ObjectRawIOBase,
     ObjectBufferedIOBase as _ObjectBufferedIOBase)
 
@@ -84,6 +84,7 @@ class S3RawIO(_ObjectRawIOBase):
         bucket_name, key = path.split('/', 1)
         self._client_kwargs = dict(Bucket=bucket_name, Key=key)
 
+    @_ObjectRawIOBase._memoize
     def _head(self):
         """
         Returns object metadata.
@@ -94,6 +95,7 @@ class S3RawIO(_ObjectRawIOBase):
         with _handle_client_error():
             return self._head_object(**self._client_kwargs)
 
+    @_ObjectRawIOBase._memoize
     def _getsize(self):
         """
         Return the size, in bytes, of path.
@@ -106,6 +108,7 @@ class S3RawIO(_ObjectRawIOBase):
         """
         return self._head()['ContentLength']
 
+    @_ObjectRawIOBase._memoize
     def _getmtime(self):
         """
         Return the time of last access of path.

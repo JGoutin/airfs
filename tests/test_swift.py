@@ -11,7 +11,7 @@ from tests.utilities import parse_range, check_head_methods, check_raw_read_meth
 
 def test_handle_client_exception():
     """Test pycosio.swift._handle_client_exception"""
-    from pycosio.swift import _handle_client_exception
+    from pycosio.storages.swift import _handle_client_exception
     from swiftclient import ClientException
 
     # No error
@@ -36,7 +36,7 @@ def test_handle_client_exception():
 
 def test_swift_raw_io():
     """Tests pycosio.swift.SwiftRawIO"""
-    from pycosio.swift import SwiftRawIO
+    from pycosio.storages.swift import SwiftRawIO
     import swiftclient
 
     # Initializes some variables
@@ -124,7 +124,7 @@ def test_swift_raw_io():
 
 def test_swift_buffered_io():
     """Tests pycosio.swift.SwiftBufferedIO"""
-    from pycosio.swift import SwiftBufferedIO
+    from pycosio.storages.swift import SwiftBufferedIO
     import swiftclient
 
     # Initializes some variables

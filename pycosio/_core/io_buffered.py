@@ -1,373 +1,17 @@
 # coding=utf-8
-"""Cloud storage abstract classes"""
-from abc import abstractmethod as _abstractmethod
-from concurrent.futures import ProcessPoolExecutor as _ProcessPoolExecutor
-from email.utils import parsedate as _parsedate
-import io as _io
-import os as _os
-import threading as _threading
-from time import mktime as _mktime
-
-from pycosio._compat import ThreadPoolExecutor as _ThreadPoolExecutor
-
-
-class ObjectIOBase(_io.IOBase):
-    """
-    Base class to handle cloud object.
-
-    Args:
-        name (str): URL or path to the file which will be opened.
-        mode (str): The mode can be 'r', 'w', 'a'
-            for reading (default), writing or appending
-    """
-
-    def __init__(self, name, mode='r'):
-        _io.IOBase.__init__(self)
-
-        self._name = name
-        self._mode = mode
-
-        # Thread safe stream position
-        self._seek = 0
-        self._seek_lock = _threading.Lock()
-
-        # Select supported features based on mode
-        self._writable = False
-        self._readable = False
-        self._seekable = True
-
-        if 'w' in mode or 'a' in mode:
-            self._writable = True
-
-        elif 'r' in mode:
-            self._readable = True
-
-        else:
-            raise ValueError('Invalid mode "%s"' % mode)
-
-    @property
-    def mode(self):
-        """
-        The mode.
-
-        Returns:
-            str: Mode.
-        """
-        return self._mode
-
-    @property
-    def name(self):
-        """
-        The file name.
-
-        Returns:
-            str: Name.
-        """
-        return self._name
-
-    def readable(self):
-        """
-        Return True if the stream can be read from.
-        If False, read() will raise OSError.
-
-        Returns:
-            bool: Supports reading.
-        """
-        return self._readable
-
-    def seekable(self):
-        """
-        Return True if the stream supports random access.
-        If False, seek(), tell() and truncate() will raise OSError.
-
-        Returns:
-            bool: Supports random access.
-        """
-        return self._seekable
-
-    def tell(self):
-        """Return the current stream position.
-
-        Returns:
-            int: Stream position."""
-        if not self._seekable:
-            raise _io.UnsupportedOperation('tell')
-
-        with self._seek_lock:
-            return self._seek
-
-    def writable(self):
-        """
-        Return True if the stream supports writing.
-        If False, write() and truncate() will raise OSError.
-
-        Returns:
-            bool: Supports writing.
-        """
-        return self._writable
-
-
-class ObjectRawIOBase(_io.RawIOBase, ObjectIOBase):
-    """Base class for binary cloud storage object I/O.
-
-    In write mode, this class needs enough memory to store the entire object
-    to write. In append mode, the cloud object is read and stored in memory
-    on instantiation.
-    For big objects use ObjectBufferedIOBase that can performs operations
-    with less memory.
-
-    In read mode, this class random access to the cloud object and
-    require only the accessed data size in memory.
-
-    Args:
-        name (str): URL or path to the file which will be opened.
-        mode (str): The mode can be 'r', 'w', 'a'
-            for reading (default), writing or appending
-    """
-
-    def __init__(self, name, mode='r', **_):
-        _io.RawIOBase.__init__(self)
-        ObjectIOBase.__init__(self, name, mode=mode)
-
-        if self._writable:
-            # In write mode, since it is not possible
-            # to random write on cloud storage,
-            # The full file needs to be write at once.
-            # This write buffer store data in wait to send
-            # it on storage on "flush()" call.
-            if 'a' in mode:
-                self._write_buffer = bytearray(self._getsize())
-                memoryview(self._write_buffer)[:] = self.readall()
-            else:
-                self._write_buffer = bytearray()
-
-    def flush(self):
-        """
-        Flush the write buffers of the stream if applicable and
-        save the object on the cloud.
-        """
-        if self._writable:
-            self._flush()
-
-    @_abstractmethod
-    def _flush(self):
-        """
-        Flush the write buffers of the stream if applicable.
-        """
-
-    def _getsize(self):
-        """
-        Return the size, in bytes, of path.
-
-        Returns:
-            int: Size in bytes.
-
-        Raises:
-             OSError: if the file does not exist or is inaccessible.
-        """
-        # By default, assumes that information are in a standard HTTP header
-        return int({
-            key.lower(): value
-            for key, value in self._head().items()}['content-length'])
-
-    def _getmtime(self):
-        """
-        Return the time of last access of path.
-
-        Returns:
-            float: The number of seconds since the epoch
-                (see the time module).
-
-        Raises:
-             OSError: if the file does not exist or is inaccessible.
-        """
-        # By default, assumes that information are in a standard HTTP header
-        return _mktime(_parsedate({
-            key.lower(): value
-            for key, value in self._head().items()}['last-modified']))
-
-    def _head(self):
-        """
-        Returns object HTTP header.
-
-        Returns:
-            dict: HTTP header.
-        """
-        # This is not an abstract method because this may not
-        # be used every time
-
-    @staticmethod
-    def _http_range(start=0, end=0):
-        """
-        Returns an HTTP Range request for a specified python range.
-
-        Args:
-            start (int): Start of the range.
-            end (int): End of the range.
-                0 To not specify end.
-
-        Returns:
-            str: range.
-        """
-        if end:
-            return 'bytes=%d-%d' % (start, end - 1)
-        return 'bytes=%d-' % start
-
-    def _peek(self, size=-1):
-        """
-        Return bytes from the stream without advancing the position.
-
-        Args:
-            size (int): Number of bytes to read. -1 to read the full
-                stream.
-
-        Returns:
-            bytes: bytes read
-        """
-        with self._seek_lock:
-            seek = self._seek
-        return self._read_range(seek, seek + size)
-
-    def readall(self):
-        """
-        Read and return all the bytes from the stream until EOF.
-
-        Returns:
-            bytes: Object content
-        """
-        with self._seek_lock:
-            # Get data starting from seek
-            if self._seek and self._seekable:
-                data = self._read_range(self._seek)
-
-            # Get all data
-            else:
-                data = self._readall()
-
-            # Update seek
-            self._seek += len(data)
-        return data
-
-    def _readall(self):
-        """
-        Read and return all the bytes from the stream until EOF.
-
-        Returns:
-            bytes: Object content
-        """
-        return self._read_range(0)
-
-    def readinto(self, b):
-        """
-        Read bytes into a pre-allocated, writable bytes-like object b,
-        and return the number of bytes read.
-
-        Args:
-            b (bytes-like object): buffer.
-
-        Returns:
-            int: number of bytes read
-        """
-        # Get and update stream positions
-        size = len(b)
-        with self._seek_lock:
-            start = self._seek
-            end = start + size
-            self._seek = end
-
-        # Read data range
-        read_data = self._read_range(start, end)
-
-        # Copy to bytes-like object
-        read_size = len(read_data)
-        if read_size:
-            memoryview(b)[:read_size] = read_data
-
-        # Update stream position if end of file
-        if read_size != size:
-            with self._seek_lock:
-                self._seek = start + read_size
-
-        # Return read size
-        return read_size
-
-    @_abstractmethod
-    def _read_range(self, start, end=0):
-        """
-        Read a range of bytes in stream.
-
-        Args:
-            start (int): Start stream position.
-            end (int): End stream position.
-                0 To not specify end.
-
-        Returns:
-            bytes: number of bytes read
-        """
-
-    def seek(self, offset, whence=_os.SEEK_SET):
-        """
-        Change the stream position to the given byte offset.
-
-        Args:
-            offset: Offset is interpreted relative to the position indicated by whence.
-            whence: The default value for whence is SEEK_SET. Values for whence are:
-                SEEK_SET or 0 – start of the stream (the default);
-                offset should be zero or positive
-                SEEK_CUR or 1 – current stream position;
-                offset may be negative
-                SEEK_END or 2 – end of the stream;
-                offset is usually negative
-
-        Returns:
-            int: The new absolute position.
-        """
-        if not self._seekable:
-            raise _io.UnsupportedOperation('seek')
-
-        with self._seek_lock:
-            if whence == _os.SEEK_SET:
-                self._seek = offset
-            elif whence == _os.SEEK_CUR:
-                self._seek += offset
-            elif whence == _os.SEEK_END:
-                self._seek = offset + self._getsize()
-            else:
-                raise ValueError(
-                    'Unsupported whence "%s"' % whence)
-            return self._seek
-
-    def write(self, b):
-        """
-        Write the given bytes-like object, b, to the underlying raw stream,
-        and return the number of bytes written.
-
-        Args:
-            b (bytes-like object): Bytes to write.
-
-        Returns:
-            int: The number of bytes written.
-        """
-        if not self._writable:
-            raise _io.UnsupportedOperation('write')
-
-        # This function write data in a buffer
-        # "flush()" need to be called to really write content on
-        # Cloud Storage
-        size = len(b)
-        with self._seek_lock:
-            start = self._seek
-            end = start + size
-            self._seek = end
-
-        buffer = self._write_buffer
-        if end <= len(buffer):
-            buffer = memoryview(buffer)
-        buffer[start:end] = b
-        return size
-
-
-class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
+"""Cloud storage abstract buffered IO class"""
+from abc import abstractmethod
+from concurrent.futures import ProcessPoolExecutor
+from io import BufferedIOBase, UnsupportedOperation, DEFAULT_BUFFER_SIZE
+from math import ceil
+from os import SEEK_SET
+
+from pycosio._core.compat import ThreadPoolExecutor
+from pycosio._core.io_base import ObjectIOBase
+from pycosio._core.io_raw import ObjectRawIOBase
+
+
+class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
     """
     Base class for buffered binary cloud storage object I/O
 
@@ -375,9 +19,9 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
         name (str): URL or path to the file which will be opened.
         mode (str): The mode can be 'r' (default), 'w'.
             for reading (default) or writing
-        buffer_size (int): The size of buffer. 0 for no limit.
+        buffer_size (int): The size of buffer.
         max_buffers (int): The maximum number of buffers to preload in read mode
-            or awaiting flush in write mode.
+            or awaiting flush in write mode. 0 for no limit.
         max_workers (int): The maximum number of threads that can be used to
             execute the given calls.
         workers_type (str): Parallel workers type: 'thread' or 'process'.
@@ -386,7 +30,7 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
     _RAW_CLASS = ObjectRawIOBase
 
     #: Default buffer_size value in bytes (Default to io.DEFAULT_BUFFER_SIZE)
-    DEFAULT_BUFFER_SIZE = _io.DEFAULT_BUFFER_SIZE
+    DEFAULT_BUFFER_SIZE = DEFAULT_BUFFER_SIZE
 
     #: Minimal buffer_size value in bytes
     MINIMUM_BUFFER_SIZE = 1
@@ -403,26 +47,33 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
         self._getsize = self._raw._getsize
 
         # Initialize class
-        _io.BufferedIOBase.__init__(self)
+        BufferedIOBase.__init__(self)
         ObjectIOBase.__init__(self, name, mode=mode)
 
         # Initialize parallel processing
         self._workers_pool = None
         self._workers_count = max_workers
         self._workers_type = workers_type
-        self._max_buffers = max_buffers
+
+        # Initializes buffer
+        self._buffer_size = buffer_size or self.DEFAULT_BUFFER_SIZE
+        if self._buffer_size < self.MINIMUM_BUFFER_SIZE:
+            self._buffer_size = self.MINIMUM_BUFFER_SIZE
 
         # Initialize write mode
         if self._writable:
+            self._max_buffers = max_buffers
             self._buffer_seek = 0
-            self._buffer_size = buffer_size or self.DEFAULT_BUFFER_SIZE
-            if self._buffer_size < self.MINIMUM_BUFFER_SIZE:
-                self._buffer_size = self.MINIMUM_BUFFER_SIZE
             self._write_buffer = bytearray(self._buffer_size)
             self._seekable = False
 
         # Initialize read mode
         elif self._readable:
+            if max_buffers:
+                self._max_buffers = max_buffers
+            else:
+                self._max_buffers = ceil(
+                    self._getsize() / self._buffer_size)
             self._read_queue = dict()
             self._read_range = self.raw._read_range
 
@@ -449,7 +100,7 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
                     self.raw._seek = self._buffer_seek
                     self.raw.flush()
 
-    @_abstractmethod
+    @abstractmethod
     def _close_writable(self):
         """
         Closes the object in write mode.
@@ -476,7 +127,7 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
                 self._write_buffer = bytearray(self._buffer_size)
                 self._buffer_seek = 0
 
-    @_abstractmethod
+    @abstractmethod
     def _flush(self):
         """
         Flush the write buffers of the stream if applicable.
@@ -514,17 +165,18 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
         queue = self._read_queue
         size = self._buffer_size
         start = self._seek
-        end = start + size * self._max_buffers
+        end = int(start + size * self._max_buffers)
         workers_submit = self._workers.submit
+        indexes = tuple(range(start, end, size))
 
         # Drops buffer out of current range
-        for seek in queue:
-            if seek < start or seek > end:
+        for seek in tuple(queue):
+            if seek not in indexes:
                 del queue[seek]
 
         # Launch buffer preloading for current range
         read_range = self._read_range
-        for seek in range(start, end, size):
+        for seek in indexes:
             if seek not in queue:
                 queue[seek] = workers_submit(
                     read_range, seek, seek + size)
@@ -554,7 +206,7 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
             bytes: Object content
         """
         if not self._readable:
-            raise _io.UnsupportedOperation('read')
+            raise UnsupportedOperation('read')
 
         if size != -1:
             buffer = bytearray(size)
@@ -616,18 +268,26 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
             b_end = 0
 
             # Starts reading
+            buffer_size = self._buffer_size
             while size_left > 0 or size_left == -1:
 
                 # Finds buffer position in queue and buffer seek
-                start = seek % size
+                start = seek % buffer_size
                 queue_index = seek - start
 
                 # Gets preloaded buffer
                 if previous_index != queue_index:
-                    buffer = queue[queue_index]
                     try:
-                        # Get buffer from future
+                        buffer = queue[queue_index]
+                    except KeyError:
+                        # EOF
+                        break
+
+                    # Get buffer from future
+                    try:
                         queue[queue_index] = buffer = buffer.result()
+
+                    # Already evaluated
                     except AttributeError:
                         pass
                     buffer_view = memoryview(buffer)
@@ -652,9 +312,10 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
                     del queue[queue_index]
 
                     # Append another buffer preload at end of queue
-                    index = queue_index + self._buffer_size * self._max_buffers
-                    queue[index] = self._workers.submit(
-                        self._read_range, index, index + self._buffer_size)
+                    index = queue_index + buffer_size * self._max_buffers
+                    if index < self._getsize():
+                        queue[index] = self._workers.submit(
+                            self._read_range, index, index + buffer_size)
 
                 # Gets read size, updates seek and updates size left
                 read_size = end - start
@@ -691,7 +352,7 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
         """
         return self._raw.readinto(b)
 
-    def seek(self, offset, whence=_os.SEEK_SET):
+    def seek(self, offset, whence=SEEK_SET):
         """
         Change the stream position to the given byte offset.
 
@@ -709,7 +370,7 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
             int: The new absolute position.
         """
         if not self._seekable:
-            raise _io.UnsupportedOperation('seek')
+            raise UnsupportedOperation('seek')
 
         # Only read mode is seekable
         with self._seek_lock:
@@ -730,8 +391,8 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
         # Lazy instantiate workers pool on first call
         if self._workers_pool is None:
             self._workers_pool = (
-                _ThreadPoolExecutor if self._workers_type == 'thread'
-                else _ProcessPoolExecutor)(
+                ThreadPoolExecutor if self._workers_type == 'thread'
+                else ProcessPoolExecutor)(
                 max_workers=self._workers_count)
 
         # Get worker pool
@@ -749,7 +410,9 @@ class ObjectBufferedIOBase(_io.BufferedIOBase, ObjectIOBase):
             int: The number of bytes written.
         """
         if not self._writable:
-            raise _io.UnsupportedOperation('write')
+            raise UnsupportedOperation('write')
+
+        # TODO: Block write based on max_buffers
 
         size = len(b)
         b_view = memoryview(b)

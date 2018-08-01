@@ -13,7 +13,7 @@ from tests.utilities import BYTE, SIZE, check_head_methods
 
 def test_object_base_io():
     """Tests pycosio.io_base.ObjectIOBase"""
-    from pycosio.io_base import ObjectIOBase
+    from pycosio._core.io_base import ObjectIOBase
 
     name = 'name'
 
@@ -40,10 +40,25 @@ def test_object_base_io():
     with pytest.raises(ValueError):
         ObjectIOBase(name, mode='z')
 
+    # Tests memoize
+    class IOObject(ObjectIOBase):
+
+        @ObjectIOBase._memoize
+        def to_memoize(self, arg):
+            """Fake method"""
+            return arg
+
+    io_object = IOObject(name)
+    assert not io_object._cache
+    value = 'value'
+    assert io_object.to_memoize(value) == value
+    assert io_object._cache == {'to_memoize': value}
+    assert io_object.to_memoize(value) == value
+
 
 def test_object_raw_base_io():
     """Tests pycosio.io_base.ObjectRawIOBase"""
-    from pycosio.io_base import ObjectRawIOBase
+    from pycosio._core.io_raw import ObjectRawIOBase
 
     # Mock sub class
     name = 'name'
@@ -153,13 +168,15 @@ def test_object_raw_base_io():
 
 def test_object_buffered_base_io():
     """Tests pycosio.io_base.ObjectBufferedIOBase"""
-    from pycosio.io_base import ObjectBufferedIOBase, ObjectRawIOBase
+    from pycosio._core.io_raw import ObjectRawIOBase
+    from pycosio._core.io_buffered import ObjectBufferedIOBase
 
     # Mock sub class
     name = 'name'
     size = 10000
     flushed = bytearray()
     raw_flushed = bytearray()
+    buffer_size = 100
 
     class DummyRawIO(ObjectRawIOBase):
         """Dummy IO"""
@@ -183,7 +200,7 @@ def test_object_buffered_base_io():
     class DummyBufferedIO(ObjectBufferedIOBase):
         """Dummy buffered IO"""
         _RAW_CLASS = DummyRawIO
-        DEFAULT_BUFFER_SIZE = 100
+        DEFAULT_BUFFER_SIZE = buffer_size
         MINIMUM_BUFFER_SIZE = 10
 
         def __init(self, *arg, **kwargs):
@@ -216,9 +233,49 @@ def test_object_buffered_base_io():
     assert bytes(buffer) == 10 * BYTE
     assert object_io.raw.tell() == 20
 
-    # Tests read
+    # Tests: Read until end
     object_io = DummyBufferedIO(name, mode='r')
-    # TODO: implementation
+    assert object_io.read() == size * BYTE
+
+    # Tests: Read, max buffer
+    object_io = DummyBufferedIO(name, mode='r', max_buffers=0)
+    assert object_io._max_buffers == size // buffer_size
+
+    object_io = DummyBufferedIO(name, mode='r', max_buffers=5)
+    assert object_io.read(100) == 100 * BYTE
+
+    # Tests: Read by parts
+    assert sorted(object_io._read_queue) == list(range(
+        100, 100 + buffer_size * 5, buffer_size))
+    assert object_io._seek == 100
+    assert object_io.read(150) == 150 * BYTE
+    assert sorted(object_io._read_queue) == list(range(
+        200, 200 + buffer_size * 5, buffer_size))
+    assert object_io._seek == 250
+    assert object_io.read(50) == 50 * BYTE
+    assert sorted(object_io._read_queue) == list(range(
+        300, 300 + buffer_size * 5, buffer_size))
+    assert object_io._seek == 300
+    assert object_io.read() == (size - 300) * BYTE
+    assert not object_io._read_queue
+
+    # Tests: Read, change seek
+    object_io.seek(450)
+    assert sorted(object_io._read_queue) == list(range(
+        450, 450 + buffer_size * 5, buffer_size))
+
+    object_io.seek(700)
+    assert sorted(object_io._read_queue) == list(range(
+        700, 700 + buffer_size * 5, buffer_size))
+
+    # Tests: Read, EOF before theoretical EOF
+    def read_range(*_, **__):
+        """Returns empty bytes"""
+        return b''
+
+    object_io = DummyBufferedIO(name, mode='r', max_buffers=5)
+    object_io._read_range = read_range
+    assert object_io.read() == b''
 
     # Tests write
     assert bytes(flushed) == b''
@@ -246,6 +303,11 @@ def test_object_buffered_base_io():
     object_io = DummyBufferedIO(name, mode='w')
     with pytest.raises(io.UnsupportedOperation):
         object_io.read()
+
+    # Test seek in write mode
+    object_io = DummyBufferedIO(name, mode='w')
+    with pytest.raises(io.UnsupportedOperation):
+        object_io.seek(0)
 
     # Test write in read mode
     object_io = DummyBufferedIO(name, mode='r')

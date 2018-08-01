@@ -5,7 +5,7 @@ from io import UnsupportedOperation as _UnsupportedOperation
 
 import requests as _requests
 
-from pycosio.io_base import (
+from pycosio.io import (
     ObjectRawIOBase as _ObjectRawIOBase,
     ObjectBufferedIOBase as _ObjectBufferedIOBase)
 
@@ -53,6 +53,7 @@ class HTTPRawIO(_ObjectRawIOBase):
         # Check if object support random read
         self._seekable = self._head().get('Accept-Ranges') == 'bytes'
 
+    @_ObjectRawIOBase._memoize
     def _head(self):
         """
         Returns object HTTP header.
