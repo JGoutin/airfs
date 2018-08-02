@@ -33,7 +33,7 @@ class HTTPRawIO(_ObjectRawIOBase):
     """Binary HTTP Object I/O
 
     Args:
-        name (str): URL to the file which will be opened.
+        name (path-like object): URL to the file which will be opened.
         mode (str): The mode can be 'r' for reading (default)
     """
 
@@ -115,7 +115,7 @@ class HTTPBufferedIO(_ObjectBufferedIOBase):
     """Buffered binary HTTP Object I/O
 
     Args:
-        name (str): URL to the file which will be opened.
+        name (path-like object): URL to the file which will be opened.
         mode (str): The mode can be 'r' for reading.
         max_workers (int): The maximum number of threads that can be used to
             execute the given calls.

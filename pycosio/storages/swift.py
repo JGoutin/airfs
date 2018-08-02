@@ -33,7 +33,7 @@ class SwiftRawIO(_ObjectRawIOBase):
     """Binary OpenStack Swift Object I/O
 
     Args:
-        name (str): URL or path to the file which will be opened.
+        name (path-like object): URL or path to the file which will be opened.
         mode (str): The mode can be 'r', 'w', 'a'
             for reading (default), writing or appending
         storage_parameters (dict): Swift connection keyword arguments.
@@ -132,7 +132,7 @@ class SwiftBufferedIO(_ObjectBufferedIOBase):
     """Buffered binary OpenStack Swift Object I/O
 
     Args:
-        name (str): URL or path to the file which will be opened.
+        name (path-like object): URL or path to the file which will be opened.
         mode (str): The mode can be 'r', 'w' for reading (default) or writing
         max_workers (int): The maximum number of threads that can be used to
             execute the given calls.

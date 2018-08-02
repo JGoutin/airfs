@@ -3,13 +3,15 @@
 from io import IOBase, UnsupportedOperation
 from threading import Lock
 
+from pycosio._core.compat import fsdecode
+
 
 class ObjectIOBase(IOBase):
     """
     Base class to handle cloud object.
 
     Args:
-        name (str): URL or path to the file which will be opened.
+        name (path-like object): URL or path to the file which will be opened.
         mode (str): The mode can be 'r', 'w', 'a'
             for reading (default), writing or appending
     """
@@ -17,7 +19,7 @@ class ObjectIOBase(IOBase):
     def __init__(self, name, mode='r'):
         IOBase.__init__(self)
 
-        self._name = name
+        self._name = fsdecode(name)
         self._mode = mode
 
         # Cache for values

@@ -1,13 +1,9 @@
 # coding=utf-8
 """Python Cloud Object Storage I/O"""
 
-# TODO: OSError for function depending on seekable, writable, ...
-# TODO: Check full exception, and IO interface behavior
-# TODO: Text IO wrapper
-# TODO: Auto sub class selection (open)
-
 __version__ = '1.0.0a1'
 
 import pycosio.io
-from pycosio._core.os_functions import (
+from pycosio._core.std_functions import (
     open, copy, getmtime, getsize, listdir)
+from pycosio._core.storage_manager import register

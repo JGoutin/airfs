@@ -51,7 +51,7 @@ class S3RawIO(_ObjectRawIOBase):
     """Binary S3 Object I/O
 
     Args:
-        name (str): URL or path to the file which will be opened.
+        name (path-like object): URL or path to the file which will be opened.
         mode (str): The mode can be 'r', 'w', 'a'
             for reading (default), writing or appending
         storage_parameters (dict): Boto3 Session keyword arguments.
@@ -178,7 +178,7 @@ class S3BufferedIO(_ObjectBufferedIOBase):
     """Buffered binary S3 Object I/O
 
     Args:
-        name (str): URL or path to the file which will be opened.
+        name (path-like object): URL or path to the file which will be opened.
         mode (str): The mode can be 'r', 'w' for reading (default) or writing
         max_workers (int): The maximum number of threads that can be used to
             execute the given calls.

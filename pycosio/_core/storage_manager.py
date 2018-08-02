@@ -8,7 +8,31 @@ from pycosio._core.io_raw import ObjectRawIOBase
 from pycosio._core.io_buffered import ObjectBufferedIOBase
 
 
-class StorageHook:
+def is_storage(url, storage=None):
+    """
+    Check if file is a local file or a storage file.
+
+    File is considered local if:
+        - URL is a local path.
+        - URL starts by "file://"
+        - a "storage" is provided.
+
+    Args:
+        url (str): file path or URL
+        storage (str): Storage name.
+
+    Returns:
+        bool: return True if file is local.
+    """
+    if storage:
+        return True
+    split_url = url.split('://', 1)
+    if len(split_url) == 2 or split_url[0].lower() != 'file':
+        return True
+    return False
+
+
+class _StorageHook:
     """Hook of available storage
 
     Storage are by default lazy instantiated on needs
@@ -18,42 +42,70 @@ class StorageHook:
                      'buffered': ObjectBufferedIOBase}
 
     def __init__(self):
-        self._classes = OrderedDict()
+        self._items = OrderedDict()
         self._lock = RLock()
 
-    def get_subclass(self, io_type='buffered', name='', storage=None,
-                     **storage_kwargs):
+    def get_info(self, name='', storage=None, storage_parameters=None):
         """
-        Get a cloud object storage subclass
+        Get a cloud object storage information.
 
         Args:
-            io_type (str): 'raw' or 'buffered'.
             name (str): File name, path or URL.
             storage (str): Storage name.
-            storage_kwargs: Storage specific key arguments.
+            storage_parameters (dict): Storage configuration parameters.
+                Generally, client configuration and credentials.
 
         Returns:
-            pycosio._core.io_base.ObjectIOBase subclass: Instance
+            dict: storage information.
         """
         # Get subclass from registered
         name_lower = name.lower()
         with self._lock:
-            for prefix in self._classes:
+            for prefix in self._items:
                 if name_lower.startswith(prefix):
-                    return self._classes[prefix][io_type]
+                    return self._items[prefix]
 
-            # If not found, try to register and returns subclass
+            # If not found, try to register before getting
             return self.register(
-                storage=storage, name=name, **storage_kwargs)[io_type]
+                storage=storage, name=name,
+                storage_parameters=storage_parameters)
 
-    def register(self, storage=None, name='', **storage_kwargs):
+    def get_instance(self, cls='buffered', name='', storage=None,
+                     storage_parameters=None, *args, **kwargs):
+        """
+        Get a cloud object storage instance.
+
+        Args:
+            cls (str): Type of class to instantiate. 'raw' or 'buffered'
+            name (str): File name, path or URL.
+            storage (str): Storage name.
+            storage_parameters (dict): Storage configuration parameters.
+                Generally, client configuration and credentials.
+            args, kwargs: Instance arguments
+
+        Returns:
+            pycosio._core.io_base.ObjectIOBase subclass: Instance
+        """
+        # Gets storage information
+        info = self.get_info(name, storage, storage_parameters)
+        if not storage_parameters:
+            storage_parameters = info['storage_parameters']
+
+        # Instantiates class
+        return info[cls](
+            storage_parameters=storage_parameters,
+            name=name, *args, **kwargs)
+
+    def register(self, storage=None, name='', storage_parameters=None):
         """
         Register a new storage.
 
         Args:
             storage (str): Storage name.
-            name (str): File name, path or URL.
-            storage_kwargs: Storage specific key arguments.
+            name (str): File URL. If storage is not specified,
+                URL scheme will be used as storage value.
+            storage_parameters (dict): Storage configuration parameters.
+                Generally, client configuration and credentials.
 
         Returns:
             dict of class: Subclasses
@@ -61,39 +113,49 @@ class StorageHook:
         # Try to infer storage from name
         if storage is None:
             if '://' in name:
-                storage = name.split('://')[0].lower()
+                storage = name.split('://', 1)[0].lower()
+
+        # Save storage_parameters
+        storage_info = dict(storage_parameters=storage_parameters)
 
         # Finds module containing target subclass
-        module_name = 'pycosio.storages.%s' % storage
-        module = import_module(module_name)
+        module = import_module('pycosio.storages.%s' % storage)
 
         # Finds storage subclass
-        storage_classes = dict()
         classes_items = tuple(self._BASE_CLASSES.items())
         for member_name in dir(module):
             member = getattr(module, member_name)
             for cls_name, cls in classes_items:
                 if issubclass(member, cls):
-                    storage_classes[cls_name] = member
+                    storage_info[cls_name] = member
 
         # Get prefixes
         # "_get_prefix" method is protected at package level
         # and should be used elsewhere
-        prefixes = storage_classes['raw']._get_prefix(**storage_kwargs)
+        prefixes = storage_info['raw']._get_prefix(
+            **storage_parameters)
 
         # Register
         with self._lock:
-            classes = self._classes
+            items = self._items
             for prefix in prefixes:
-                classes[prefix.lower()] = storage_classes
+                items[prefix.lower()] = storage_info
 
-            # Reorder to avoid collision
-            self._classes = OrderedDict(
-                (key, classes[key])
-                for key in reversed(sorted(classes)))
+            # Add extra prefix as storage URL scheme
+            items['%s://' % storage.lower()] = storage_info
 
-        return storage_classes
+            # Reorder to have correct lookup
+            self._items = OrderedDict(
+                (key, items[key])
+                for key in reversed(sorted(items)))
+
+        return storage_info
 
 
 # Create hook
-STORAGE = StorageHook()
+_STORAGE = _StorageHook()
+
+# Functions shortcuts
+get_info = _STORAGE.get_info
+get_instance = _STORAGE.get_instance
+register = _STORAGE.register

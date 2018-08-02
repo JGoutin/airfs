@@ -17,7 +17,7 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
     Base class for buffered binary cloud storage object I/O
 
     Args:
-        name (str): URL or path to the file which will be opened.
+        name (path-like object): URL or path to the file which will be opened.
         mode (str): The mode can be 'r' (default), 'w'.
             for reading (default) or writing
         buffer_size (int): The size of buffer.
@@ -62,9 +62,12 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
         self._workers_type = workers_type
 
         # Initializes buffer
-        self._buffer_size = buffer_size or self.DEFAULT_BUFFER_SIZE
-        if self._buffer_size < self.MINIMUM_BUFFER_SIZE:
+        if not buffer_size or buffer_size < 0:
+            self._buffer_size = self.DEFAULT_BUFFER_SIZE
+        elif buffer_size < self.MINIMUM_BUFFER_SIZE:
             self._buffer_size = self.MINIMUM_BUFFER_SIZE
+        else:
+            self._buffer_size = buffer_size
 
         # Initialize write mode
         if self._writable:

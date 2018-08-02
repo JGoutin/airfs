@@ -2,6 +2,7 @@
 """Python old versions compatibility"""
 
 import concurrent.futures as _futures
+import os as _os
 from sys import version_info as _py
 
 # Python 2 compatibility
@@ -14,11 +15,17 @@ if _py[0] == 2:
         """Return POSIX timestamp as float"""
         return _time.mktime(dt.timetuple()) + dt.microsecond / 1e6
 
+    def fsdecode(filename):
+        """Return filename unchanged"""
+        return filename
+
 else:
     # Current Python
     def to_timestamp(dt):
         """Return POSIX timestamp as float"""
         return dt.timestamp()
+
+    fsdecode = _os.fsdecode
 
 
 # Python 3.4 compatibility

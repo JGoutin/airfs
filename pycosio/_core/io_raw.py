@@ -22,7 +22,7 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
     require only the accessed data size in memory.
 
     Args:
-        name (str): URL or path to the file which will be opened.
+        name (path-like object): URL or path to the file which will be opened.
         mode (str): The mode can be 'r', 'w', 'a'
             for reading (default), writing or appending
         storage_parameters (dict): Storage configuration parameters.
