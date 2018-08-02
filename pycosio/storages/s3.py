@@ -30,21 +30,21 @@ def _handle_client_error():
         raise
 
 
-def _upload_part(boto3_session_kwargs=None, **kwargs):
+def _upload_part(storage_parameters=None, **kwargs):
     """
     Upload part with picklable S3 client.
 
     Used with ProcessPoolExecutor
 
     Args:
-        boto3_session_kwargs: Boto3 Session keyword arguments.
+        storage_parameters (dict): Boto3 Session keyword arguments.
             This is generally AWS credentials and configuration.
             This is generally not required if running on AWS EC2 instances.
             (see "boto3.session.Session" for more information)
         kwargs: see boto3 upload_part
     """
     return _boto3.session.Session(
-        **(boto3_session_kwargs or {})).client('s3').upload_part(**kwargs)
+        **(storage_parameters or dict())).client('s3').upload_part(**kwargs)
 
 
 class S3RawIO(_ObjectRawIOBase):
@@ -54,20 +54,19 @@ class S3RawIO(_ObjectRawIOBase):
         name (str): URL or path to the file which will be opened.
         mode (str): The mode can be 'r', 'w', 'a'
             for reading (default), writing or appending
-        boto3_session_kwargs: Boto3 Session keyword arguments.
+        storage_parameters (dict): Boto3 Session keyword arguments.
             This is generally AWS credentials and configuration.
             Optional if running on AWS EC2 instances.
             (see "boto3.session.Session" for more information)
     """
 
-    def __init__(self, name, mode='r', **boto3_session_kwargs):
+    def __init__(self, *args, **kwargs):
 
-        # Initializes storage
-        _ObjectRawIOBase.__init__(self, name, mode)
+        _ObjectRawIOBase.__init__(self, *args, **kwargs)
 
         # Instantiates S3 client
         self._client = _boto3.session.Session(
-            **boto3_session_kwargs).client("s3")
+            **self._storage_parameters).client("s3")
 
         # Prepares S3 I/O functions and common arguments
         self._get_object = self._client.get_object
@@ -167,7 +166,7 @@ class S3RawIO(_ObjectRawIOBase):
                 **self._client_kwargs)
 
     @staticmethod
-    def _get_prefix(*_, **__):
+    def _get_prefix(**__):
         """Return URL prefixes for this storage.
 
         Returns:
@@ -184,7 +183,7 @@ class S3BufferedIO(_ObjectBufferedIOBase):
         max_workers (int): The maximum number of threads that can be used to
             execute the given calls.
         workers_type (str): Parallel workers type: 'thread' or 'process'.
-        boto3_session_kwargs: Boto3 Session keyword arguments.
+        storage_parameters: Boto3 Session keyword arguments.
             This is generally AWS credentials and configuration.
             Optional if running on AWS EC2 instances.
             (see "boto3.session.Session" for more information)
@@ -198,14 +197,9 @@ class S3BufferedIO(_ObjectBufferedIOBase):
     #: Minimal buffer_size in bytes (S3 multipart upload minimal part size)
     MINIMUM_BUFFER_SIZE = 5242880
 
-    def __init__(self, name, mode='r', buffer_size=None,
-                 max_workers=None, workers_type='thread',
-                 **boto3_session_kwargs):
+    def __init__(self, *args, **kwargs):
 
-        _ObjectBufferedIOBase.__init__(
-            self, name, mode=mode, buffer_size=buffer_size,
-            max_workers=max_workers, workers_type=workers_type,
-            **boto3_session_kwargs)
+        _ObjectBufferedIOBase.__init__(self, *args, **kwargs)
 
         # Use same client as RAW class, but keep theses names
         # protected to this module
@@ -222,7 +216,7 @@ class S3BufferedIO(_ObjectBufferedIOBase):
             # Multi processing needs external function
             else:
                 self._upload_part = _upload_part
-                self._upload_args['boto3_session_kwargs'] = boto3_session_kwargs
+                self._upload_args['storage_parameters'] = self._raw._storage_parameters
 
     def _flush(self):
         """

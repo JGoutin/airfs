@@ -37,14 +37,13 @@ class HTTPRawIO(_ObjectRawIOBase):
         mode (str): The mode can be 'r' for reading (default)
     """
 
-    def __init__(self, name, mode='r'):
+    def __init__(self, *args, **kwargs):
+
+        _ObjectRawIOBase.__init__(self, *args, **kwargs)
 
         # Only support readonly
-        if 'r' not in mode:
+        if 'r' not in self._mode:
             raise _UnsupportedOperation('write')
-
-        # Initializes storage
-        _ObjectRawIOBase.__init__(self, name, mode)
 
         # HTTP session
         self._session = _requests.Session()
@@ -104,7 +103,7 @@ class HTTPRawIO(_ObjectRawIOBase):
         """
 
     @staticmethod
-    def _get_prefix(*_, **__):
+    def _get_prefix(**__):
         """Return URL prefixes for this storage.
 
         Returns:

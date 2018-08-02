@@ -25,15 +25,20 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         name (str): URL or path to the file which will be opened.
         mode (str): The mode can be 'r', 'w', 'a'
             for reading (default), writing or appending
-        storage_kwargs: Storage specific key arguments.
+        storage_parameters (dict): Storage configuration parameters.
+            Generally, client configuration and credentials.
     """
 
-    def __init__(self, name, mode='r', **storage_kwargs):
+    def __init__(self, name, mode='r', storage_parameters=None):
+
         RawIOBase.__init__(self)
         ObjectIOBase.__init__(self, name, mode=mode)
 
+        # Save storage parameters
+        self._storage_parameters = storage_parameters or dict()
+
         # Get storage local path from URL
-        for prefix in self._get_prefix(**storage_kwargs):
+        for prefix in self._get_prefix(**self._storage_parameters):
             try:
                 self._path = name.split(prefix)[1]
                 break
@@ -87,11 +92,12 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
 
     @staticmethod
     @abstractmethod
-    def _get_prefix(*args, **kwargs):
+    def _get_prefix(**storage_parameters):
         """Return URL prefixes for this storage.
 
         Args:
-            args, kwargs: Storage specific arguments.
+            storage_parameters: Storage configuration parameters.
+            Generally, client configuration and credentials.
 
         Returns:
             tuple of str: URL prefixes"""

@@ -26,7 +26,8 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
         max_workers (int): The maximum number of threads that can be used to
             execute the given calls.
         workers_type (str): Parallel workers type: 'thread' or 'process'.
-        kwargs: RAW class extra keyword arguments.
+        storage_parameters (dict): Storage configuration parameters.
+            Generally, client configuration and credentials.
     """
     _RAW_CLASS = ObjectRawIOBase
 
@@ -42,18 +43,18 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
 
     def __init__(self, name, mode='r', buffer_size=None,
                  max_buffers=0, max_workers=None, workers_type='thread',
-                 **kwargs):
+                 storage_parameters=None):
+
+        BufferedIOBase.__init__(self)
+        ObjectIOBase.__init__(self, name, mode=mode)
 
         # Instantiate raw IO
-        self._raw = self._RAW_CLASS(name, mode=mode, **kwargs)
+        self._raw = self._RAW_CLASS(
+            name, mode=mode, storage_parameters=storage_parameters)
         self._mode = self._raw.mode
         self._name = self._raw.name
         self._getmtime = self._raw._getmtime
         self._getsize = self._raw._getsize
-
-        # Initialize class
-        BufferedIOBase.__init__(self)
-        ObjectIOBase.__init__(self, name, mode=mode)
 
         # Initialize parallel processing
         self._workers_pool = None

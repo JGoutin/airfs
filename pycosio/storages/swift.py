@@ -36,19 +36,19 @@ class SwiftRawIO(_ObjectRawIOBase):
         name (str): URL or path to the file which will be opened.
         mode (str): The mode can be 'r', 'w', 'a'
             for reading (default), writing or appending
-        swift_connection_kwargs: Swift connection keyword arguments.
+        storage_parameters (dict): Swift connection keyword arguments.
             This is generally OpenStack credentials and configuration.
             (see "swiftclient.client.Connection" for more information)
     """
 
-    def __init__(self, name, mode='r', **swift_connection_kwargs):
+    def __init__(self, *args, **kwargs):
 
         # Initializes storage
-        _ObjectRawIOBase.__init__(self, name, mode)
+        _ObjectRawIOBase.__init__(self, *args, **kwargs)
 
         # Instantiates Swift connection
         self._connection = _swift.client.Connection(
-            **swift_connection_kwargs)
+            **self._storage_parameters)
 
         # Prepares Swift I/O functions and common arguments
         self._get_object = self._connection.get_object
@@ -114,16 +114,18 @@ class SwiftRawIO(_ObjectRawIOBase):
                 container, obj, memoryview(self._write_buffer))
 
     @staticmethod
-    def _get_prefix(*args, **kwargs):
+    def _get_prefix(**storage_parameters):
         """Return URL prefix for this storage.
 
         Args:
-            args, kwargs: Swift connection arguments.
+            storage_parameters: Swift connection keyword arguments.
+            This is generally OpenStack credentials and configuration.
+            (see "swiftclient.client.Connection" for more information)
 
         Returns:
             tuple of str: URL prefixes"""
         return _swift.client.Connection(
-            *args, **kwargs).get_auth()[0] + '/',
+            **storage_parameters).get_auth()[0] + '/',
 
 
 class SwiftBufferedIO(_ObjectBufferedIOBase):
@@ -135,21 +137,16 @@ class SwiftBufferedIO(_ObjectBufferedIOBase):
         max_workers (int): The maximum number of threads that can be used to
             execute the given calls.
         workers_type (str): Parallel workers type: 'thread' or 'process'.
-        swift_connection_kwargs: Swift connection keyword arguments.
+        storage_parameters (dict): Swift connection keyword arguments.
             This is generally OpenStack credentials and configuration.
             (see "swiftclient.client.Connection" for more information)
     """
 
     _RAW_CLASS = SwiftRawIO
 
-    def __init__(self, name, mode='r', buffer_size=None,
-                 max_workers=None, workers_type='thread',
-                 **swift_connection_kwargs):
+    def __init__(self, *args, **kwargs):
 
-        _ObjectBufferedIOBase.__init__(
-            self, name, mode=mode, buffer_size=buffer_size,
-            max_workers=max_workers, workers_type=workers_type,
-            **swift_connection_kwargs)
+        _ObjectBufferedIOBase.__init__(self, *args, **kwargs)
 
         # Use same client as RAW class, but keep theses names
         # protected to this module
