@@ -29,6 +29,7 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
         storage_parameters (dict): Storage configuration parameters.
             Generally, client configuration and credentials.
     """
+    # Raw I/O class
     _RAW_CLASS = ObjectRawIOBase
 
     #: Default buffer_size value in bytes (Default to io.DEFAULT_BUFFER_SIZE)
@@ -51,10 +52,14 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
         # Instantiate raw IO
         self._raw = self._RAW_CLASS(
             name, mode=mode, storage_parameters=storage_parameters)
+
+        # Link to RAW methods
         self._mode = self._raw.mode
         self._name = self._raw.name
-        self._getmtime = self._raw._getmtime
         self._getsize = self._raw._getsize
+        self._system = self._raw._system
+        self._client = self._raw._client
+        self._client_kwargs = self._raw._client_kwargs
 
         # Initialize parallel processing
         self._workers_pool = None

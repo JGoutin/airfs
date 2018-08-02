@@ -22,12 +22,12 @@ class ObjectIOBase(IOBase):
         self._name = fsdecode(name)
         self._mode = mode
 
-        # Cache for values
-        self._cache = {}
-
         # Thread safe stream position
         self._seek = 0
         self._seek_lock = Lock()
+
+        # Cache for values
+        self._cache = {}
 
         # Select supported features based on mode
         self._writable = False
@@ -42,31 +42,6 @@ class ObjectIOBase(IOBase):
 
         else:
             raise ValueError('Invalid mode "%s"' % mode)
-
-    @staticmethod
-    def _memoize(method):
-        """Caches method result.
-
-        Args:
-            method (function): Method
-
-        Returns:
-            function: Memoized method."""
-        method_name = method.__name__
-
-        def patched(self, *args, **kwargs):
-            """Patched method"""
-            # Gets value from cache
-            try:
-                return self._cache[method_name]
-
-            # Evaluates and cache value
-            except KeyError:
-                result = self._cache[method_name] = method(
-                    self, *args, **kwargs)
-                return result
-
-        return patched
 
     @property
     def mode(self):

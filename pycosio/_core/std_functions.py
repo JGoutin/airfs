@@ -6,7 +6,7 @@ from io import open as _open, TextIOWrapper as _TextIOWrapper
 from os import listdir as _listdir
 from os.path import (
     isdir as _isdir, basename as _basename, join as _join,
-    getmtime as _getmtime, getsize as _getsize)
+    getmtime as _getmtime, getsize as _getsize, relpath as _relpath)
 from shutil import copy as _copy, copyfileobj as _copyfileobj
 
 from pycosio._core.compat import fsdecode as _fsdecode
@@ -95,7 +95,7 @@ def getsize(path):
     Raises:
          OSError: if the file does not exist or is inaccessible.
     """
-    # TODO: implementation
+    return _get_instance(cls='system', name=path).getsize(path)
 
 
 @_equivalent_to(_getmtime)
@@ -115,7 +115,7 @@ def getmtime(path):
     Raises:
          OSError: if the file does not exist or is inaccessible.
     """
-    # TODO: implementation
+    return _get_instance(cls='system', name=path).getmtime(path)
 
 
 @_equivalent_to(_listdir)
@@ -132,7 +132,7 @@ def listdir(path='.'):
     Returns:
         list of str: Directory content.
     """
-    # TODO: implementation
+    return _get_instance(cls='system', name=path).listdir(path)
 
 
 @_contextmanager
@@ -204,3 +204,25 @@ def open(file, mode='r', buffering=-1, encoding=None, errors=None,
         with _open(file, mode=mode, buffering=buffering, encoding=encoding,
                    errors=errors, newline=newline, **kwargs) as stream:
             yield stream
+
+
+@_equivalent_to(_relpath)
+def relpath(path):
+    """
+    Return a relative filepath to path either from the
+    current directory or from an optional start directory.
+
+    For storage objects, Path is relative to storage root by default.
+
+    Equivalent to "os.path.relpath".
+
+    Args:
+        path (path-like object): File path or URL.
+
+    Returns:
+        str: Relative path.
+    """
+    # TODO: "start" argument
+    return _get_instance(cls='system', name=path).relpath(path)
+
+

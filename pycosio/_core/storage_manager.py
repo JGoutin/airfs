@@ -6,6 +6,7 @@ from threading import RLock
 
 from pycosio._core.io_raw import ObjectRawIOBase
 from pycosio._core.io_buffered import ObjectBufferedIOBase
+from pycosio._core.io_system import SystemBase
 
 
 def is_storage(url, storage=None):
@@ -39,7 +40,8 @@ class _StorageHook:
     """
 
     _BASE_CLASSES = {'raw': ObjectRawIOBase,
-                     'buffered': ObjectBufferedIOBase}
+                     'buffered': ObjectBufferedIOBase,
+                     'system': SystemBase}
 
     def __init__(self):
         self._items = OrderedDict()
@@ -89,7 +91,7 @@ class _StorageHook:
         # Gets storage information
         info = self.get_info(name, storage, storage_parameters)
         if not storage_parameters:
-            storage_parameters = info['storage_parameters']
+            storage_parameters = info['get_storage_parameters']
 
         # Instantiates class
         return info[cls](
@@ -115,7 +117,7 @@ class _StorageHook:
             if '://' in name:
                 storage = name.split('://', 1)[0].lower()
 
-        # Save storage_parameters
+        # Save get_storage_parameters
         storage_info = dict(storage_parameters=storage_parameters)
 
         # Finds module containing target subclass

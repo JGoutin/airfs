@@ -5,5 +5,5 @@ __version__ = '1.0.0a1'
 
 import pycosio.io
 from pycosio._core.std_functions import (
-    open, copy, getmtime, getsize, listdir)
+    open, copy, getmtime, getsize, listdir, relpath)
 from pycosio._core.storage_manager import register

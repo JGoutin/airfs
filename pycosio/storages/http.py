@@ -7,7 +7,8 @@ import requests as _requests
 
 from pycosio.io import (
     ObjectRawIOBase as _ObjectRawIOBase,
-    ObjectBufferedIOBase as _ObjectBufferedIOBase)
+    ObjectBufferedIOBase as _ObjectBufferedIOBase,
+    SystemBase as _SystemBase)
 
 
 def _handle_http_errors(response):
@@ -29,6 +30,56 @@ def _handle_http_errors(response):
     response.raise_for_status()
 
 
+class HTTPSystem(_SystemBase):
+    """
+    HTTP system.
+    """
+
+    def client_kwargs(self, path):
+        """
+        Get base keyword arguments for client for a
+        specific path.
+
+        Args:
+            path (str): Absolute path or URL.
+
+        Returns:
+            dict: client args
+        """
+        return dict(url=path)
+
+    def _get_client(self):
+        """
+        HTTP client
+
+        Returns:
+            requests.Session: client
+        """
+        return _requests.Session()
+
+    def _get_prefixes(self):
+        """
+        Return URL prefixes for this storage.
+
+        Returns:
+            tuple of str: URL prefixes
+        """
+        return 'http://', 'https://'
+
+    def head(self, **client_kwargs):
+        """
+        Returns object HTTP header.
+
+        Args:
+            client_kwargs (dict): Client arguments.
+
+        Returns:
+            dict: HTTP header.
+        """
+        return _handle_http_errors(
+            self.get_client().request('HEAD', **client_kwargs)).headers
+
+
 class HTTPRawIO(_ObjectRawIOBase):
     """Binary HTTP Object I/O
 
@@ -36,6 +87,7 @@ class HTTPRawIO(_ObjectRawIOBase):
         name (path-like object): URL to the file which will be opened.
         mode (str): The mode can be 'r' for reading (default)
     """
+    _SYSTEM_CLASS = HTTPSystem
 
     def __init__(self, *args, **kwargs):
 
@@ -46,22 +98,14 @@ class HTTPRawIO(_ObjectRawIOBase):
             raise _UnsupportedOperation('write')
 
         # HTTP session
-        self._session = _requests.Session()
-        self._request = self._session.request
+        self._request = self._client.request
 
         # Check if object support random read
-        self._seekable = self._head().get('Accept-Ranges') == 'bytes'
+        header = self._system.head(**self._client_kwargs)
+        self._seekable = header.get('Accept-Ranges') == 'bytes'
 
-    @_ObjectRawIOBase._memoize
-    def _head(self):
-        """
-        Returns object HTTP header.
-
-        Returns:
-            dict: HTTP header.
-        """
-        return _handle_http_errors(
-            self._request('HEAD', self._name)).headers
+        # Also take and cache size
+        self._cache['_getsize'] = int(header.get('content-length', 0))
 
     def _read_range(self, start, end=0):
         """
@@ -101,14 +145,6 @@ class HTTPRawIO(_ObjectRawIOBase):
         """
         Flush the write buffers of the stream if applicable.
         """
-
-    @staticmethod
-    def _get_prefix(**__):
-        """Return URL prefixes for this storage.
-
-        Returns:
-            tuple of str: URL prefixes"""
-        return 'http://', 'https://'
 
 
 class HTTPBufferedIO(_ObjectBufferedIOBase):

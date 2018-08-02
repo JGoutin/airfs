@@ -1,12 +1,12 @@
 # coding=utf-8
 """Cloud storage abstract Raw IO class"""
 from abc import abstractmethod
-from email.utils import parsedate
 from io import RawIOBase, UnsupportedOperation
 from os import SEEK_CUR, SEEK_END, SEEK_SET
-from time import mktime
 
 from pycosio._core.io_base import ObjectIOBase
+from pycosio._core.io_system import SystemBase
+from pycosio._core.utilities import memoizedmethod
 
 
 class ObjectRawIOBase(RawIOBase, ObjectIOBase):
@@ -28,25 +28,24 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         storage_parameters (dict): Storage configuration parameters.
             Generally, client configuration and credentials.
     """
+    # System I/O class
+    _SYSTEM_CLASS = SystemBase
 
     def __init__(self, name, mode='r', storage_parameters=None):
 
         RawIOBase.__init__(self)
         ObjectIOBase.__init__(self, name, mode=mode)
 
-        # Save storage parameters
-        self._storage_parameters = storage_parameters or dict()
+        # Initializes system
+        self._system = self._SYSTEM_CLASS(
+            storage_parameters=storage_parameters)
 
-        # Get storage local path from URL
-        for prefix in self._get_prefix(**self._storage_parameters):
-            try:
-                self._path = name.split(prefix)[1]
-                break
-            except IndexError:
-                continue
-        else:
-            self._path = name
+        # Gets storage local path from URL
+        self._path = self._system.relpath(name)
+        self._client_kwargs = self._system.client_kwargs(name)
+        self._client = self._system.get_client()
 
+        # Configures write mode
         if self._writable:
             # In write mode, since it is not possible
             # to random write on cloud storage,
@@ -73,36 +72,7 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         Flush the write buffers of the stream if applicable.
         """
 
-    @ObjectIOBase._memoize
-    def _getmtime(self):
-        """
-        Return the time of last access of path.
-
-        Returns:
-            float: The number of seconds since the epoch
-                (see the time module).
-
-        Raises:
-             OSError: if the file does not exist or is inaccessible.
-        """
-        # By default, assumes that information are in a standard HTTP header
-        return mktime(parsedate({
-            key.lower(): value
-            for key, value in self._head().items()}['last-modified']))
-
-    @staticmethod
-    @abstractmethod
-    def _get_prefix(**storage_parameters):
-        """Return URL prefixes for this storage.
-
-        Args:
-            storage_parameters: Storage configuration parameters.
-            Generally, client configuration and credentials.
-
-        Returns:
-            tuple of str: URL prefixes"""
-
-    @ObjectIOBase._memoize
+    @memoizedmethod
     def _getsize(self):
         """
         Return the size, in bytes, of path.
@@ -113,21 +83,7 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         Raises:
              OSError: if the file does not exist or is inaccessible.
         """
-        # By default, assumes that information are in a standard HTTP header
-        return int({
-            key.lower(): value
-            for key, value in self._head().items()}['content-length'])
-
-    @ObjectIOBase._memoize
-    def _head(self):
-        """
-        Returns object HTTP header.
-
-        Returns:
-            dict: HTTP header.
-        """
-        # This is not an abstract method because this may not
-        # be used every time
+        return self._system.getsize_client(**self._client_kwargs)
 
     @staticmethod
     def _http_range(start=0, end=0):

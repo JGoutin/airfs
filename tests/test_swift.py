@@ -35,9 +35,9 @@ def test_handle_client_exception():
 
 
 def test_swift_raw_io():
-    """Tests pycosio.swift.SwiftRawIO"""
-    from pycosio.storages.swift import SwiftRawIO
+    """Tests pycosio.swift.SwiftRawIO SwiftSystem"""
     import swiftclient
+    from pycosio.storages.swift import SwiftRawIO, SwiftSystem
 
     # Initializes some variables
     m_time = time.time()
@@ -94,7 +94,6 @@ def test_swift_raw_io():
             assert contents
             put_object_called.append(1)
 
-
     swiftclient_client_connection = swiftclient.client.Connection
     swiftclient.client.Connection = Connection
 
@@ -102,8 +101,8 @@ def test_swift_raw_io():
     try:
         swift_object = SwiftRawIO(path)
 
-        # Tests _head
-        check_head_methods(swift_object, m_time)
+        # Tests head
+        check_head_methods(SwiftSystem(), m_time, path=path)
 
         # Tests read
         check_raw_read_methods(swift_object)

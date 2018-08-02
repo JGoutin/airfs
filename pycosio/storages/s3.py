@@ -8,7 +8,8 @@ from botocore.exceptions import ClientError as _ClientError
 from pycosio._core.compat import to_timestamp as _to_timestamp
 from pycosio.io import (
     ObjectRawIOBase as _ObjectRawIOBase,
-    ObjectBufferedIOBase as _ObjectBufferedIOBase)
+    ObjectBufferedIOBase as _ObjectBufferedIOBase,
+    SystemBase as _SystemBase)
 
 
 @_contextmanager
@@ -47,6 +48,95 @@ def _upload_part(storage_parameters=None, **kwargs):
         **(storage_parameters or dict())).client('s3').upload_part(**kwargs)
 
 
+class S3System(_SystemBase):
+    """
+    S3 system.
+
+    Args:
+        storage_parameters (dict): Boto3 Session keyword arguments.
+            This is generally AWS credentials and configuration.
+            Optional if running on AWS EC2 instances.
+            (see "boto3.session.Session" for more information)
+    """
+
+    def client_kwargs(self, path):
+        """
+        Get base keyword arguments for client for a
+        specific path.
+
+        Args:
+            path (str): Absolute path or URL.
+
+        Returns:
+            dict: client args
+        """
+        bucket_name, key = self.relpath(path).split('/', 1)
+        return dict(Bucket=bucket_name, Key=key)
+
+    def _get_client(self):
+        """
+        S3 Boto3 client
+
+        Returns:
+            boto3.session.Session: client
+        """
+        return _boto3.session.Session(
+            **self._storage_parameters).client("s3")
+
+    def _get_prefixes(self):
+        """
+        Return URL prefixes for this storage.
+
+        Returns:
+            tuple of str: URL prefixes
+        """
+        return 's3://',
+
+    def getmtime_client(self, **client_kwargs):
+        """
+        Return the time of last access of path.
+
+        Args:
+            client_kwargs (dict): Client arguments.
+
+        Returns:
+            float: The number of seconds since the epoch
+                (see the time module).
+
+        Raises:
+             OSError: if the file does not exist or is inaccessible.
+        """
+        return _to_timestamp(self.head(**client_kwargs)['LastModified'])
+
+    def getsize_client(self, **client_kwargs):
+        """
+        Return the size, in bytes, of path.
+
+        Args:
+            client_kwargs (dict): Client arguments.
+
+        Returns:
+            int: Size in bytes.
+
+        Raises:
+             OSError: if the file does not exist or is inaccessible.
+        """
+        return self.head(**client_kwargs)['ContentLength']
+
+    def head(self, **client_kwargs):
+        """
+        Returns object HTTP header.
+
+        Args:
+            client_kwargs (dict): Client arguments.
+
+        Returns:
+            dict: HTTP header.
+        """
+        with _handle_client_error():
+            return self.get_client().head_object(**client_kwargs)
+
+
 class S3RawIO(_ObjectRawIOBase):
     """Binary S3 Object I/O
 
@@ -59,60 +149,16 @@ class S3RawIO(_ObjectRawIOBase):
             Optional if running on AWS EC2 instances.
             (see "boto3.session.Session" for more information)
     """
+    _SYSTEM_CLASS = S3System
 
     def __init__(self, *args, **kwargs):
 
         _ObjectRawIOBase.__init__(self, *args, **kwargs)
 
-        # Instantiates S3 client
-        self._client = _boto3.session.Session(
-            **self._storage_parameters).client("s3")
-
         # Prepares S3 I/O functions and common arguments
         self._get_object = self._client.get_object
         self._put_object = self._client.put_object
         self._head_object = self._client.head_object
-
-        bucket_name, key = self._path.split('/', 1)
-        self._client_kwargs = dict(Bucket=bucket_name, Key=key)
-
-    @_ObjectRawIOBase._memoize
-    def _head(self):
-        """
-        Returns object metadata.
-
-        Returns:
-            dict: Object metadata.
-        """
-        with _handle_client_error():
-            return self._head_object(**self._client_kwargs)
-
-    @_ObjectRawIOBase._memoize
-    def _getsize(self):
-        """
-        Return the size, in bytes, of path.
-
-        Returns:
-            int: Size in bytes.
-
-        Raises:
-             OSError: if the file does not exist or is inaccessible.
-        """
-        return self._head()['ContentLength']
-
-    @_ObjectRawIOBase._memoize
-    def _getmtime(self):
-        """
-        Return the time of last access of path.
-
-        Returns:
-            float: The number of seconds since the epoch
-                (see the time module).
-
-        Raises:
-             OSError: if the file does not exist or is inaccessible.
-        """
-        return _to_timestamp(self._head()['LastModified'])
 
     def _read_range(self, start, end=0):
         """
@@ -165,14 +211,6 @@ class S3RawIO(_ObjectRawIOBase):
                 Body=memoryview(self._write_buffer).tobytes(),
                 **self._client_kwargs)
 
-    @staticmethod
-    def _get_prefix(**__):
-        """Return URL prefixes for this storage.
-
-        Returns:
-            tuple of str: URL prefixes"""
-        return 's3://',
-
 
 class S3BufferedIO(_ObjectBufferedIOBase):
     """Buffered binary S3 Object I/O
@@ -201,11 +239,6 @@ class S3BufferedIO(_ObjectBufferedIOBase):
 
         _ObjectBufferedIOBase.__init__(self, *args, **kwargs)
 
-        # Use same client as RAW class, but keep theses names
-        # protected to this module
-        self._client = self._raw._client
-        self._client_kwargs = self._raw._client_kwargs
-
         # Use multipart upload as write buffered mode
         if self._writable:
             self._upload_args = self._client_kwargs.copy()
@@ -216,7 +249,8 @@ class S3BufferedIO(_ObjectBufferedIOBase):
             # Multi processing needs external function
             else:
                 self._upload_part = _upload_part
-                self._upload_args['storage_parameters'] = self._raw._storage_parameters
+                self._upload_args['get_storage_parameters'] = (
+                    self._system.get_storage_parameters())
 
     def _flush(self):
         """

@@ -2,12 +2,9 @@
 """Test pycosio._core.io_raw"""
 import io
 import os
-import time
-from wsgiref.handlers import format_date_time
-
 import pytest
 
-from tests.utilities import BYTE, SIZE, check_head_methods
+from tests.utilities import BYTE
 
 
 def test_object_raw_base_io():
@@ -18,34 +15,46 @@ def test_object_raw_base_io():
     name = 'name'
     size = 10000
     flushed = bytearray()
-    m_time = time.time()
+
+    class DummySystem:
+        """Dummy system"""
+
+        def __init__(self, **_):
+            """Do nothing"""
+
+        @staticmethod
+        def getsize_client(**_):
+            """Returns fake result"""
+            return size
+
+        @staticmethod
+        def relpath(path):
+            """Returns fake result"""
+            return path
+
+        @staticmethod
+        def client_kwargs(*_, **__):
+            """Returns fake result"""
+            return {}
+
+        @staticmethod
+        def get_client(*_, **__):
+            """Returns fake result"""
+            return None
 
     class DummyIO(ObjectRawIOBase):
         """Dummy IO"""
-
-        def _getsize(self):
-            """Returns fake result"""
-            return size
+        _SYSTEM_CLASS = DummySystem
 
         def _flush(self):
             """Flush in a buffer"""
             flushed[:] = self._write_buffer
-
-        def _head(self):
-            """Returns fake result"""
-            return {'Content-Length': str(SIZE),
-                    'Last-Modified': format_date_time(m_time)}
 
         def _read_range(self, start, end=0):
             """Read fake bytes"""
             if end == 0:
                 end = size
             return ((size if end > size else end) - start) * BYTE
-
-        @staticmethod
-        def _get_prefix(*_, **__):
-            """Return fake result"""
-            return '://',
 
     # Test seek/tell
     object_io = DummyIO(name)
@@ -92,9 +101,6 @@ def test_object_raw_base_io():
     object_io.seek(300)
     assert object_io.read() == (size - 300) * BYTE
     assert object_io.tell() == size
-
-    # Tests _head
-    check_head_methods(object_io, m_time, size)
 
     # Test write in read mode
     with pytest.raises(io.UnsupportedOperation):

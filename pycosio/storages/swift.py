@@ -8,7 +8,8 @@ from swiftclient.exceptions import ClientException as _ClientException
 
 from pycosio.io import (
     ObjectRawIOBase as _ObjectRawIOBase,
-    ObjectBufferedIOBase as _ObjectBufferedIOBase)
+    ObjectBufferedIOBase as _ObjectBufferedIOBase,
+    SystemBase as _SystemBase)
 
 
 @_contextmanager
@@ -29,6 +30,63 @@ def _handle_client_exception():
         raise
 
 
+class SwiftSystem(_SystemBase):
+    """
+    Swift system.
+
+    Args:
+        storage_parameters (dict): Swift connection keyword arguments.
+            This is generally OpenStack credentials and configuration.
+            (see "swiftclient.client.Connection" for more information)
+    """
+
+    def client_kwargs(self, path):
+        """
+        Get base keyword arguments for client for a
+        specific path.
+
+        Args:
+            path (str): Absolute path or URL.
+
+        Returns:
+            dict: client args
+        """
+        container, obj = self.relpath(path).split('/', 1)
+        return dict(container=container, obj=obj)
+
+    def _get_client(self):
+        """
+        S3 Boto3 client
+
+        Returns:
+            boto3.session.Session: client
+        """
+        return _swift.client.Connection(
+            **self._storage_parameters)
+
+    def _get_prefixes(self):
+        """
+        Return URL prefixes for this storage.
+
+        Returns:
+            tuple of str: URL prefixes
+        """
+        return self.get_client().get_auth()[0] + '/',
+
+    def head(self, **client_kwargs):
+        """
+        Returns object HTTP header.
+
+        Args:
+            client_kwargs (dict): Client arguments.
+
+        Returns:
+            dict: HTTP header.
+        """
+        with _handle_client_exception():
+            return self.get_client().head_object(**client_kwargs)
+
+
 class SwiftRawIO(_ObjectRawIOBase):
     """Binary OpenStack Swift Object I/O
 
@@ -40,34 +98,18 @@ class SwiftRawIO(_ObjectRawIOBase):
             This is generally OpenStack credentials and configuration.
             (see "swiftclient.client.Connection" for more information)
     """
+    _SYSTEM_CLASS = SwiftSystem
 
     def __init__(self, *args, **kwargs):
 
         # Initializes storage
         _ObjectRawIOBase.__init__(self, *args, **kwargs)
 
-        # Instantiates Swift connection
-        self._connection = _swift.client.Connection(
-            **self._storage_parameters)
-
         # Prepares Swift I/O functions and common arguments
-        self._get_object = self._connection.get_object
-        self._put_object = self._connection.put_object
-        self._head_object = self._connection.head_object
-
-        container, object_name = self._path.split('/', 1)
-        self._client_args = (container, object_name)
-
-    @_ObjectRawIOBase._memoize
-    def _head(self):
-        """
-        Returns object HTTP header.
-
-        Returns:
-            dict: HTTP header.
-        """
-        with _handle_client_exception():
-            return self._head_object(*self._client_args)
+        self._get_object = self._client.get_object
+        self._put_object = self._client.put_object
+        self._client_args = (self._client_kwargs['container'],
+                             self._client_kwargs['obj'])
 
     def _read_range(self, start, end=0):
         """
@@ -110,22 +152,8 @@ class SwiftRawIO(_ObjectRawIOBase):
         """
         container, obj = self._client_args
         with _handle_client_exception():
-            self._put_object(
-                container, obj, memoryview(self._write_buffer))
-
-    @staticmethod
-    def _get_prefix(**storage_parameters):
-        """Return URL prefix for this storage.
-
-        Args:
-            storage_parameters: Swift connection keyword arguments.
-            This is generally OpenStack credentials and configuration.
-            (see "swiftclient.client.Connection" for more information)
-
-        Returns:
-            tuple of str: URL prefixes"""
-        return _swift.client.Connection(
-            **storage_parameters).get_auth()[0] + '/',
+            self._put_object(container, obj,
+                             memoryview(self._write_buffer))
 
 
 class SwiftBufferedIO(_ObjectBufferedIOBase):

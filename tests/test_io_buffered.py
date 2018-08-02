@@ -27,16 +27,35 @@ def test_object_buffered_base_io():
         flushed.extend(data)
         time.sleep(flush_sleep)
 
-    class DummyRawIO(ObjectRawIOBase):
-        """Dummy IO"""
+    class DummySystem:
+        """Dummy system"""
 
-        def _getmtime(self):
+        def __init__(self, **_):
             """Do nothing"""
-            return 0.0
 
-        def _getsize(self):
+        @staticmethod
+        def getsize_client(**_):
             """Returns fake result"""
             return size
+
+        @staticmethod
+        def relpath(path):
+            """Returns fake result"""
+            return path
+
+        @staticmethod
+        def client_kwargs(*_, **__):
+            """Returns fake result"""
+            return {}
+
+        @staticmethod
+        def get_client(*_, **__):
+            """Returns fake result"""
+            return None
+
+    class DummyRawIO(ObjectRawIOBase):
+        """Dummy IO"""
+        _SYSTEM_CLASS = DummySystem
 
         def _flush(self):
             """Do nothing"""
@@ -45,11 +64,6 @@ def test_object_buffered_base_io():
         def _read_range(self, start, end=0):
             """Read fake bytes"""
             return ((size if end > size else end) - start) * BYTE
-
-        @staticmethod
-        def _get_prefix(*_, **__):
-            """Return fake result"""
-            return '://',
 
     class DummyBufferedIO(ObjectBufferedIOBase):
         """Dummy buffered IO"""
@@ -74,7 +88,6 @@ def test_object_buffered_base_io():
     object_io = DummyBufferedIO(name, mode='r')
     assert isinstance(object_io.raw, object_io._RAW_CLASS)
     assert object_io._getsize() == object_io.raw._getsize()
-    assert object_io._getmtime() == object_io.raw._getmtime()
 
     assert object_io.raw.tell() == 0
     assert object_io.peek(10) == 10 * BYTE

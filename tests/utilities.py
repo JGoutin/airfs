@@ -46,16 +46,17 @@ def parse_range(header):
     return content
 
 
-def check_head_methods(io_object, m_time, size=SIZE):
+def check_head_methods(system, m_time, path=None):
     """
     Tests head methods.
 
     args:
-        io_object (pycosio.io_base.ObjectIOBase subclass):
+        io_object (pycosio._core.io_system.SystemBase subclass):
             Object to test
     """
-    assert io_object._getmtime() == pytest.approx(m_time, 1)
-    assert io_object._getsize() == size
+    path = path or 'directory/file'
+    assert system.getmtime(path) == pytest.approx(m_time, 1)
+    assert system.getsize(path) == SIZE
 
 
 def check_raw_read_methods(io_object):

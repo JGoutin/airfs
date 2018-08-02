@@ -32,18 +32,3 @@ def test_object_base_io():
 
     with pytest.raises(ValueError):
         ObjectIOBase(name, mode='z')
-
-    # Tests memoize
-    class IOObject(ObjectIOBase):
-
-        @ObjectIOBase._memoize
-        def to_memoize(self, arg):
-            """Fake method"""
-            return arg
-
-    io_object = IOObject(name)
-    assert not io_object._cache
-    value = 'value'
-    assert io_object.to_memoize(value) == value
-    assert io_object._cache == {'to_memoize': value}
-    assert io_object.to_memoize(value) == value
