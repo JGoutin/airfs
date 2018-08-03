@@ -12,6 +12,8 @@ from tests.utilities import parse_range, check_head_methods, check_raw_read_meth
 def test_handle_http_errors():
     """Test pycosio.http._handle_http_errors"""
     from pycosio.storages.http import _handle_http_errors
+    from pycosio._core.exceptions import (
+        ObjectNotFoundError, ObjectPermissionError)
 
     # Mocks response
     class Response:
@@ -30,12 +32,12 @@ def test_handle_http_errors():
 
     # 403 error
     response.status_code = 403
-    with pytest.raises(OSError):
+    with pytest.raises(ObjectPermissionError):
         _handle_http_errors(response)
 
     # 404 error
     response.status_code = 404
-    with pytest.raises(OSError):
+    with pytest.raises(ObjectNotFoundError):
         _handle_http_errors(response)
 
     # Any error

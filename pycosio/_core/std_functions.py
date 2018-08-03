@@ -6,7 +6,8 @@ from io import open as _open, TextIOWrapper as _TextIOWrapper
 from os import listdir as _listdir
 from os.path import (
     isdir as _isdir, basename as _basename, join as _join,
-    getmtime as _getmtime, getsize as _getsize, relpath as _relpath)
+    getmtime as _getmtime, getsize as _getsize, relpath as _relpath,
+    isfile as _isfile)
 from shutil import copy as _copy, copyfileobj as _copyfileobj
 
 from pycosio._core.compat import fsdecode as _fsdecode
@@ -116,6 +117,22 @@ def getmtime(path):
          OSError: if the file does not exist or is inaccessible.
     """
     return _get_instance(cls='system', name=path).getmtime(path)
+
+
+@_equivalent_to(_isfile)
+def isfile(path):
+    """
+    Return True if path is an existing regular file.
+
+    Equivalent to "os.path.isfile".
+
+    Args:
+        path (path-like object): File path or URL.
+
+    Returns:
+        bool: True if file exists.
+    """
+    return _get_instance(cls='system', name=path).isfile(path)
 
 
 @_equivalent_to(_listdir)

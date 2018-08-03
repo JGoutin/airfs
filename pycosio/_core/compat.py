@@ -24,6 +24,11 @@ if _py[0] == 2:
     # Missing "abc.ABC"
     ABC = _abc.ABCMeta('ABC', (object,), {})
 
+    # Missing exceptions
+    file_not_found_error = OSError
+    permission_error = OSError
+    file_exits_error = OSError
+
 else:
     # Current Python
     def to_timestamp(dt):
@@ -32,7 +37,9 @@ else:
 
     fsdecode = _os.fsdecode
     ABC = _abc.ABC
-
+    file_not_found_error = FileNotFoundError
+    permission_error = PermissionError
+    file_exits_error = FileExistsError
 
 # Python 3.4 compatibility
 if _py[0] == 3 and _py[1] == 4:

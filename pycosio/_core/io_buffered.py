@@ -56,7 +56,7 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
         # Link to RAW methods
         self._mode = self._raw.mode
         self._name = self._raw.name
-        self._getsize = self._raw._getsize
+        self._size = self._raw._size
         self._system = self._raw._system
         self._client = self._raw._client
         self._client_kwargs = self._raw._client_kwargs
@@ -88,7 +88,7 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
                 self._max_buffers = max_buffers
             else:
                 self._max_buffers = ceil(
-                    self._getsize() / self._buffer_size)
+                    self._size / self._buffer_size)
             self._read_queue = dict()
             self._read_range = self.raw._read_range
 
@@ -328,7 +328,7 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
 
                     # Append another buffer preload at end of queue
                     index = queue_index + buffer_size * self._max_buffers
-                    if index < self._getsize():
+                    if index < self._size:
                         queue[index] = self._workers.submit(
                             self._read_range, index, index + buffer_size)
 

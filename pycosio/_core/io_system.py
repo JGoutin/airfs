@@ -5,7 +5,8 @@ from email.utils import parsedate
 from time import mktime
 
 from pycosio._core.compat import ABC
-from pycosio._core.utilities import memoizedmethod
+from pycosio._core.utilities import handle_os_exceptions
+from pycosio._core.exceptions import ObjectNotFoundError
 
 
 class SystemBase(ABC):
@@ -21,11 +22,38 @@ class SystemBase(ABC):
         # Save storage parameters
         self._storage_parameters = storage_parameters or dict()
 
-        # Cache for values
-        self._cache = {}
+        # Initialize client
+        self._client = self._get_client()
+
+        # Initialize prefixes, get cached values if available
+        prefixes = self._storage_parameters.pop(
+            'storage.prefixes', None)
+        if prefixes:
+            self._prefixes = prefixes
+        else:
+            self._prefixes = self._get_prefixes()
+
+    @property
+    def client(self):
+        """
+        Storage client
+
+        Returns:
+            client
+        """
+        return self._client
 
     @abstractmethod
-    def client_kwargs(self, path):
+    def _get_client(self):
+        """
+        Storage client
+
+        Returns:
+            client
+        """
+
+    @abstractmethod
+    def get_client_kwargs(self, path):
         """
         Get base keyword arguments for client for a
         specific path.
@@ -37,31 +65,14 @@ class SystemBase(ABC):
             dict: client args
         """
 
-    @abstractmethod
-    def _get_client(self):
-        """
-        Storage client
-
-        Returns:
-            client
-        """
-
-    @memoizedmethod
-    def get_client(self):
-        """
-        Storage client
-
-        Returns:
-            client
-        """
-        return self._get_client()
-
-    def getmtime_client(self, **client_kwargs):
+    def getmtime(self, path=None, client_kwargs=None, header=None):
         """
         Return the time of last access of path.
 
         Args:
+            path (str): File path or URL.
             client_kwargs (dict): Client arguments.
+            header (dict): Object header.
 
         Returns:
             float: The number of seconds since the epoch
@@ -69,38 +80,26 @@ class SystemBase(ABC):
 
         Raises:
              OSError: if the file does not exist or is inaccessible.
+        """
+        with handle_os_exceptions():
+            return self._getmtime_from_header(
+                self.head(path, client_kwargs, header))
+
+    @staticmethod
+    def _getmtime_from_header(header):
+        """
+        Return the time from header
+
+        Args:
+            header (dict): Object header.
+
+        Returns:
+            float: The number of seconds since the epoch
         """
         # By default, assumes that information are in a standard HTTP header
         return mktime(parsedate({
             key.lower(): value
-            for key, value in self.head(**client_kwargs).items()}['last-modified']))
-
-    def getmtime(self, path):
-        """
-        Return the time of last access of path.
-
-        Args:
-            path (path-like object): File path or URL.
-
-        Returns:
-            float: The number of seconds since the epoch
-                (see the time module).
-
-        Raises:
-             OSError: if the file does not exist or is inaccessible.
-        """
-        return self.getmtime_client(**self.client_kwargs(path))
-
-    @property
-    @memoizedmethod
-    def prefixes(self):
-        """
-        Return URL prefixes for this storage.
-
-        Returns:
-            tuple of str: URL prefixes
-        """
-        return self._get_prefixes()
+            for key, value in header.items()}['last-modified']))
 
     @abstractmethod
     def _get_prefixes(self):
@@ -111,12 +110,14 @@ class SystemBase(ABC):
             tuple of str: URL prefixes
         """
 
-    def getsize(self, path):
+    def getsize(self, path=None, client_kwargs=None, header=None):
         """
         Return the size, in bytes, of path.
 
         Args:
             path (str): File path or URL.
+            client_kwargs (dict): Client arguments.
+            header (dict): Object header.
 
         Returns:
             int: Size in bytes.
@@ -124,27 +125,46 @@ class SystemBase(ABC):
         Raises:
              OSError: if the file does not exist or is inaccessible.
         """
-        return self.getsize_client(**self.client_kwargs(path))
+        with handle_os_exceptions():
+            return self._getsize_from_header(
+                self.head(path, client_kwargs, header))
 
-    def getsize_client(self, **client_kwargs):
+    @staticmethod
+    def _getsize_from_header(header):
         """
-        Return the size, in bytes, of path.
+        Return the size from header
 
         Args:
-            client_kwargs (dict): Client arguments.
+            header (dict): Object header.
 
         Returns:
             int: Size in bytes.
-
-        Raises:
-             OSError: if the file does not exist or is inaccessible.
         """
         # By default, assumes that information are in a standard HTTP header
         return int({
             key.lower(): value
-            for key, value in self.head(**client_kwargs).items()}['content-length'])
+            for key, value in header.items()}['content-length'])
 
-    def get_storage_parameters(self):
+    def isfile(self, path=None, client_kwargs=None):
+        """
+        Return True if path is an existing regular file.
+
+        Args:
+            path (str): File path or URL.
+            client_kwargs (dict): Client arguments.
+
+        Returns:
+            bool: True if file exists.
+        """
+        with handle_os_exceptions():
+            try:
+                self.head(path, client_kwargs)
+            except ObjectNotFoundError:
+                return False
+            return True
+
+    @property
+    def storage_parameters(self):
         """
         Storage parameters
 
@@ -153,7 +173,8 @@ class SystemBase(ABC):
         """
         return self._storage_parameters
 
-    def head(self, **client_kwargs):
+    @abstractmethod
+    def _head(self, client_kwargs):
         """
         Returns object HTTP header.
 
@@ -166,20 +187,39 @@ class SystemBase(ABC):
         # This is not an abstract method because this may not
         # be used every time
 
+    def head(self, path=None, client_kwargs=None, header=None):
+        """
+        Returns object HTTP header.
+
+        Args:
+            path (str): File path or URL.
+            client_kwargs (dict): Client arguments.
+            header (dict): Object header.
+
+        Returns:
+            dict: HTTP header.
+        """
+        if header:
+            return header
+        elif client_kwargs is None:
+            client_kwargs = self.get_client_kwargs(path)
+        return self._head(client_kwargs)
+
     def listdir(self, path='.'):
         """
         Return a list containing the names of the entries in
         the directory given by path
 
         Args:
-            path (path-like object): File path or URL.
+            path (str): File path or URL.
 
         Returns:
             list of str: Directory content.
         """
-        return self.listdir_client(**self.client_kwargs(path))
+        with handle_os_exceptions():
+            return self._listdir(self.get_client_kwargs(path))
 
-    def listdir_client(self, **client_kwargs):
+    def _listdir(self, client_kwargs):
         """
         Return a list containing the names of the entries in
         the directory given by path
@@ -192,6 +232,16 @@ class SystemBase(ABC):
         """
         # By default, assumes that directory is not listable
         raise OSError("Can't list directory")
+
+    @property
+    def prefixes(self):
+        """
+        Return URL prefixes for this storage.
+
+        Returns:
+            tuple of str: URL prefixes
+        """
+        return self._prefixes
 
     def relpath(self, path):
         """

@@ -30,13 +30,20 @@ def test_object_buffered_base_io():
     class DummySystem:
         """Dummy system"""
 
+        client = None
+
         def __init__(self, **_):
             """Do nothing"""
 
         @staticmethod
-        def getsize_client(**_):
+        def getsize(*_, **__):
             """Returns fake result"""
             return size
+
+        @staticmethod
+        def head(*_, **__):
+            """Returns fake result"""
+            return {}
 
         @staticmethod
         def relpath(path):
@@ -44,14 +51,9 @@ def test_object_buffered_base_io():
             return path
 
         @staticmethod
-        def client_kwargs(*_, **__):
+        def get_client_kwargs(*_, **__):
             """Returns fake result"""
             return {}
-
-        @staticmethod
-        def get_client(*_, **__):
-            """Returns fake result"""
-            return None
 
     class DummyRawIO(ObjectRawIOBase):
         """Dummy IO"""
@@ -87,7 +89,7 @@ def test_object_buffered_base_io():
     # Test raw
     object_io = DummyBufferedIO(name, mode='r')
     assert isinstance(object_io.raw, object_io._RAW_CLASS)
-    assert object_io._getsize() == object_io.raw._getsize()
+    assert object_io._size == object_io.raw._size
 
     assert object_io.raw.tell() == 0
     assert object_io.peek(10) == 10 * BYTE

@@ -4,9 +4,11 @@ from abc import abstractmethod
 from io import RawIOBase, UnsupportedOperation
 from os import SEEK_CUR, SEEK_END, SEEK_SET
 
+from pycosio._core.compat import file_exits_error
+from pycosio._core.exceptions import ObjectNotFoundError
 from pycosio._core.io_base import ObjectIOBase
 from pycosio._core.io_system import SystemBase
-from pycosio._core.utilities import memoizedmethod
+from pycosio._core.utilities import memoizedmethod, handle_os_exceptions
 
 
 class ObjectRawIOBase(RawIOBase, ObjectIOBase):
@@ -23,7 +25,7 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
 
     Args:
         name (path-like object): URL or path to the file which will be opened.
-        mode (str): The mode can be 'r', 'w', 'a'
+        mode (str): The mode can be 'r', 'w', 'a', 'x'
             for reading (default), writing or appending
         storage_parameters (dict): Storage configuration parameters.
             Generally, client configuration and credentials.
@@ -42,8 +44,8 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
 
         # Gets storage local path from URL
         self._path = self._system.relpath(name)
-        self._client_kwargs = self._system.client_kwargs(name)
-        self._client = self._system.get_client()
+        self._client_kwargs = self._system.get_client_kwargs(name)
+        self._client = self._system.client
 
         # Configures write mode
         if self._writable:
@@ -53,10 +55,26 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
             # This write buffer store data in wait to send
             # it on storage on "flush()" call.
             if 'a' in mode:
-                self._write_buffer = bytearray(self._getsize())
+                # Read existing file in buffer
+                self._write_buffer = bytearray(self._size)
                 memoryview(self._write_buffer)[:] = self.readall()
+            elif 'x' in mode:
+                # Checks if object exists,
+                # and raise if it is the case
+                try:
+                    self._head()
+                except ObjectNotFoundError:
+                    pass
+                else:
+                    raise file_exits_error
             else:
                 self._write_buffer = bytearray()
+
+        # Configure read mode
+        elif self._readable:
+            # Get header and checks files exists
+            with handle_os_exceptions():
+                self._head()
 
     def flush(self):
         """
@@ -72,18 +90,26 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         Flush the write buffers of the stream if applicable.
         """
 
+    @property
     @memoizedmethod
-    def _getsize(self):
+    def _size(self):
         """
         Return the size, in bytes, of path.
 
         Returns:
             int: Size in bytes.
-
-        Raises:
-             OSError: if the file does not exist or is inaccessible.
         """
-        return self._system.getsize_client(**self._client_kwargs)
+        return self._system.getsize(header=self._head())
+
+    @memoizedmethod
+    def _head(self):
+        """
+        Return file header.
+
+        Returns:
+            dict: header.
+        """
+        return self._system.head(client_kwargs=self._client_kwargs)
 
     @staticmethod
     def _http_range(start=0, end=0):
@@ -220,7 +246,7 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
             elif whence == SEEK_CUR:
                 self._seek += offset
             elif whence == SEEK_END:
-                self._seek = offset + self._getsize()
+                self._seek = offset + self._size
             else:
                 raise ValueError(
                     'Unsupported whence "%s"' % whence)

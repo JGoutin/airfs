@@ -12,7 +12,7 @@ class ObjectIOBase(IOBase):
 
     Args:
         name (path-like object): URL or path to the file which will be opened.
-        mode (str): The mode can be 'r', 'w', 'a'
+        mode (str): The mode can be 'r', 'w', 'a', 'x'
             for reading (default), writing or appending
     """
 
@@ -34,7 +34,7 @@ class ObjectIOBase(IOBase):
         self._readable = False
         self._seekable = True
 
-        if 'w' in mode or 'a' in mode:
+        if 'w' in mode or 'a' in mode or 'x' in mode:
             self._writable = True
 
         elif 'r' in mode:

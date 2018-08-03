@@ -10,22 +10,33 @@ from tests.utilities import BYTE
 def test_object_raw_base_io():
     """Tests pycosio._core.io_raw.ObjectRawIOBase"""
     from pycosio._core.io_raw import ObjectRawIOBase
+    from pycosio._core.exceptions import ObjectNotFoundError
 
     # Mock sub class
     name = 'name'
     size = 10000
     flushed = bytearray()
+    raise_not_exists_exception = False
 
     class DummySystem:
         """Dummy system"""
+
+        client = None
 
         def __init__(self, **_):
             """Do nothing"""
 
         @staticmethod
-        def getsize_client(**_):
+        def getsize(*_, **__):
             """Returns fake result"""
             return size
+
+        @staticmethod
+        def head(*_, **__):
+            """Returns fake result"""
+            if raise_not_exists_exception:
+                raise ObjectNotFoundError
+            return {}
 
         @staticmethod
         def relpath(path):
@@ -33,14 +44,9 @@ def test_object_raw_base_io():
             return path
 
         @staticmethod
-        def client_kwargs(*_, **__):
+        def get_client_kwargs(*_, **__):
             """Returns fake result"""
             return {}
-
-        @staticmethod
-        def get_client(*_, **__):
-            """Returns fake result"""
-            return None
 
     class DummyIO(ObjectRawIOBase):
         """Dummy IO"""
@@ -125,6 +131,13 @@ def test_object_raw_base_io():
     object_io = DummyIO(name, mode='a')
     assert object_io.tell() == size
     assert bytes(object_io._write_buffer) == size * BYTE
+
+    # Test exclusive creation
+    with pytest.raises(OSError):
+        DummyIO(name, mode='x')
+    raise_not_exists_exception = True
+    assert DummyIO(name, mode='x')
+    raise_not_exists_exception = False
 
     # Test HTTP range
     assert ObjectRawIOBase._http_range(10, 50) == 'bytes=10-49'

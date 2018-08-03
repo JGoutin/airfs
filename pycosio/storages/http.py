@@ -5,6 +5,8 @@ from io import UnsupportedOperation as _UnsupportedOperation
 
 import requests as _requests
 
+from pycosio._core.exceptions import (
+    ObjectNotFoundError, ObjectPermissionError)
 from pycosio.io import (
     ObjectRawIOBase as _ObjectRawIOBase,
     ObjectBufferedIOBase as _ObjectBufferedIOBase,
@@ -26,7 +28,9 @@ def _handle_http_errors(response):
     if 200 <= code < 400:
         return response
     elif code in (403, 404):
-        raise OSError(response.reason)
+        raise {403: ObjectPermissionError,
+               404: ObjectNotFoundError}[
+            code](response.reason)
     response.raise_for_status()
 
 
@@ -35,7 +39,13 @@ class HTTPSystem(_SystemBase):
     HTTP system.
     """
 
-    def client_kwargs(self, path):
+    def __init__(self, *args, **kwargs):
+        _SystemBase.__init__(self, *args, **kwargs)
+
+        # HTTP session
+        self._request = self._client.request
+
+    def get_client_kwargs(self, path):
         """
         Get base keyword arguments for client for a
         specific path.
@@ -66,7 +76,7 @@ class HTTPSystem(_SystemBase):
         """
         return 'http://', 'https://'
 
-    def head(self, **client_kwargs):
+    def _head(self, client_kwargs):
         """
         Returns object HTTP header.
 
@@ -77,7 +87,7 @@ class HTTPSystem(_SystemBase):
             dict: HTTP header.
         """
         return _handle_http_errors(
-            self.get_client().request('HEAD', **client_kwargs)).headers
+            self._request('HEAD', **client_kwargs)).headers
 
 
 class HTTPRawIO(_ObjectRawIOBase):
@@ -101,11 +111,7 @@ class HTTPRawIO(_ObjectRawIOBase):
         self._request = self._client.request
 
         # Check if object support random read
-        header = self._system.head(**self._client_kwargs)
-        self._seekable = header.get('Accept-Ranges') == 'bytes'
-
-        # Also take and cache size
-        self._cache['_getsize'] = int(header.get('content-length', 0))
+        self._seekable = self._head().get('Accept-Ranges') == 'bytes'
 
     def _read_range(self, start, end=0):
         """

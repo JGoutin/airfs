@@ -6,6 +6,8 @@ from json import dumps as _dumps
 import swiftclient as _swift
 from swiftclient.exceptions import ClientException as _ClientException
 
+from pycosio._core.exceptions import (
+    ObjectNotFoundError, ObjectPermissionError)
 from pycosio.io import (
     ObjectRawIOBase as _ObjectRawIOBase,
     ObjectBufferedIOBase as _ObjectBufferedIOBase,
@@ -26,7 +28,9 @@ def _handle_client_exception():
 
     except _ClientException as exception:
         if exception.http_status in (403, 404):
-            raise OSError(exception.http_reason)
+            raise {403: ObjectPermissionError,
+                   404: ObjectNotFoundError}[
+                exception.http_status](exception.http_reason)
         raise
 
 
@@ -40,7 +44,13 @@ class SwiftSystem(_SystemBase):
             (see "swiftclient.client.Connection" for more information)
     """
 
-    def client_kwargs(self, path):
+    def __init__(self, *args, **kwargs):
+        _SystemBase.__init__(self, *args, **kwargs)
+
+        # Head function
+        self._head_object = self._client.head_object
+
+    def get_client_kwargs(self, path):
         """
         Get base keyword arguments for client for a
         specific path.
@@ -56,10 +66,10 @@ class SwiftSystem(_SystemBase):
 
     def _get_client(self):
         """
-        S3 Boto3 client
+        Swift client
 
         Returns:
-            boto3.session.Session: client
+            swiftclient.client.Connection: client
         """
         return _swift.client.Connection(
             **self._storage_parameters)
@@ -71,9 +81,9 @@ class SwiftSystem(_SystemBase):
         Returns:
             tuple of str: URL prefixes
         """
-        return self.get_client().get_auth()[0] + '/',
+        return self._client.get_auth()[0] + '/', 'swift://'
 
-    def head(self, **client_kwargs):
+    def _head(self, client_kwargs):
         """
         Returns object HTTP header.
 
@@ -84,7 +94,7 @@ class SwiftSystem(_SystemBase):
             dict: HTTP header.
         """
         with _handle_client_exception():
-            return self.get_client().head_object(**client_kwargs)
+            return self._head_object(**client_kwargs)
 
 
 class SwiftRawIO(_ObjectRawIOBase):

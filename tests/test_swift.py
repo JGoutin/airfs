@@ -13,18 +13,20 @@ def test_handle_client_exception():
     """Test pycosio.swift._handle_client_exception"""
     from pycosio.storages.swift import _handle_client_exception
     from swiftclient import ClientException
+    from pycosio._core.exceptions import (
+        ObjectNotFoundError, ObjectPermissionError)
 
     # No error
     with _handle_client_exception():
         pass
 
     # 403 error
-    with pytest.raises(OSError):
+    with pytest.raises(ObjectPermissionError):
         with _handle_client_exception():
             raise ClientException('error', http_status=403)
 
     # 404 error
-    with pytest.raises(OSError):
+    with pytest.raises(ObjectNotFoundError):
         with _handle_client_exception():
             raise ClientException('error', http_status=404)
 
@@ -156,6 +158,8 @@ def test_swift_buffered_io():
         @staticmethod
         def head_object(*_, **__):
             """Do nothing"""
+            return {'content-length': '100',
+                    'last-Modified': format_date_time(time.time())}
 
         def put_object(self, container, obj, contents, query_string=None, **_):
             """Check arguments and returns fake result"""

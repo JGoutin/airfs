@@ -78,7 +78,8 @@ class _StorageHook:
         Get a cloud object storage instance.
 
         Args:
-            cls (str): Type of class to instantiate. 'raw' or 'buffered'
+            cls (str): Type of class to instantiate.
+                'raw', 'buffered' or 'system'.
             name (str): File name, path or URL.
             storage (str): Storage name.
             storage_parameters (dict): Storage configuration parameters.
@@ -93,10 +94,14 @@ class _StorageHook:
         if not storage_parameters:
             storage_parameters = info['get_storage_parameters']
 
+        # Store prefixes
+        storage_parameters['storage.prefixes'] = info['prefixes']
+
         # Instantiates class
         return info[cls](
             storage_parameters=storage_parameters,
-            name=name, *args, **kwargs)
+            name=name,
+            *args, **kwargs)
 
     def register(self, storage=None, name='', storage_parameters=None):
         """
@@ -136,15 +141,13 @@ class _StorageHook:
         # and should be used elsewhere
         prefixes = storage_info['raw']._get_prefix(
             **storage_parameters)
+        storage_info['prefixes'] = prefixes
 
         # Register
         with self._lock:
             items = self._items
             for prefix in prefixes:
                 items[prefix.lower()] = storage_info
-
-            # Add extra prefix as storage URL scheme
-            items['%s://' % storage.lower()] = storage_info
 
             # Reorder to have correct lookup
             self._items = OrderedDict(

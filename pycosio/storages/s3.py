@@ -6,6 +6,8 @@ import boto3 as _boto3
 from botocore.exceptions import ClientError as _ClientError
 
 from pycosio._core.compat import to_timestamp as _to_timestamp
+from pycosio._core.exceptions import (
+    ObjectNotFoundError, ObjectPermissionError)
 from pycosio.io import (
     ObjectRawIOBase as _ObjectRawIOBase,
     ObjectBufferedIOBase as _ObjectBufferedIOBase,
@@ -27,7 +29,9 @@ def _handle_client_error():
     except _ClientError as exception:
         error = exception.response['Error']
         if error['Code'] in ('403', '404'):
-            raise OSError(error['Message'])
+            raise {'403': ObjectPermissionError,
+                   '404': ObjectNotFoundError}[
+                error['Code']](error['Message'])
         raise
 
 
@@ -59,7 +63,13 @@ class S3System(_SystemBase):
             (see "boto3.session.Session" for more information)
     """
 
-    def client_kwargs(self, path):
+    def __init__(self, *args, **kwargs):
+        _SystemBase.__init__(self, *args, **kwargs)
+
+        # Head function
+        self._head_object = self._client.head_object
+
+    def get_client_kwargs(self, path):
         """
         Get base keyword arguments for client for a
         specific path.
@@ -92,38 +102,33 @@ class S3System(_SystemBase):
         """
         return 's3://',
 
-    def getmtime_client(self, **client_kwargs):
+    @staticmethod
+    def _getmtime_from_header(header):
         """
-        Return the time of last access of path.
+        Return the time from header
 
         Args:
-            client_kwargs (dict): Client arguments.
+            header (dict): Object header.
 
         Returns:
             float: The number of seconds since the epoch
-                (see the time module).
-
-        Raises:
-             OSError: if the file does not exist or is inaccessible.
         """
-        return _to_timestamp(self.head(**client_kwargs)['LastModified'])
+        return _to_timestamp(header['LastModified'])
 
-    def getsize_client(self, **client_kwargs):
+    @staticmethod
+    def _getsize_from_header(header):
         """
-        Return the size, in bytes, of path.
+        Return the size from header
 
         Args:
-            client_kwargs (dict): Client arguments.
+            header (dict): Object header.
 
         Returns:
             int: Size in bytes.
-
-        Raises:
-             OSError: if the file does not exist or is inaccessible.
         """
-        return self.head(**client_kwargs)['ContentLength']
+        return header['ContentLength']
 
-    def head(self, **client_kwargs):
+    def _head(self, client_kwargs):
         """
         Returns object HTTP header.
 
@@ -134,7 +139,7 @@ class S3System(_SystemBase):
             dict: HTTP header.
         """
         with _handle_client_error():
-            return self.get_client().head_object(**client_kwargs)
+            return self._head_object(**client_kwargs)
 
 
 class S3RawIO(_ObjectRawIOBase):
@@ -250,7 +255,7 @@ class S3BufferedIO(_ObjectBufferedIOBase):
             else:
                 self._upload_part = _upload_part
                 self._upload_args['get_storage_parameters'] = (
-                    self._system.get_storage_parameters())
+                    self._system.storage_parameters)
 
     def _flush(self):
         """

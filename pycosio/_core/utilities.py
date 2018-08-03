@@ -1,6 +1,25 @@
 # coding=utf-8
 """Cloud storage abstract System"""
+from contextlib import contextmanager
 from functools import wraps
+
+from pycosio._core.exceptions import (
+    ObjectNotFoundError, ObjectPermissionError)
+from pycosio._core.compat import (
+    file_not_found_error, permission_error)
+
+
+@contextmanager
+def handle_os_exceptions():
+    """
+    Handles pycosio exceptions and raise standard OS errors.
+    """
+    try:
+        yield
+    except ObjectNotFoundError as exception:
+        raise file_not_found_error(exception.args[0])
+    except ObjectPermissionError as exception:
+        raise permission_error(exception.args[0])
 
 
 def memoizedmethod(method):

@@ -12,6 +12,8 @@ def test_handle_client_error():
     """Test pycosio.s3._handle_client_error"""
     from pycosio.storages.s3 import _handle_client_error
     from botocore.exceptions import ClientError
+    from pycosio._core.exceptions import (
+        ObjectNotFoundError, ObjectPermissionError)
 
     response = {'Error': {'Code': 'ErrorCode', 'Message': 'Error'}}
 
@@ -22,13 +24,13 @@ def test_handle_client_error():
 
     # 404 error
     response['Error']['Code'] = '404'
-    with pytest.raises(OSError):
+    with pytest.raises(ObjectNotFoundError):
         with _handle_client_error():
             raise ClientError(response, 'testing')
 
     # 403 error
     response['Error']['Code'] = '403'
-    with pytest.raises(OSError):
+    with pytest.raises(ObjectPermissionError):
         with _handle_client_error():
             raise ClientError(response, 'testing')
 
@@ -209,6 +211,9 @@ def test_s3_buffered_io():
         @staticmethod
         def head_object(**_):
             """Do nothing"""
+            return dict(
+                ContentLength=SIZE,
+                LastModified=datetime.fromtimestamp(time.time()))
 
     class Session:
         """Dummy Session"""
