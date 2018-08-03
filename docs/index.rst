@@ -85,9 +85,6 @@ Example for installing with support only for HTTP and OpenStack Swift:
 
     pip install pycosio[swift,http]
 
-Documentation
-=============
-
 .. toctree::
    :maxdepth: 2
    :caption: User Documentation
