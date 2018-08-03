@@ -3,7 +3,20 @@
 
 __version__ = '1.0.0a1'
 
-import pycosio.io
+# Adds names to public interface
+# Shadowing "open" built-in name is done to provides "pycosio.open" function
 from pycosio._core.std_functions import (
-    open, copy, getmtime, getsize, listdir, relpath, isfile)
+    cos_open as open, copy, getmtime, getsize, listdir, relpath, isfile)
 from pycosio._core.storage_manager import register
+
+__all__ = ['open', 'copy', 'getmtime', 'getsize', 'listdir', 'relpath', 'isfile', 'register', 'io']
+
+# Makes cleaner namespace
+for _name in __all__:
+    try:
+        locals()[_name].__module__ = __name__
+    except (AttributeError, KeyError):
+        continue
+locals()['open'].__qualname__ = 'open'
+locals()['open'].__name__ = 'open'
+del _name

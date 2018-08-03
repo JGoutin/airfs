@@ -33,7 +33,7 @@ def is_storage(url, storage=None):
     return False
 
 
-class _StorageHook:
+class StorageHook:
     """Hook of available storage
 
     Storage are by default lazy instantiated on needs
@@ -139,14 +139,13 @@ class _StorageHook:
         # Get prefixes
         # "_get_prefix" method is protected at package level
         # and should be used elsewhere
-        prefixes = storage_info['raw']._get_prefix(
-            **storage_parameters)
-        storage_info['prefixes'] = prefixes
+        storage_info['prefixes'] = storage_info[
+            'system'](storage_parameters).prefixes
 
         # Register
         with self._lock:
             items = self._items
-            for prefix in prefixes:
+            for prefix in storage_info['prefixes']:
                 items[prefix.lower()] = storage_info
 
             # Reorder to have correct lookup
@@ -158,9 +157,9 @@ class _StorageHook:
 
 
 # Create hook
-_STORAGE = _StorageHook()
+STORAGE = StorageHook()
 
 # Functions shortcuts
-get_info = _STORAGE.get_info
-get_instance = _STORAGE.get_instance
-register = _STORAGE.register
+get_info = STORAGE.get_info
+get_instance = STORAGE.get_instance
+register = STORAGE.register

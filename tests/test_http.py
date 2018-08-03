@@ -96,13 +96,13 @@ def test_http_raw_io():
 
     # Tests
     try:
-        httpobject = HTTPRawIO('http://accelize.com')
+        http_object = HTTPRawIO('http://accelize.com')
 
         # Tests head
         check_head_methods(HTTPSystem(), m_time)
 
         # Tests read
-        check_raw_read_methods(httpobject)
+        check_raw_read_methods(http_object)
 
         # Test write
         with pytest.raises(io.UnsupportedOperation):
@@ -110,8 +110,8 @@ def test_http_raw_io():
 
         # Test not seekable
         del Response.headers['Accept-Ranges']
-        httpobject = HTTPRawIO('http://accelize.com')
-        assert not httpobject.seekable()
+        http_object = HTTPRawIO('http://accelize.com')
+        assert not http_object.seekable()
 
     # Restore mocked functions
     finally:

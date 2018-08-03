@@ -1,19 +1,15 @@
 # coding=utf-8
 """Cloud object compatibles standard library equivalent functions"""
-from contextlib import contextmanager as _contextmanager
-from functools import wraps as _wraps
-from io import open as _open, TextIOWrapper as _TextIOWrapper
-from os import listdir as _listdir
-from os.path import (
-    isdir as _isdir, basename as _basename, join as _join,
-    getmtime as _getmtime, getsize as _getsize, relpath as _relpath,
-    isfile as _isfile)
-from shutil import copy as _copy, copyfileobj as _copyfileobj
+from contextlib import contextmanager
+from functools import wraps
+from io import open as io_open, TextIOWrapper
+import os
+from os.path import isdir, basename, join, relpath as os_path_relpath
+from shutil import copy as shutil_copy, copyfileobj
 
-from pycosio._core.compat import fsdecode as _fsdecode
-from pycosio._core.storage_manager import (
-    get_instance as _get_instance, is_storage as _is_storage)
-from pycosio._core.utilities import handle_os_exceptions as _handle_os_exceptions
+from pycosio._core.compat import fsdecode
+from pycosio._core.storage_manager import get_instance, is_storage
+from pycosio._core.utilities import handle_os_exceptions
 
 
 def _equivalent_to(std_function):
@@ -32,17 +28,17 @@ def _equivalent_to(std_function):
     def decorate(cos_function):
         """Decorator argument handler"""
 
-        @_wraps(cos_function)
+        @wraps(cos_function)
         def decorated(path, *args, **kwargs):
             """Decorated function"""
 
             # Handles path-like objects
-            path = _fsdecode(path)
+            path = fsdecode(path)
 
             # Storage object: Handle with Cloud object storage
             # function
-            if _is_storage(path):
-                with _handle_os_exceptions():
+            if is_storage(path):
+                with handle_os_exceptions():
                     return cos_function(path, *args, **kwargs)
 
             # Local file: Redirect to standard function
@@ -62,27 +58,27 @@ def copy(src, dst):
         dst (path-like object): Destination file or directory.
     """
     # Handles path-like objects
-    src = _fsdecode(src)
-    dst = _fsdecode(dst)
+    src = fsdecode(src)
+    dst = fsdecode(dst)
 
     # Local files: Redirects to "shutil.copy"
-    dst_is_storage = _is_storage(dst)
-    if not _is_storage(src) and not dst_is_storage:
-        return _copy(src, dst)
+    dst_is_storage = is_storage(dst)
+    if not is_storage(src) and not dst_is_storage:
+        return shutil_copy(src, dst)
 
     # If destination si local directory, defines
     # output file
     if dst_is_storage:
-        if _isdir(dst):
-            dst = _join(dst, _basename(src))
+        if isdir(dst):
+            dst = join(dst, basename(src))
 
     # At least one storage object: copies streams
-    with open(src, 'r') as fsrc:
-        with open(dst, 'w') as fdst:
-            _copyfileobj(fsrc, fdst)
+    with cos_open(src, 'r') as fsrc:
+        with cos_open(dst, 'w') as fdst:
+            copyfileobj(fsrc, fdst)
 
 
-@_equivalent_to(_getsize)
+@_equivalent_to(os.path.getsize)
 def getsize(path):
     """
     Return the size, in bytes, of path.
@@ -98,10 +94,10 @@ def getsize(path):
     Raises:
          OSError: if the file does not exist or is inaccessible.
     """
-    return _get_instance(cls='system', name=path).getsize(path)
+    return get_instance(cls='system', name=path).getsize(path)
 
 
-@_equivalent_to(_getmtime)
+@_equivalent_to(os.path.getmtime)
 def getmtime(path):
     """
     Return the time of last access of path.
@@ -118,10 +114,10 @@ def getmtime(path):
     Raises:
          OSError: if the file does not exist or is inaccessible.
     """
-    return _get_instance(cls='system', name=path).getmtime(path)
+    return get_instance(cls='system', name=path).getmtime(path)
 
 
-@_equivalent_to(_isfile)
+@_equivalent_to(os.path.isfile)
 def isfile(path):
     """
     Return True if path is an existing regular file.
@@ -134,10 +130,10 @@ def isfile(path):
     Returns:
         bool: True if file exists.
     """
-    return _get_instance(cls='system', name=path).isfile(path)
+    return get_instance(cls='system', name=path).isfile(path)
 
 
-@_equivalent_to(_listdir)
+@_equivalent_to(os.listdir)
 def listdir(path='.'):
     """
     Return a list containing the names of the entries in
@@ -151,12 +147,12 @@ def listdir(path='.'):
     Returns:
         list of str: Directory content.
     """
-    return _get_instance(cls='system', name=path).listdir(path)
+    return get_instance(cls='system', name=path).listdir(path)
 
 
-@_contextmanager
-def open(file, mode='r', buffering=-1, encoding=None, errors=None,
-         newline=None, storage=None, storage_parameters=None, **kwargs):
+@contextmanager
+def cos_open(file, mode='r', buffering=-1, encoding=None, errors=None,
+             newline=None, storage=None, storage_parameters=None, **kwargs):
     """
     Open file and return a corresponding file object.
 
@@ -198,18 +194,18 @@ def open(file, mode='r', buffering=-1, encoding=None, errors=None,
         OSError: If the file cannot be opened.
     """
     # Handles path-like objects
-    file = _fsdecode(file)
+    file = fsdecode(file)
 
     # Storage object
-    if _is_storage(file, storage):
-        with _get_instance(
+    if is_storage(file, storage):
+        with get_instance(
                 cls='raw' if buffering == 0 else 'buffered', name=file,
                 storage=storage, storage_parameters=storage_parameters,
                 **kwargs) as stream:
 
             # Text mode
             if "t" in mode:
-                text_stream = _TextIOWrapper(
+                text_stream = TextIOWrapper(
                     stream, encoding=encoding, errors=errors, newline=newline)
                 yield text_stream
                 text_stream.flush()
@@ -220,12 +216,12 @@ def open(file, mode='r', buffering=-1, encoding=None, errors=None,
 
     # Local file: Redirect to "io.open"
     else:
-        with _open(file, mode=mode, buffering=buffering, encoding=encoding,
-                   errors=errors, newline=newline, **kwargs) as stream:
+        with io_open(file, mode=mode, buffering=buffering, encoding=encoding,
+                     errors=errors, newline=newline, **kwargs) as stream:
             yield stream
 
 
-@_equivalent_to(_relpath)
+@_equivalent_to(os.path.relpath)
 def relpath(path, start=None):
     """
     Return a relative filepath to path either from the
@@ -238,13 +234,13 @@ def relpath(path, start=None):
 
     Args:
         path (path-like object): File path or URL.
-        start(path-like object): Relative from this optional directory.
+        start (path-like object): Relative from this optional directory.
             Default to "os.curdir" for local files.
 
     Returns:
         str: Relative path.
     """
-    relative = _get_instance(cls='system', name=path).relpath(path)
+    relative = get_instance(cls='system', name=path).relpath(path)
     if start:
-        relative = _relpath(relative, start=start).replace('\\', '/')
+        relative = os_path_relpath(relative, start=start).replace('\\', '/')
     return relative

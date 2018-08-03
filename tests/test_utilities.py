@@ -27,7 +27,7 @@ def test_memoizedmethod():
     from pycosio._core.utilities import memoizedmethod
 
     # Tests _memoize
-    class Dummy():
+    class Dummy:
 
         def __init__(self):
             self._cache = {}
