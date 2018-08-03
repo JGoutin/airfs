@@ -6,7 +6,7 @@ __version__ = '1.0.0a1'
 # Adds names to public interface
 # Shadowing "open" built-in name is done to provides "pycosio.open" function
 from pycosio._core.std_functions import (
-    cos_open as open, copy, getmtime, getsize, listdir, relpath, isfile)
+    cos_open as open, copy, getmtime, getsize, isfile, listdir, relpath)
 from pycosio._core.storage_manager import register
 
 __all__ = [

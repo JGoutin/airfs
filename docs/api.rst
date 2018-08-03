@@ -11,4 +11,4 @@ This section describes the ``pycosio`` Python package API.
    :maxdepth: 2
 
    api_io
-   api_storages
+   api_storage

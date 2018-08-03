@@ -126,7 +126,7 @@ class StorageHook:
         storage_info = dict(storage_parameters=storage_parameters)
 
         # Finds module containing target subclass
-        module = import_module('pycosio.storages.%s' % storage)
+        module = import_module('pycosio.storage.%s' % storage)
 
         # Finds storage subclass
         classes_items = tuple(self._BASE_CLASSES.items())

@@ -10,7 +10,7 @@ import pytest
 
 def test_handle_client_error():
     """Test pycosio.s3._handle_client_error"""
-    from pycosio.storages.s3 import _handle_client_error
+    from pycosio.storage.s3 import _handle_client_error
     from botocore.exceptions import ClientError
     from pycosio._core.exceptions import (
         ObjectNotFoundError, ObjectPermissionError)
@@ -37,7 +37,7 @@ def test_handle_client_error():
 
 def test_s3_raw_io():
     """Tests pycosio.s3.S3RawIO"""
-    from pycosio.storages.s3 import S3RawIO, _S3System
+    from pycosio.storage.s3 import S3RawIO, _S3System
     from botocore.exceptions import ClientError
     import boto3
 
@@ -152,7 +152,7 @@ def test_s3_raw_io():
 
 def test_s3_buffered_io():
     """Tests pycosio.s3.S3BufferedIO"""
-    from pycosio.storages.s3 import S3BufferedIO, _upload_part
+    from pycosio.storage.s3 import S3BufferedIO, _upload_part
     import boto3
 
     # Mocks client

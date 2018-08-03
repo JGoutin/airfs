@@ -11,7 +11,7 @@ from tests.utilities import parse_range, check_head_methods, check_raw_read_meth
 
 def test_handle_client_exception():
     """Test pycosio.swift._handle_client_exception"""
-    from pycosio.storages.swift import _handle_client_exception
+    from pycosio.storage.swift import _handle_client_exception
     from swiftclient import ClientException
     from pycosio._core.exceptions import (
         ObjectNotFoundError, ObjectPermissionError)
@@ -39,7 +39,7 @@ def test_handle_client_exception():
 def test_swift_raw_io():
     """Tests pycosio.swift.SwiftRawIO _SwiftSystem"""
     import swiftclient
-    from pycosio.storages.swift import SwiftRawIO, _SwiftSystem
+    from pycosio.storage.swift import SwiftRawIO, _SwiftSystem
 
     # Initializes some variables
     m_time = time.time()
@@ -130,7 +130,7 @@ def test_swift_raw_io():
 
 def test_swift_buffered_io():
     """Tests pycosio.swift.SwiftBufferedIO"""
-    from pycosio.storages.swift import SwiftBufferedIO
+    from pycosio.storage.swift import SwiftBufferedIO
     import swiftclient
 
     # Initializes some variables

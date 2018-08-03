@@ -1,7 +1,7 @@
-pycosio.storages.http
+pycosio.storage.swift
 =====================
 
-.. automodule:: pycosio.storages.http
+.. automodule:: pycosio.storage.swift
    :members:
    :inherited-members:
 

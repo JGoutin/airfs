@@ -11,7 +11,7 @@ from tests.utilities import parse_range, check_head_methods, check_raw_read_meth
 
 def test_handle_http_errors():
     """Test pycosio.http._handle_http_errors"""
-    from pycosio.storages.http import _handle_http_errors
+    from pycosio.storage.http import _handle_http_errors
     from pycosio._core.exceptions import (
         ObjectNotFoundError, ObjectPermissionError)
 
@@ -49,7 +49,7 @@ def test_handle_http_errors():
 
 def test_http_raw_io():
     """Tests pycosio.http.HTTPRawIO and _HTTPSystem"""
-    from pycosio.storages.http import HTTPRawIO, _HTTPSystem
+    from pycosio.storage.http import HTTPRawIO, _HTTPSystem
     import requests
 
     # Initializes some variables
