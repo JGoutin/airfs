@@ -37,7 +37,7 @@ def test_handle_client_error():
 
 def test_s3_raw_io():
     """Tests pycosio.s3.S3RawIO"""
-    from pycosio.storages.s3 import S3RawIO, S3System
+    from pycosio.storages.s3 import S3RawIO, _S3System
     from botocore.exceptions import ClientError
     import boto3
 
@@ -127,7 +127,7 @@ def test_s3_raw_io():
         assert s3object.name == path
 
         # Tests head
-        check_head_methods(S3System(), m_time, path=path)
+        check_head_methods(_S3System(), m_time, path=path)
 
         # Tests read
         check_raw_read_methods(s3object)

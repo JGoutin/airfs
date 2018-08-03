@@ -48,8 +48,8 @@ def test_handle_http_errors():
 
 
 def test_http_raw_io():
-    """Tests pycosio.http.HTTPRawIO and HTTPSystem"""
-    from pycosio.storages.http import HTTPRawIO, HTTPSystem
+    """Tests pycosio.http.HTTPRawIO and _HTTPSystem"""
+    from pycosio.storages.http import HTTPRawIO, _HTTPSystem
     import requests
 
     # Initializes some variables
@@ -99,7 +99,7 @@ def test_http_raw_io():
         http_object = HTTPRawIO('http://accelize.com')
 
         # Tests head
-        check_head_methods(HTTPSystem(), m_time)
+        check_head_methods(_HTTPSystem(), m_time)
 
         # Tests read
         check_raw_read_methods(http_object)

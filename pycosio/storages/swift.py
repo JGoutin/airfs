@@ -34,7 +34,7 @@ def _handle_client_exception():
         raise
 
 
-class SwiftSystem(_SystemBase):
+class _SwiftSystem(_SystemBase):
     """
     Swift system.
 
@@ -108,7 +108,7 @@ class SwiftRawIO(_ObjectRawIOBase):
             This is generally OpenStack credentials and configuration.
             (see "swiftclient.client.Connection" for more information)
     """
-    _SYSTEM_CLASS = SwiftSystem
+    _SYSTEM_CLASS = _SwiftSystem
 
     def __init__(self, *args, **kwargs):
 

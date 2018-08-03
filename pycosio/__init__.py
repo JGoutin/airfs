@@ -9,7 +9,15 @@ from pycosio._core.std_functions import (
     cos_open as open, copy, getmtime, getsize, listdir, relpath, isfile)
 from pycosio._core.storage_manager import register
 
-__all__ = ['open', 'copy', 'getmtime', 'getsize', 'listdir', 'relpath', 'isfile', 'register', 'io']
+__all__ = [
+    # Standard functions
+    'open', 'copy', 'getmtime', 'getsize', 'listdir', 'relpath', 'isfile',
+
+    # Utilities
+    'register',
+
+    # I/O classes
+    'io', 'storages']
 
 # Makes cleaner namespace
 for _name in __all__:

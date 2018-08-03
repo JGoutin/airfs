@@ -52,7 +52,7 @@ def _upload_part(storage_parameters=None, **kwargs):
         **(storage_parameters or dict())).client('s3').upload_part(**kwargs)
 
 
-class S3System(_SystemBase):
+class _S3System(_SystemBase):
     """
     S3 system.
 
@@ -154,7 +154,7 @@ class S3RawIO(_ObjectRawIOBase):
             Optional if running on AWS EC2 instances.
             (see "boto3.session.Session" for more information)
     """
-    _SYSTEM_CLASS = S3System
+    _SYSTEM_CLASS = _S3System
 
     def __init__(self, *args, **kwargs):
 

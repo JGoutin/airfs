@@ -12,6 +12,9 @@ class SystemBase(ABC):
     """
     Cloud storage system handler.
 
+    This class subclasses are not intended to be public and are
+    implementation details.
+
     Args:
         storage_parameters (dict): Storage configuration parameters.
             Generally, client configuration and credentials.

@@ -34,7 +34,7 @@ def _handle_http_errors(response):
     response.raise_for_status()
 
 
-class HTTPSystem(_SystemBase):
+class _HTTPSystem(_SystemBase):
     """
     HTTP system.
     """
@@ -97,7 +97,7 @@ class HTTPRawIO(_ObjectRawIOBase):
         name (path-like object): URL to the file which will be opened.
         mode (str): The mode can be 'r' for reading (default)
     """
-    _SYSTEM_CLASS = HTTPSystem
+    _SYSTEM_CLASS = _HTTPSystem
 
     def __init__(self, *args, **kwargs):
 
