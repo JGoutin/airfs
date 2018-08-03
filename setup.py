@@ -51,11 +51,7 @@ PACKAGE_INFO = dict(
     setup_requires=['setuptools'],
     tests_require=['pytest'],
     packages=find_packages(exclude=['docs', 'tests']),
-    include_package_data=True,
-    zip_safe=True,
-    command_options={},
-    cmdclass={}
-    )
+    zip_safe=True)
 
 # Gets package __version__ from package
 SETUP_DIR = abspath(dirname(__file__))
