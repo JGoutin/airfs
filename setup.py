@@ -5,7 +5,7 @@
 run "./setup.py --help-commands" for help.
 """
 from datetime import datetime
-from os import chdir, environ
+from os import chdir
 from os.path import dirname, abspath, join
 from sys import argv
 
@@ -91,10 +91,6 @@ PACKAGE_INFO['command_options']['build_sphinx'] = {
     'copyright': ('setup.py', '2018-%s, %s' % (
         datetime.now().year, PACKAGE_INFO['author'])),
     }
-
-# Unable to install PyURL on ReadTheDocs
-if environ.get('READTHEDOCS'):
-    PACKAGE_INFO['extras_require']['all'].remove('pycurl')
 
 # Runs setup
 if __name__ == '__main__':
