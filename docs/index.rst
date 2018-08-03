@@ -1,7 +1,7 @@
 Pycosio (Python Cloud Object Storage I/O)
 =========================================
 
-Pycosio bring standard Python I/O to cloud objects by providing:
+Pycosio brings standard Python I/O to cloud objects by providing:
 
 * Cloud objects classes with standards full featured ``io.RawIOBase`` and
   ``io.BufferedIOBase`` interfaces.
@@ -44,7 +44,7 @@ Pycosio is compatible with following cloud objects storage services:
 * Amazon Web Services S3
 * OpenStack Swift
 
-Pycosio can also access to any file publicly available over HTTP/HTTPS (Read only)
+Pycosio can also access to any file publicly available over HTTP/HTTPS (In Read only).
 
 Limitations
 -----------
