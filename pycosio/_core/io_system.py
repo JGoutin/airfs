@@ -27,13 +27,8 @@ class SystemBase(ABC):
         # Initialize client
         self._client = self._get_client()
 
-        # Initialize prefixes, get cached values if available
-        prefixes = self._storage_parameters.pop(
-            'storage.prefixes', None)
-        if prefixes:
-            self._prefixes = prefixes
-        else:
-            self._prefixes = self._get_prefixes()
+        # Initialize prefixes
+        self._prefixes = self._get_prefixes()
 
     @property
     def client(self):

@@ -72,10 +72,3 @@ def test_system_base():
     raise_not_exists_exception = True
     assert not system.isfile('path')
     raise_not_exists_exception = False
-
-    # Tests cached prefixes
-    parameters = storage_parameters.copy()
-    parameters['storage.prefixes'] = prefixes
-    system = DummySystem(storage_parameters=parameters)
-    assert prefixes == system.prefixes
-    assert storage_parameters == system.storage_parameters

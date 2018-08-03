@@ -39,8 +39,17 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         ObjectIOBase.__init__(self, name, mode=mode)
 
         # Initializes system
-        self._system = self._SYSTEM_CLASS(
-            storage_parameters=storage_parameters)
+        try:
+            # Try to get cached system
+            self._system = storage_parameters.pop(
+                'pycosio.system_cached')
+        except (AttributeError, KeyError):
+            self._system = None
+
+        if not self._system:
+            # If none cached, create a new system
+            self._system = self._SYSTEM_CLASS(
+                storage_parameters=storage_parameters)
 
         # Gets storage local path from URL
         self._path = self._system.relpath(name)

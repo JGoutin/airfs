@@ -60,14 +60,14 @@ class StorageHook:
         Returns:
             dict: storage information.
         """
-        # Get subclass from registered
+        # Gets subclass from registered
         name_lower = name.lower()
         with self._lock:
             for prefix in self._items:
                 if name_lower.startswith(prefix):
                     return self._items[prefix]
 
-            # If not found, try to register before getting
+            # If not found, tries to register before getting
             return self.register(
                 storage=storage, name=name,
                 storage_parameters=storage_parameters)
@@ -94,13 +94,15 @@ class StorageHook:
         if not storage_parameters:
             storage_parameters = info['get_storage_parameters']
 
-        # Store prefixes
-        storage_parameters['storage.prefixes'] = info['prefixes']
+        # Passes cached system instance
+        if cls is not 'system':
+            storage_parameters[
+                'pycosio.system_cached'] = info['system_cached']
+            kwargs['name'] = name
 
         # Instantiates class
         return info[cls](
             storage_parameters=storage_parameters,
-            name=name,
             *args, **kwargs)
 
     def register(self, storage=None, name='', storage_parameters=None):
@@ -117,12 +119,12 @@ class StorageHook:
         Returns:
             dict of class: Subclasses
         """
-        # Try to infer storage from name
+        # Tries to infer storage from name
         if storage is None:
             if '://' in name:
                 storage = name.split('://', 1)[0].lower()
 
-        # Save get_storage_parameters
+        # Saves get_storage_parameters
         storage_info = dict(storage_parameters=storage_parameters)
 
         # Finds module containing target subclass
@@ -133,19 +135,23 @@ class StorageHook:
         for member_name in dir(module):
             member = getattr(module, member_name)
             for cls_name, cls in classes_items:
-                if issubclass(member, cls):
-                    storage_info[cls_name] = member
+                try:
+                    if issubclass(member, cls) and member is not cls:
+                        storage_info[cls_name] = member
+                except TypeError:
+                    continue
 
-        # Get prefixes
-        # "_get_prefix" method is protected at package level
-        # and should be used elsewhere
-        storage_info['prefixes'] = storage_info[
-            'system'](storage_parameters).prefixes
+        # Caches a system instance
+        storage_info['system_cached'] = storage_info[
+            'system'](storage_parameters)
 
-        # Register
+        # Gets prefixes
+        prefixes = storage_info['system_cached'].prefixes
+
+        # Registers
         with self._lock:
             items = self._items
-            for prefix in storage_info['prefixes']:
+            for prefix in prefixes:
                 items[prefix.lower()] = storage_info
 
             # Reorder to have correct lookup
@@ -156,7 +162,7 @@ class StorageHook:
         return storage_info
 
 
-# Create hook
+# Creates hook
 STORAGE = StorageHook()
 
 # Functions shortcuts
