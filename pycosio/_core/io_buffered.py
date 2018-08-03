@@ -10,6 +10,7 @@ from time import sleep
 from pycosio._core.compat import ThreadPoolExecutor
 from pycosio._core.io_base import ObjectIOBase
 from pycosio._core.io_raw import ObjectRawIOBase
+from pycosio._core.utilities import handle_os_exceptions
 
 
 class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
@@ -105,8 +106,9 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
                 # This step is performed by raw stream.
                 if self._buffer_seek and self._seek:
                     self._seek += 1
-                    self._flush()
-                    self._close_writable()
+                    with handle_os_exceptions():
+                        self._flush()
+                        self._close_writable()
 
                 # If closed and data lower than buffer size
                 # flush data with raw stream to reduce IO calls
@@ -136,7 +138,8 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
                 self._seek += 1
 
                 # Write buffer to cloud object
-                self._flush()
+                with handle_os_exceptions():
+                    self._flush()
 
                 # Clear the buffer
                 self._write_buffer = bytearray(self._buffer_size)

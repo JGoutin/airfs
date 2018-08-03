@@ -5,7 +5,6 @@ from email.utils import parsedate
 from time import mktime
 
 from pycosio._core.compat import ABC
-from pycosio._core.utilities import handle_os_exceptions
 from pycosio._core.exceptions import ObjectNotFoundError
 
 
@@ -77,13 +76,9 @@ class SystemBase(ABC):
         Returns:
             float: The number of seconds since the epoch
                 (see the time module).
-
-        Raises:
-             OSError: if the file does not exist or is inaccessible.
         """
-        with handle_os_exceptions():
-            return self._getmtime_from_header(
-                self.head(path, client_kwargs, header))
+        return self._getmtime_from_header(
+            self.head(path, client_kwargs, header))
 
     @staticmethod
     def _getmtime_from_header(header):
@@ -121,13 +116,9 @@ class SystemBase(ABC):
 
         Returns:
             int: Size in bytes.
-
-        Raises:
-             OSError: if the file does not exist or is inaccessible.
         """
-        with handle_os_exceptions():
-            return self._getsize_from_header(
-                self.head(path, client_kwargs, header))
+        return self._getsize_from_header(
+            self.head(path, client_kwargs, header))
 
     @staticmethod
     def _getsize_from_header(header):
@@ -156,12 +147,11 @@ class SystemBase(ABC):
         Returns:
             bool: True if file exists.
         """
-        with handle_os_exceptions():
-            try:
-                self.head(path, client_kwargs)
-            except ObjectNotFoundError:
-                return False
-            return True
+        try:
+            self.head(path, client_kwargs)
+        except ObjectNotFoundError:
+            return False
+        return True
 
     @property
     def storage_parameters(self):
@@ -216,8 +206,7 @@ class SystemBase(ABC):
         Returns:
             list of str: Directory content.
         """
-        with handle_os_exceptions():
-            return self._listdir(self.get_client_kwargs(path))
+        return self._listdir(self.get_client_kwargs(path))
 
     def _listdir(self, client_kwargs):
         """

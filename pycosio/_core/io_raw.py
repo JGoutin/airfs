@@ -82,7 +82,8 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         save the object on the cloud.
         """
         if self._writable:
-            self._flush()
+            with handle_os_exceptions():
+                self._flush()
 
     @abstractmethod
     def _flush(self):

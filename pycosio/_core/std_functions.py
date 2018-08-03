@@ -13,6 +13,7 @@ from shutil import copy as _copy, copyfileobj as _copyfileobj
 from pycosio._core.compat import fsdecode as _fsdecode
 from pycosio._core.storage_manager import (
     get_instance as _get_instance, is_storage as _is_storage)
+from pycosio._core.utilities import handle_os_exceptions as _handle_os_exceptions
 
 
 def _equivalent_to(std_function):
@@ -23,7 +24,7 @@ def _equivalent_to(std_function):
 
     Args:
         std_function (function): standard function to
-            use with local files.
+            used with local files.
 
     Returns:
         function: new function
@@ -41,7 +42,8 @@ def _equivalent_to(std_function):
             # Storage object: Handle with Cloud object storage
             # function
             if _is_storage(path):
-                return cos_function(path, *args, **kwargs)
+                with _handle_os_exceptions():
+                    return cos_function(path, *args, **kwargs)
 
             # Local file: Redirect to standard function
             return std_function(path, *args, **kwargs)
@@ -224,22 +226,25 @@ def open(file, mode='r', buffering=-1, encoding=None, errors=None,
 
 
 @_equivalent_to(_relpath)
-def relpath(path):
+def relpath(path, start=None):
     """
     Return a relative filepath to path either from the
     current directory or from an optional start directory.
 
-    For storage objects, Path is relative to storage root by default.
+    For storage objects, "path" and "start" are relative to
+    storage root.
 
     Equivalent to "os.path.relpath".
 
     Args:
         path (path-like object): File path or URL.
+        start(path-like object): Relative from this optional directory.
+            Default to "os.curdir" for local files.
 
     Returns:
         str: Relative path.
     """
-    # TODO: "start" argument
-    return _get_instance(cls='system', name=path).relpath(path)
-
-
+    relative = _get_instance(cls='system', name=path).relpath(path)
+    if start:
+        relative = _relpath(relative, start=start).replace('\\', '/')
+    return relative
