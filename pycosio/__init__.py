@@ -14,10 +14,7 @@ __all__ = [
     'open', 'copy', 'getmtime', 'getsize', 'listdir', 'relpath', 'isfile',
 
     # Utilities
-    'register',
-
-    # I/O classes
-    'io', 'storages']
+    'register']
 
 # Makes cleaner namespace
 for _name in __all__:
