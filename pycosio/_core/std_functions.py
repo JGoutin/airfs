@@ -18,7 +18,7 @@ from pycosio._core.exceptions import handle_os_exceptions
 # - walk
 
 
-def _equivalent_to(std_function):
+def equivalent_to(std_function):
     """
     Decorate a cloud object compatible function
     to provides fall back to standard function if
@@ -85,7 +85,7 @@ def copy(src, dst):
             copyfileobj(fsrc, fdst)
 
 
-@_equivalent_to(os.path.getsize)
+@equivalent_to(os.path.getsize)
 def getsize(path):
     """
     Return the size, in bytes, of path.
@@ -104,7 +104,7 @@ def getsize(path):
     return get_instance(path).getsize(path)
 
 
-@_equivalent_to(os.path.getmtime)
+@equivalent_to(os.path.getmtime)
 def getmtime(path):
     """
     Return the time of last access of path.
@@ -124,7 +124,7 @@ def getmtime(path):
     return get_instance(path).getmtime(path)
 
 
-@_equivalent_to(os.path.isfile)
+@equivalent_to(os.path.isfile)
 def isfile(path):
     """
     Return True if path is an existing regular file.
@@ -140,7 +140,7 @@ def isfile(path):
     return get_instance(path).isfile(path)
 
 
-@_equivalent_to(os.listdir)
+@equivalent_to(os.listdir)
 def listdir(path='.'):
     """
     Return a list containing the names of the entries in
@@ -228,7 +228,7 @@ def cos_open(file, mode='r', buffering=-1, encoding=None, errors=None,
             yield stream
 
 
-@_equivalent_to(os.path.relpath)
+@equivalent_to(os.path.relpath)
 def relpath(path, start=None):
     """
     Return a relative filepath to path either from the
