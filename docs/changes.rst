@@ -22,8 +22,8 @@ Adds support for following cloud storage:
 
 Adds read only generic HTTP/HTTPS objects support.
 
-Possibles futures features:
----------------------------
+Possibles futures features
+--------------------------
 
 * Equivalent functions of:
     * ``os.listdir``, ``os.remove``, ``os.scandir``, ``os.stat``, ``os.walk``.
