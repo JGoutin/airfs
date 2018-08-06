@@ -27,8 +27,7 @@ def memoizedmethod(method):
 
         # Evaluates and cache value
         except KeyError:
-            result = self._cache[method_name] = method(
-                self, *args, **kwargs)
+            result = self._cache[method_name] = method(self, *args, **kwargs)
             return result
 
     return patched

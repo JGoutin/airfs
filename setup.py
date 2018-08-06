@@ -30,16 +30,14 @@ PACKAGE_INFO = dict(
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
-        'Operating System :: OS Independent'
-        ],
+        'Operating System :: OS Independent'],
     keywords='cloud cloud-storage bucket io stream',
     author='Accelize',
     author_email='info@accelize.com',
     url='https://github.com/Accelize/pycosio',
     project_urls={
         'Documentation': 'https://pycosio.readthedocs.io',
-        'Download': 'https://pypi.org/project/pycosio',
-    },
+        'Download': 'https://pypi.org/project/pycosio'},
     license='Apache',
     python_requires='>=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*',
     install_requires=['setuptools', 'futures; python_version == "2.7"'],
@@ -76,8 +74,7 @@ elif 'build_sphinx' in argv:
 # Generates wildcard "all" extras_require
 PACKAGE_INFO['extras_require']['all'] = list(set(
     requirement for extra in PACKAGE_INFO['extras_require']
-    for requirement in PACKAGE_INFO['extras_require'][extra]
-    ))
+    for requirement in PACKAGE_INFO['extras_require'][extra]))
 
 # Gets Sphinx configuration
 PACKAGE_INFO['command_options']['build_sphinx'] = {
@@ -85,8 +82,7 @@ PACKAGE_INFO['command_options']['build_sphinx'] = {
     'version': ('setup.py', PACKAGE_INFO['version']),
     'release': ('setup.py', PACKAGE_INFO['version']),
     'copyright': ('setup.py', '2018-%s, %s' % (
-        datetime.now().year, PACKAGE_INFO['author'])),
-    }
+        datetime.now().year, PACKAGE_INFO['author']))}
 
 # Runs setup
 if __name__ == '__main__':

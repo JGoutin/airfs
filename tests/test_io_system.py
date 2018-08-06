@@ -3,8 +3,6 @@
 import time
 from wsgiref.handlers import format_date_time
 
-import pytest
-
 from tests.utilities import SIZE, check_head_methods
 
 
@@ -58,10 +56,6 @@ def test_system_base():
 
     # Tests head
     check_head_methods(system, m_time)
-
-    # Tests listdir
-    with pytest.raises(OSError):
-        system.listdir()
 
     # Tests relpath
     assert system.relpath('scheme://path') == 'path'

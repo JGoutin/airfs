@@ -66,9 +66,8 @@ def get_instance(name, cls='system', storage=None,
 
         # If not found, tries to register before getting
         else:
-            info = register(
-                storage=storage, name=name,
-                storage_parameters=storage_parameters)
+            info = register(storage=storage, name=name,
+                            storage_parameters=storage_parameters)
 
     # Returns cached system instance
     if cls == 'system':
@@ -77,11 +76,9 @@ def get_instance(name, cls='system', storage=None,
     # Passes cached system instance and instantiates class
     if not storage_parameters:
         storage_parameters = info['storage_parameters']
-    storage_parameters[
-        'pycosio.system_cached'] = info['system_cached']
-    return info[cls](
-        storage_parameters=storage_parameters,
-        name=name, *args, **kwargs)
+    storage_parameters['pycosio.system_cached'] = info['system_cached']
+    return info[cls](storage_parameters=storage_parameters,
+                     name=name, *args, **kwargs)
 
 
 def register(storage=None, name='', storage_parameters=None):
@@ -121,8 +118,7 @@ def register(storage=None, name='', storage_parameters=None):
                 continue
 
     # Caches a system instance
-    storage_info['system_cached'] = storage_info[
-        'system'](storage_parameters)
+    storage_info['system_cached'] = storage_info['system'](storage_parameters)
 
     # Gets prefixes
     prefixes = storage_info['system_cached'].prefixes
@@ -133,9 +129,8 @@ def register(storage=None, name='', storage_parameters=None):
             STORAGE[prefix.lower()] = storage_info
 
         # Reorder to have correct lookup
-        items = OrderedDict(
-            (key, STORAGE[key])
-            for key in reversed(sorted(STORAGE)))
+        items = OrderedDict((key, STORAGE[key])
+                            for key in reversed(sorted(STORAGE)))
         STORAGE.clear()
         STORAGE.update(items)
 

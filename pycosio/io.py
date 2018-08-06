@@ -1,7 +1,8 @@
 # coding=utf-8
 """Cloud storage abstract IO classes
 
-Theses abstract classes are used as base to implement storage specific IO classes"""
+Theses abstract classes are used as base to implement storage specific IO
+classes"""
 
 # Add abstract classes to public interface.
 from pycosio._core.io_raw import ObjectRawIOBase

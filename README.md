@@ -8,8 +8,10 @@ Pycosio brings standard Python I/O to cloud objects by providing:
 
 * Cloud objects classes with standards full featured ``io.RawIOBase`` and
   ``io.BufferedIOBase`` interfaces.
-* Standard library functions equivalent to handle cloud objects and local files transparently:
-  ``open``, ``copy``, ``getmtime``, ``getsize``, ``isfile``, ``listdir``, ``relpath``
+* Standard library functions equivalent to handle cloud objects and local files
+  transparently:
+  ``open``, ``copy``, ``getmtime``, ``getsize``, ``isfile``, ``listdir``,
+  ``relpath``
 
 Buffered cloud objects also support following features:
 
@@ -32,11 +34,14 @@ with pycosio.open('s3://my_bucket/data.bin', 'wb') as file:
     file.write(b'binary_data')
 
 # Copy file from local file system to OpenStack Swift
-pycosio.copy('my_file', 'https://objects.mycloud.com/v1/12345678912345/my_container/my_file')
+pycosio.copy(
+    'my_file',
+    'https://objects.mycloud.com/v1/12345678912345/my_container/my_file')
 
 # Get size of a file over internet
 pycosio.getsize('https://example.org/file')
 >>> 956
+
 ```
 
 For more information, read the [Pycosio documentation](https://pycosio.readthedocs.io).

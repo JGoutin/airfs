@@ -90,9 +90,11 @@ class SystemBase(ABC):
             float: The number of seconds since the epoch
         """
         # By default, assumes that information are in a standard HTTP header
-        return mktime(parsedate({
-            key.lower(): value
-            for key, value in header.items()}['last-modified']))
+        for key in ('Last-Modified', 'last-modified'):
+            try:
+                return mktime(parsedate(header[key]))
+            except KeyError:
+                continue
 
     @abstractmethod
     def _get_prefixes(self):
@@ -115,8 +117,7 @@ class SystemBase(ABC):
         Returns:
             int: Size in bytes.
         """
-        return self._getsize_from_header(
-            self.head(path, client_kwargs, header))
+        return self._getsize_from_header(self.head(path, client_kwargs, header))
 
     @staticmethod
     def _getsize_from_header(header):
@@ -130,9 +131,11 @@ class SystemBase(ABC):
             int: Size in bytes.
         """
         # By default, assumes that information are in a standard HTTP header
-        return int({
-            key.lower(): value
-            for key, value in header.items()}['content-length'])
+        for key in ('Content-Length', 'content-length'):
+            try:
+                return int(header[key])
+            except KeyError:
+                continue
 
     def isfile(self, path=None, client_kwargs=None):
         """
@@ -192,33 +195,6 @@ class SystemBase(ABC):
         elif client_kwargs is None:
             client_kwargs = self.get_client_kwargs(path)
         return self._head(client_kwargs)
-
-    def listdir(self, path='.'):
-        """
-        Return a list containing the names of the entries in
-        the directory given by path
-
-        Args:
-            path (str): File path or URL.
-
-        Returns:
-            list of str: Directory content.
-        """
-        return self._listdir(self.get_client_kwargs(path))
-
-    def _listdir(self, client_kwargs):
-        """
-        Return a list containing the names of the entries in
-        the directory given by path
-
-        Args:
-            client_kwargs (dict): Client arguments.
-
-        Returns:
-            list of str: Directory content.
-        """
-        # By default, assumes that directory is not listable
-        raise OSError("Can't list directory")
 
     @property
     def prefixes(self):

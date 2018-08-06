@@ -37,10 +37,11 @@ def test_register():
         """Fake response"""
         status_code = 200
         headers = {'Accept-Ranges': 'bytes',
-                   'Content-Length': '100',}
+                   'Content-Length': '100'}
 
     class Session:
         """Fake Session"""
+
         def __init__(self, *_, **__):
             """Do nothing"""
 

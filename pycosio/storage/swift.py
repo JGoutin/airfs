@@ -6,8 +6,7 @@ from json import dumps as _dumps
 import swiftclient as _swift
 from swiftclient.exceptions import ClientException as _ClientException
 
-from pycosio._core.exceptions import (
-    ObjectNotFoundError, ObjectPermissionError)
+from pycosio._core.exceptions import ObjectNotFoundError, ObjectPermissionError
 from pycosio.io import (
     ObjectRawIOBase as _ObjectRawIOBase,
     ObjectBufferedIOBase as _ObjectBufferedIOBase,
@@ -29,8 +28,8 @@ def _handle_client_exception():
     except _ClientException as exception:
         if exception.http_status in (403, 404):
             raise {403: ObjectPermissionError,
-                   404: ObjectNotFoundError}[
-                exception.http_status](exception.http_reason)
+                   404: ObjectNotFoundError}[exception.http_status](
+                exception.http_reason)
         raise
 
 
@@ -71,8 +70,7 @@ class _SwiftSystem(_SystemBase):
         Returns:
             swiftclient.client.Connection: client
         """
-        return _swift.client.Connection(
-            **self._storage_parameters)
+        return _swift.client.Connection(**self._storage_parameters)
 
     def _get_prefixes(self):
         """
@@ -118,8 +116,8 @@ class SwiftRawIO(_ObjectRawIOBase):
         # Prepares Swift I/O functions and common arguments
         self._get_object = self._client.get_object
         self._put_object = self._client.put_object
-        self._client_args = (self._client_kwargs['container'],
-                             self._client_kwargs['obj'])
+        self._client_args = (
+            self._client_kwargs['container'], self._client_kwargs['obj'])
 
     def _read_range(self, start, end=0):
         """
@@ -135,10 +133,8 @@ class SwiftRawIO(_ObjectRawIOBase):
         """
         try:
             with _handle_client_exception():
-                return self._get_object(
-                    *self._client_args,
-                    headers=dict(
-                        Range=self._http_range(start, end)))[1]
+                return self._get_object(*self._client_args, headers=dict(
+                    Range=self._http_range(start, end)))[1]
 
         except _ClientException as exception:
             if exception.http_status == 416:
@@ -162,8 +158,7 @@ class SwiftRawIO(_ObjectRawIOBase):
         """
         container, obj = self._client_args
         with _handle_client_exception():
-            self._put_object(container, obj,
-                             memoryview(self._write_buffer))
+            self._put_object(container, obj, memoryview(self._write_buffer))
 
 
 class SwiftBufferedIO(_ObjectBufferedIOBase):
@@ -200,14 +195,12 @@ class SwiftBufferedIO(_ObjectBufferedIOBase):
         """
         # Upload segment with workers
         name = self._segment_name % self._seek
-        response = self._workers.submit(
-            self._put_object, self._container, name,
-            self._get_buffer().tobytes())
+        response = self._workers.submit(self._put_object, self._container, name,
+                                        self._get_buffer().tobytes())
 
         # Save segment information in manifest
         self._write_futures.append(dict(
-            etag=response, path='/'.join((
-                self._container, name))))
+            etag=response, path='/'.join((self._container, name))))
 
     def _close_writable(self):
         """
@@ -219,6 +212,5 @@ class SwiftBufferedIO(_ObjectBufferedIOBase):
 
         # Upload manifest file
         with _handle_client_exception():
-            self._put_object(
-                self._container, self._object_name,
-                _dumps(self._write_futures), query_string='multipart-manifest=put')
+            self._put_object(self._container, self._object_name, _dumps(
+                self._write_futures), query_string='multipart-manifest=put')

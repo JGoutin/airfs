@@ -2,8 +2,7 @@
 """Pycosio internal exceptions"""
 from contextlib import contextmanager
 
-from pycosio._core.compat import (
-    file_not_found_error, permission_error)
+from pycosio._core.compat import file_not_found_error, permission_error
 
 
 class ObjectException(Exception):
@@ -25,6 +24,8 @@ def handle_os_exceptions():
     """
     try:
         yield
+
+    # Convert pycosio exception to equivalent OSError
     except ObjectNotFoundError as exception:
         raise file_not_found_error(exception.args[0])
     except ObjectPermissionError as exception:

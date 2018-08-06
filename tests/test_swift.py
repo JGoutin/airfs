@@ -6,7 +6,8 @@ from wsgiref.handlers import format_date_time
 
 import pytest
 
-from tests.utilities import parse_range, check_head_methods, check_raw_read_methods, BYTE
+from tests.utilities import (
+    parse_range, check_head_methods, check_raw_read_methods, BYTE)
 
 
 def test_handle_client_exception():
@@ -53,6 +54,7 @@ def test_swift_raw_io():
 
     class Connection:
         """Fake Connection"""
+
         def __init__(self, *_, **__):
             """Do nothing"""
 
@@ -86,7 +88,7 @@ def test_swift_raw_io():
             assert obj == object_name
 
             return {'content-length': '100',
-                    'last-Modified': format_date_time(m_time)}
+                    'last-modified': format_date_time(m_time)}
 
         @staticmethod
         def put_object(container, obj, contents, **_):
@@ -142,6 +144,7 @@ def test_swift_buffered_io():
 
     class Connection:
         """Fake Connection"""
+
         def __init__(self, *_, **__):
             """Do nothing"""
             self.called = 0

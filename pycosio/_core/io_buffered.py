@@ -88,8 +88,7 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
             if max_buffers:
                 self._max_buffers = max_buffers
             else:
-                self._max_buffers = ceil(
-                    self._size / self._buffer_size)
+                self._max_buffers = ceil(self._size / self._buffer_size)
             self._read_queue = dict()
             self._read_range = self.raw._read_range
 
@@ -196,8 +195,7 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
         read_range = self._read_range
         for seek in indexes:
             if seek not in queue:
-                queue[seek] = workers_submit(
-                    read_range, seek, seek + size)
+                queue[seek] = workers_submit(read_range, seek, seek + size)
 
     @property
     def raw(self):
@@ -375,8 +373,10 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
         Change the stream position to the given byte offset.
 
         Args:
-            offset: Offset is interpreted relative to the position indicated by whence.
-            whence: The default value for whence is SEEK_SET. Values for whence are:
+            offset: Offset is interpreted relative to the position indicated by
+                whence.
+            whence: The default value for whence is SEEK_SET.
+                Values for whence are:
                 SEEK_SET or 0 – start of the stream (the default);
                 offset should be zero or positive
                 SEEK_CUR or 1 – current stream position;
@@ -410,8 +410,7 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
         if self._workers_pool is None:
             self._workers_pool = (
                 ThreadPoolExecutor if self._workers_type == 'thread'
-                else ProcessPoolExecutor)(
-                max_workers=self._workers_count)
+                else ProcessPoolExecutor)(max_workers=self._workers_count)
 
         # Get worker pool
         return self._workers_pool
@@ -459,8 +458,7 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
                 size_left -= buffer_range
 
                 # Copy data
-                buffer_view[start:end] = (
-                    b_view[b_start: b_start + buffer_range])
+                buffer_view[start:end] = b_view[b_start: b_start + buffer_range]
 
                 # Flush buffer if needed
                 if flush:
@@ -477,9 +475,8 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
                     if max_buffers:
                         futures = self._write_futures
                         flush_wait = self._FLUSH_WAIT
-                        while sum(
-                                1 for future in futures
-                                if not future.done()) >= max_buffers:
+                        while sum(1 for future in futures
+                                  if not future.done()) >= max_buffers:
                             sleep(flush_wait)
 
                     # Flush

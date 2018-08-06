@@ -41,8 +41,7 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         # Initializes system
         try:
             # Try to get cached system
-            self._system = storage_parameters.pop(
-                'pycosio.system_cached')
+            self._system = storage_parameters.pop('pycosio.system_cached')
         except (AttributeError, KeyError):
             self._system = None
 
@@ -235,8 +234,10 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         Change the stream position to the given byte offset.
 
         Args:
-            offset: Offset is interpreted relative to the position indicated by whence.
-            whence: The default value for whence is SEEK_SET. Values for whence are:
+            offset: Offset is interpreted relative to the position indicated by
+                whence.
+            whence: The default value for whence is SEEK_SET.
+                Values for whence are:
                 SEEK_SET or 0 – start of the stream (the default);
                 offset should be zero or positive
                 SEEK_CUR or 1 – current stream position;
@@ -258,8 +259,7 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
             elif whence == SEEK_END:
                 self._seek = offset + self._size
             else:
-                raise ValueError(
-                    'Unsupported whence "%s"' % whence)
+                raise ValueError('Unsupported whence "%s"' % whence)
             return self._seek
 
     def write(self, b):

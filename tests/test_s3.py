@@ -3,7 +3,8 @@
 from datetime import datetime
 import io
 import time
-from tests.utilities import BYTE, SIZE, parse_range, check_head_methods, check_raw_read_methods
+from tests.utilities import (BYTE, SIZE, parse_range, check_head_methods,
+                             check_raw_read_methods)
 
 import pytest
 

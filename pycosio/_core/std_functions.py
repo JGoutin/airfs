@@ -5,17 +5,11 @@ from functools import wraps
 from io import open as io_open, TextIOWrapper
 import os
 from os.path import isdir, basename, join, relpath as os_path_relpath
-from shutil import copy as shutil_copy
+from shutil import copy as shutil_copy, copyfileobj
 
 from pycosio._core.compat import fsdecode
 from pycosio._core.storage_manager import get_instance, is_storage
 from pycosio._core.exceptions import handle_os_exceptions
-
-# TODO: add following functions:
-# - listdir
-# - remove
-# - scandir
-# - walk
 
 
 def equivalent_to(std_function):
@@ -31,6 +25,7 @@ def equivalent_to(std_function):
     Returns:
         function: new function
     """
+
     def decorate(cos_function):
         """Decorator argument handler"""
 
@@ -51,6 +46,7 @@ def equivalent_to(std_function):
             return std_function(path, *args, **kwargs)
 
         return decorated
+
     return decorate
 
 
@@ -94,14 +90,7 @@ def copy(src, dst):
                 buffer_size = 16384
 
             # Read and write
-            write = fdst.write
-            readinto = fsrc.readinto
-            buffer = memoryview(bytearray(buffer_size))
-            while True:
-                size = readinto(buffer)
-                if not size:
-                    return
-                write(buffer[:size])
+            copyfileobj(fsrc, fdst, buffer_size)
 
 
 @equivalent_to(os.path.getsize)
@@ -157,23 +146,6 @@ def isfile(path):
         bool: True if file exists.
     """
     return get_instance(path).isfile(path)
-
-
-@equivalent_to(os.listdir)
-def listdir(path='.'):
-    """
-    Return a list containing the names of the entries in
-    the directory given by path
-
-    Equivalent to "os.listdir".
-
-    Args:
-        path (path-like object): File path or URL.
-
-    Returns:
-        list of str: Directory content.
-    """
-    return get_instance(path).listdir(path)
 
 
 @contextmanager

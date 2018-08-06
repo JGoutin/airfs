@@ -7,8 +7,7 @@ import pytest
 def test_handle_os_exceptions():
     """Tests pycosio._core.exceptions.handle_os_exceptions"""
     from pycosio._core.exceptions import (
-        handle_os_exceptions,
-        ObjectNotFoundError, ObjectPermissionError)
+        handle_os_exceptions, ObjectNotFoundError, ObjectPermissionError)
     from pycosio._core.compat import (
         file_not_found_error, permission_error)
 

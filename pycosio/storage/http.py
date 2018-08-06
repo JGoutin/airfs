@@ -5,8 +5,7 @@ from io import UnsupportedOperation as _UnsupportedOperation
 
 import requests as _requests
 
-from pycosio._core.exceptions import (
-    ObjectNotFoundError, ObjectPermissionError)
+from pycosio._core.exceptions import ObjectNotFoundError, ObjectPermissionError
 from pycosio.io import (
     ObjectRawIOBase as _ObjectRawIOBase,
     ObjectBufferedIOBase as _ObjectBufferedIOBase,
@@ -29,8 +28,7 @@ def _handle_http_errors(response):
         return response
     elif code in (403, 404):
         raise {403: ObjectPermissionError,
-               404: ObjectNotFoundError}[
-            code](response.reason)
+               404: ObjectNotFoundError}[code](response.reason)
     response.raise_for_status()
 
 
@@ -127,8 +125,7 @@ class HTTPRawIO(_ObjectRawIOBase):
         """
         # Get object part
         response = self._request(
-            'GET', self.name, headers=dict(
-                Range=self._http_range(start, end)))
+            'GET', self.name, headers=dict(Range=self._http_range(start, end)))
 
         if response.status_code == 416:
             # EOF
@@ -144,8 +141,7 @@ class HTTPRawIO(_ObjectRawIOBase):
         Returns:
             bytes: Object content
         """
-        return _handle_http_errors(
-            self._request('GET', self.name)).content
+        return _handle_http_errors(self._request('GET', self.name)).content
 
     def _flush(self):
         """

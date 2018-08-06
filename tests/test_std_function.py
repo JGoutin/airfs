@@ -91,7 +91,7 @@ def test_equivalent_functions():
             assert path == dummy_path
             return result
 
-        for name in ('getsize', 'getmtime', 'isfile', 'listdir'):
+        for name in ('getsize', 'getmtime', 'isfile'):
             setattr(system, name, basic_function)
             assert getattr(std, name)(dummy_path) == result
 

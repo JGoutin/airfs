@@ -6,8 +6,7 @@ import boto3 as _boto3
 from botocore.exceptions import ClientError as _ClientError
 
 from pycosio._core.compat import to_timestamp as _to_timestamp
-from pycosio._core.exceptions import (
-    ObjectNotFoundError, ObjectPermissionError)
+from pycosio._core.exceptions import ObjectNotFoundError, ObjectPermissionError
 from pycosio.io import (
     ObjectRawIOBase as _ObjectRawIOBase,
     ObjectBufferedIOBase as _ObjectBufferedIOBase,
@@ -30,8 +29,7 @@ def _handle_client_error():
         error = exception.response['Error']
         if error['Code'] in ('403', '404'):
             raise {'403': ObjectPermissionError,
-                   '404': ObjectNotFoundError}[
-                error['Code']](error['Message'])
+                   '404': ObjectNotFoundError}[error['Code']](error['Message'])
         raise
 
 
@@ -90,8 +88,7 @@ class _S3System(_SystemBase):
         Returns:
             boto3.session.Session: client
         """
-        return _boto3.session.Session(
-            **self._storage_parameters).client("s3")
+        return _boto3.session.Session(**self._storage_parameters).client("s3")
 
     def _get_prefixes(self):
         """
@@ -181,13 +178,11 @@ class S3RawIO(_ObjectRawIOBase):
         try:
             with _handle_client_error():
                 response = self._get_object(
-                    Range=self._http_range(start, end),
-                    **self._client_kwargs)
+                    Range=self._http_range(start, end), **self._client_kwargs)
 
         # Check for end of file
         except _ClientError as exception:
-            if exception.response['Error'][
-                    'Code'] == 'InvalidRange':
+            if exception.response['Error']['Code'] == 'InvalidRange':
                 # EOF
                 return bytes()
             raise
@@ -203,8 +198,7 @@ class S3RawIO(_ObjectRawIOBase):
             bytes: Object content
         """
         with _handle_client_error():
-            return self._get_object(
-                **self._client_kwargs)['Body'].read()
+            return self._get_object(**self._client_kwargs)['Body'].read()
 
     def _flush(self):
         """
@@ -212,9 +206,8 @@ class S3RawIO(_ObjectRawIOBase):
         """
         # Sends to S3 the entire file at once
         with _handle_client_error():
-            self._put_object(
-                Body=memoryview(self._write_buffer).tobytes(),
-                **self._client_kwargs)
+            self._put_object(Body=memoryview(self._write_buffer).tobytes(),
+                             **self._client_kwargs)
 
 
 class S3BufferedIO(_ObjectBufferedIOBase):
@@ -264,7 +257,8 @@ class S3BufferedIO(_ObjectBufferedIOBase):
         # Initialize multi-part upload
         if 'UploadId' not in self._upload_args:
             with _handle_client_error():
-                self._upload_args['UploadId'] = self._client.create_multipart_upload(
+                self._upload_args[
+                    'UploadId'] = self._client.create_multipart_upload(
                     **self._client_kwargs)['UploadId']
 
         # Upload part with workers
@@ -287,5 +281,4 @@ class S3BufferedIO(_ObjectBufferedIOBase):
         # Complete multipart upload
         self._client.complete_multipart_upload(
             MultipartUpload={'Parts': self._write_futures},
-            UploadId=self._upload_args['UploadId'],
-            **self._client_kwargs)
+            UploadId=self._upload_args['UploadId'], **self._client_kwargs)

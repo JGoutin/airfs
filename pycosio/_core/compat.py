@@ -5,21 +5,23 @@ import concurrent.futures as _futures
 import os as _os
 from sys import version_info as _py
 
-
 # Python 2 compatibility
 if _py[0] == 2:
 
     # Missing .timestamp() method of "datetime.datetime"
     import time as _time
 
+
     def to_timestamp(dt):
         """Return POSIX timestamp as float"""
         return _time.mktime(dt.timetuple()) + dt.microsecond / 1e6
+
 
     # Missing "os.fsdecode"
     def fsdecode(filename):
         """Return filename unchanged"""
         return filename
+
 
     # Missing "abc.ABC"
     ABC = _abc.ABCMeta('ABC', (object,), {})
@@ -35,6 +37,7 @@ else:
         """Return POSIX timestamp as float"""
         return dt.timestamp()
 
+
     fsdecode = _os.fsdecode
     ABC = _abc.ABC
     file_not_found_error = FileNotFoundError
@@ -46,6 +49,7 @@ if _py[0] == 3 and _py[1] == 4:
 
     # "max_workers" as keyword argument for ThreadPoolExecutor
     from os import cpu_count as _cpu_count
+
 
     class ThreadPoolExecutor(_futures.ThreadPoolExecutor):
         def __init__(self, max_workers=None, **kwargs):
