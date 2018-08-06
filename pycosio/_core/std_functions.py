@@ -9,14 +9,20 @@ from shutil import copy as shutil_copy, copyfileobj
 
 from pycosio._core.compat import fsdecode
 from pycosio._core.storage_manager import get_instance, is_storage
-from pycosio._core.utilities import handle_os_exceptions
+from pycosio._core.exceptions import handle_os_exceptions
+
+# TODO: add following functions:
+# - listdir
+# - remove
+# - scandir
+# - walk
 
 
 def _equivalent_to(std_function):
     """
     Decorate a cloud object compatible function
     to provides fall back to standard function if
-    use on local files.
+    used on local files.
 
     Args:
         std_function (function): standard function to
@@ -43,6 +49,7 @@ def _equivalent_to(std_function):
 
             # Local file: Redirect to standard function
             return std_function(path, *args, **kwargs)
+
         return decorated
     return decorate
 
@@ -94,7 +101,7 @@ def getsize(path):
     Raises:
          OSError: if the file does not exist or is inaccessible.
     """
-    return get_instance(cls='system', name=path).getsize(path)
+    return get_instance(path).getsize(path)
 
 
 @_equivalent_to(os.path.getmtime)
@@ -114,7 +121,7 @@ def getmtime(path):
     Raises:
          OSError: if the file does not exist or is inaccessible.
     """
-    return get_instance(cls='system', name=path).getmtime(path)
+    return get_instance(path).getmtime(path)
 
 
 @_equivalent_to(os.path.isfile)
@@ -130,7 +137,7 @@ def isfile(path):
     Returns:
         bool: True if file exists.
     """
-    return get_instance(cls='system', name=path).isfile(path)
+    return get_instance(path).isfile(path)
 
 
 @_equivalent_to(os.listdir)
@@ -147,7 +154,7 @@ def listdir(path='.'):
     Returns:
         list of str: Directory content.
     """
-    return get_instance(cls='system', name=path).listdir(path)
+    return get_instance(path).listdir(path)
 
 
 @contextmanager
@@ -199,7 +206,7 @@ def cos_open(file, mode='r', buffering=-1, encoding=None, errors=None,
     # Storage object
     if is_storage(file, storage):
         with get_instance(
-                cls='raw' if buffering == 0 else 'buffered', name=file,
+                name=file, cls='raw' if buffering == 0 else 'buffered',
                 storage=storage, storage_parameters=storage_parameters,
                 **kwargs) as stream:
 
@@ -240,7 +247,9 @@ def relpath(path, start=None):
     Returns:
         str: Relative path.
     """
-    relative = get_instance(cls='system', name=path).relpath(path)
+    relative = get_instance(path).relpath(path)
     if start:
-        relative = os_path_relpath(relative, start=start).replace('\\', '/')
+        # Storage relative path
+        # Replaces "\" by "/" for Windows.
+        return os_path_relpath(relative, start=start).replace('\\', '/')
     return relative

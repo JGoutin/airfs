@@ -18,10 +18,7 @@ __all__ = [
 
 # Makes cleaner namespace
 for _name in __all__:
-    try:
-        locals()[_name].__module__ = __name__
-    except (AttributeError, KeyError):
-        continue
+    locals()[_name].__module__ = __name__
 locals()['open'].__qualname__ = 'open'
 locals()['open'].__name__ = 'open'
 del _name
