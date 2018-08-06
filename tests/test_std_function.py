@@ -5,7 +5,7 @@ import pytest
 
 
 def test_equivalent_to():
-    """Tests pycosio._core._equivalent_to"""
+    """Tests pycosio._core.std_functions._equivalent_to"""
     from pycosio._core.std_functions import equivalent_to
     from pycosio._core.exceptions import ObjectNotFoundError
     from sys import version_info
@@ -59,7 +59,7 @@ def test_equivalent_to():
 
 
 def test_equivalent_functions():
-    """Tests functions using pycosio._core._equivalent_to"""
+    """Tests functions using pycosio._core.std_functions._equivalent_to"""
     from pycosio._core.storage_manager import STORAGE
     import pycosio._core.std_functions as std
 
@@ -97,6 +97,114 @@ def test_equivalent_functions():
         # relpath
         assert std.relpath(dummy_path) == 'dir1/dir2/dir3'
         assert std.relpath(dummy_path, start='dir1/') == 'dir2/dir3'
+
+    # Clean up
+    finally:
+        del STORAGE[prefix]
+
+
+def test_cos_open(tmpdir):
+    """Tests  pycosio._core.std_functions.open"""
+    from pycosio._core.std_functions import cos_open
+    from pycosio._core.storage_manager import STORAGE
+    from pycosio._core.io_raw import ObjectRawIOBase
+    from pycosio._core.io_buffered import ObjectBufferedIOBase
+    from io import TextIOWrapper
+
+    prefix = 'dummy://'
+    cos_path = prefix + 'path'
+    content = b'dummy_content'
+    size = len(content)
+
+    # Mock storage
+
+    class DummySystem:
+        """Dummy system"""
+
+        client = None
+
+        def __init__(self, **_):
+            """Do nothing"""
+
+        @staticmethod
+        def getsize(*_, **__):
+            """Returns fake result"""
+            return size
+
+        @staticmethod
+        def head(*_, **__):
+            """Returns fake result"""
+            return {}
+
+        @staticmethod
+        def relpath(path):
+            """Returns fake result"""
+            return path
+
+        @staticmethod
+        def get_client_kwargs(*_, **__):
+            """Returns fake result"""
+            return {}
+
+    class DummyRawIO(ObjectRawIOBase):
+        """Dummy IO"""
+        _SYSTEM_CLASS = DummySystem
+
+        def _flush(self):
+            """Do nothing"""
+
+        def read(self, *_, **__):
+            """Read fake bytes"""
+            return content
+
+    class DummyBufferedIO(ObjectBufferedIOBase):
+        """Dummy buffered IO"""
+        _RAW_CLASS = DummyRawIO
+
+        def _close_writable(self):
+            """Do nothing"""
+
+        def _flush(self):
+            """Do nothing"""
+
+        def read(self, *_, **__):
+            """Read fake bytes"""
+            return content
+
+    STORAGE[prefix] = dict(
+        raw=DummyRawIO,
+        buffered=DummyBufferedIO,
+        system=DummySystem,
+        system_cached=DummySystem(),
+        storage_parameters={})
+
+    # Tests
+    try:
+        # Buffered Binary
+        with cos_open(cos_path, 'rb') as file:
+            assert isinstance(file, DummyBufferedIO)
+            assert file.read() == content
+
+        # Buffered Text
+        with cos_open(cos_path, 'rt') as file:
+            assert isinstance(file, TextIOWrapper)
+            assert file.read() == content.decode()
+
+        # Raw Binary
+        with cos_open(cos_path, 'rb', buffering=0) as file:
+            assert isinstance(file, DummyRawIO)
+            assert file.read() == content
+
+        # Raw Text
+        with cos_open(cos_path, 'rt', buffering=0) as file:
+            assert isinstance(file, TextIOWrapper)
+            assert file.read() == content.decode()
+
+        # Local file
+        local_file = tmpdir.join('file.txt')
+        local_file.write(content)
+        with cos_open(str(local_file), 'rb') as file:
+            assert file.read() == content
 
     # Clean up
     finally:
