@@ -10,7 +10,7 @@ Pycosio brings standard Python I/O to cloud objects by providing:
   ``io.BufferedIOBase`` interfaces.
 * Standard library functions equivalent to handle cloud objects and local files
   transparently:
-  ``open``, ``copy``, ``getmtime``, ``getsize``, ``isfile``, ``listdir``,
+  ``open``, ``copy``, ``getmtime``, ``getsize``, ``isfile``,
   ``relpath``
 
 Buffered cloud objects also support following features:
