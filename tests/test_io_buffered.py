@@ -73,16 +73,23 @@ def test_object_buffered_base_io():
         DEFAULT_BUFFER_SIZE = buffer_size
         MINIMUM_BUFFER_SIZE = 10
 
+        def ensure_ready(self):
+            """Ensure flush is complete"""
+            while any(
+                    1 for future in self._write_futures
+                    if not future.done()):
+                time.sleep(0.01)
+
         def __init(self, *arg, **kwargs):
             ObjectBufferedIOBase.__init__(self, *arg, **kwargs)
             self.close_called = False
 
         def _close_writable(self):
-            """"""
+            """Checks called"""
             self.close_called = True
 
         def _flush(self):
-            """"""
+            """Flush"""
             self._write_futures.append(self._workers.submit(
                 flush, self._write_buffer[:self._buffer_seek]))
 
@@ -151,6 +158,7 @@ def test_object_buffered_base_io():
     assert bytes(flushed) == b''
     object_io = DummyBufferedIO(name, mode='w')
     assert object_io.write(250 * BYTE) == 250
+    object_io.ensure_ready()
     assert object_io._buffer_seek == 50
     assert bytes(object_io._write_buffer) == 50 * BYTE + 50 * b'\x00'
     assert object_io._get_buffer().tobytes() == 50 * BYTE
@@ -159,6 +167,7 @@ def test_object_buffered_base_io():
     assert bytes(flushed) == 200 * BYTE
 
     object_io.flush()
+    object_io.ensure_ready()
     assert object_io._seek == 3
     assert bytes(flushed) == 250 * BYTE
     assert object_io._buffer_seek == 0
