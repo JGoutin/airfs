@@ -46,7 +46,7 @@ def test_equivalent_to():
         local_path, *dummy_args, **dummy_kwargs) == std
 
     # Tests path-like object compatibility
-    if (version_info[0] == 3 and version_info[1] >= 4) or version_info[0] > 3:
+    if (version_info[0] == 3 and version_info[1] >= 6) or version_info[0] > 3:
         import pathlib
 
         assert cos_function(
