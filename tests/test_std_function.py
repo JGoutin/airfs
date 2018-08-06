@@ -2,6 +2,7 @@
 """Test pycosio._core.std_functions"""
 
 import pytest
+from io import BytesIO
 
 
 def test_equivalent_to():
@@ -104,107 +105,84 @@ def test_equivalent_functions():
 
 
 def test_cos_open(tmpdir):
-    """Tests  pycosio._core.std_functions.open"""
-    from pycosio._core.std_functions import cos_open
+    """Tests  pycosio._core.std_functions.cos_open and copy"""
+    from pycosio._core.std_functions import cos_open, copy
     from pycosio._core.storage_manager import STORAGE
-    from pycosio._core.io_raw import ObjectRawIOBase
-    from pycosio._core.io_buffered import ObjectBufferedIOBase
     from io import TextIOWrapper
 
-    prefix = 'dummy://'
-    cos_path = prefix + 'path'
+    prefix = 'dummy_read://'
+    cos_path = prefix + 'file.txt'
     content = b'dummy_content'
-    size = len(content)
 
     # Mock storage
-
-    class DummySystem:
-        """Dummy system"""
-
-        client = None
-
-        def __init__(self, **_):
-            """Do nothing"""
-
-        @staticmethod
-        def getsize(*_, **__):
-            """Returns fake result"""
-            return size
-
-        @staticmethod
-        def head(*_, **__):
-            """Returns fake result"""
-            return {}
-
-        @staticmethod
-        def relpath(path):
-            """Returns fake result"""
-            return path
-
-        @staticmethod
-        def get_client_kwargs(*_, **__):
-            """Returns fake result"""
-            return {}
-
-    class DummyRawIO(ObjectRawIOBase):
+    class DummyIO(BytesIO):
         """Dummy IO"""
-        _SYSTEM_CLASS = DummySystem
 
-        def _flush(self):
-            """Do nothing"""
+        def __init__(self, *_, **__):
+            BytesIO.__init__(self, content)
 
-        def read(self, *_, **__):
-            """Read fake bytes"""
-            return content
+    class DummyRawIO(DummyIO):
+        """Dummy raw IO"""
 
-    class DummyBufferedIO(ObjectBufferedIOBase):
+    class DummyBufferedIO(DummyIO):
         """Dummy buffered IO"""
-        _RAW_CLASS = DummyRawIO
-
-        def _close_writable(self):
-            """Do nothing"""
-
-        def _flush(self):
-            """Do nothing"""
-
-        def read(self, *_, **__):
-            """Read fake bytes"""
-            return content
 
     STORAGE[prefix] = dict(
-        raw=DummyRawIO,
-        buffered=DummyBufferedIO,
-        system=DummySystem,
-        system_cached=DummySystem(),
-        storage_parameters={})
+        raw=DummyRawIO, buffered=DummyBufferedIO,
+        system_cached=None, storage_parameters={})
 
     # Tests
     try:
-        # Buffered Binary
+        # open: Buffered Binary
         with cos_open(cos_path, 'rb') as file:
             assert isinstance(file, DummyBufferedIO)
             assert file.read() == content
 
-        # Buffered Text
+        # open: Buffered Text
         with cos_open(cos_path, 'rt') as file:
             assert isinstance(file, TextIOWrapper)
             assert file.read() == content.decode()
 
-        # Raw Binary
+        # open: Raw Binary
         with cos_open(cos_path, 'rb', buffering=0) as file:
             assert isinstance(file, DummyRawIO)
             assert file.read() == content
 
-        # Raw Text
+        # open: Raw Text
         with cos_open(cos_path, 'rt', buffering=0) as file:
             assert isinstance(file, TextIOWrapper)
             assert file.read() == content.decode()
 
-        # Local file
+        # open: Local file
         local_file = tmpdir.join('file.txt')
         local_file.write(content)
         with cos_open(str(local_file), 'rb') as file:
             assert file.read() == content
+
+        # copy: Local file to local file
+        local_dst = tmpdir.join('file_dst.txt')
+        assert not local_dst.check()
+        copy(str(local_file), str(local_dst))
+        assert local_dst.read_binary() == content
+        local_dst.remove()
+
+        # copy: storage file to local file
+        assert not local_dst.check()
+        copy(cos_path, str(local_dst))
+        assert local_dst.read_binary() == content
+        local_dst.remove()
+
+        # copy: storage file to local directory
+        local_dir = tmpdir.mkdir('sub_dir')
+        copy(cos_path, str(local_dir))
+        assert local_dir.join(
+            cos_path.split('://')[1]).read_binary() == content
+
+        # copy: Buffer size
+        DummyIO._buffer_size = 1024
+        assert not local_dst.check()
+        copy(cos_path, str(local_dst))
+        assert local_dst.read_binary() == content
 
     # Clean up
     finally:

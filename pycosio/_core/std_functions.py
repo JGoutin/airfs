@@ -5,7 +5,7 @@ from functools import wraps
 from io import open as io_open, TextIOWrapper
 import os
 from os.path import isdir, basename, join, relpath as os_path_relpath
-from shutil import copy as shutil_copy, copyfileobj
+from shutil import copy as shutil_copy
 
 from pycosio._core.compat import fsdecode
 from pycosio._core.storage_manager import get_instance, is_storage
@@ -75,14 +75,33 @@ def copy(src, dst):
 
     # If destination si local directory, defines
     # output file
-    if dst_is_storage:
+    if not dst_is_storage:
         if isdir(dst):
             dst = join(dst, basename(src))
 
     # At least one storage object: copies streams
-    with cos_open(src, 'r') as fsrc:
-        with cos_open(dst, 'w') as fdst:
-            copyfileobj(fsrc, fdst)
+    with cos_open(src, 'rb') as fsrc:
+        with cos_open(dst, 'wb') as fdst:
+
+            # Get stream buffer size
+            for stream in (fdst, fsrc):
+                try:
+                    buffer_size = getattr(stream, '_buffer_size')
+                    break
+                except AttributeError:
+                    continue
+            else:
+                buffer_size = 16384
+
+            # Read and write
+            write = fdst.write
+            readinto = fsrc.readinto
+            buffer = memoryview(bytearray(buffer_size))
+            while True:
+                size = readinto(buffer)
+                if not size:
+                    return
+                write(buffer[:size])
 
 
 @equivalent_to(os.path.getsize)
