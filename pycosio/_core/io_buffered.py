@@ -57,7 +57,6 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
         # Link to RAW methods
         self._mode = self._raw.mode
         self._name = self._raw.name
-        self._size = self._raw._size
         self._system = self._raw._system
         self._client = self._raw._client
         self._client_kwargs = self._raw._client_kwargs
@@ -90,6 +89,7 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
             else:
                 self._max_buffers = ceil(self._size / self._buffer_size)
             self._read_queue = dict()
+            self._size = self._raw._size
             self._read_range = self.raw._read_range
 
     def close(self):
