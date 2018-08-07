@@ -29,8 +29,8 @@ def test_register():
         raw=HTTPRawIO, system=_HTTPSystem,
         buffered=HTTPBufferedIO,
         storage_parameters=storage_parameters)
-    https = 'https://pass'
-    http = 'http://pass'
+    https = 'https://path'
+    http = 'http://path'
 
     # Mock requests
     class Response:
@@ -119,6 +119,16 @@ def test_register():
             del STORAGE['zzzz']
             for prefix in prefixes:
                 del STORAGE[prefix]
+
+        # Tests extra prefix
+        extra = 'extra_http://'
+        register(storage='http', extra_url_prefix=extra,
+                 storage_parameters=storage_parameters),
+        assert STORAGE[extra] == STORAGE[prefixes[0]]
+
+        for prefix in prefixes:
+            del STORAGE[prefix]
+        del STORAGE[extra]
 
     # Restore mocked functions
     finally:

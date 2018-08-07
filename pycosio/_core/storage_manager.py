@@ -81,7 +81,8 @@ def get_instance(name, cls='system', storage=None,
                      name=name, *args, **kwargs)
 
 
-def register(storage=None, name='', storage_parameters=None):
+def register(storage=None, name='', storage_parameters=None,
+             extra_url_prefix=None):
     """
     Register a new storage.
 
@@ -91,6 +92,13 @@ def register(storage=None, name='', storage_parameters=None):
             URL scheme will be used as storage value.
         storage_parameters (dict): Storage configuration parameters.
             Generally, client configuration and credentials.
+        extra_url_prefix (str): Extra URL prefix that can be used in
+            replacement of root URL in path. This can be used to
+            provides support for shorter URLS.
+            Example: with root URL "https://www.mycloud.com/user"
+            and extra_url_prefix "mycloud://" it is possible to access object
+            using "mycloud://container/object" instead of
+            "https://www.mycloud.com/user/container/object".
 
     Returns:
         dict of class: Subclasses
@@ -122,6 +130,11 @@ def register(storage=None, name='', storage_parameters=None):
 
     # Gets prefixes
     prefixes = storage_info['system_cached'].prefixes
+
+    # Adds extra URL prefix
+    if extra_url_prefix:
+        prefixes = list(prefixes)
+        prefixes.append(extra_url_prefix)
 
     # Registers
     with _STORAGE_LOCK:

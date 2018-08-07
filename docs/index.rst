@@ -1,4 +1,4 @@
-Pycosio (Python Cloud Object Storage I/O)
+Pycosio (Python Cloud Object _Storage I/O)
 =========================================
 
 Pycosio brings standard Python I/O to cloud objects by providing:

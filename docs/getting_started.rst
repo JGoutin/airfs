@@ -103,7 +103,7 @@ The registration of ``my_cloud`` storage can be performed as follows:
     pycosio.register(
         storage='my_cloud', storage_parameters=storage_parameters)
 
-    # Storage files can now be used transparently
+    # _Storage files can now be used transparently
     with pycosio.open('https://my_cloud.com/object', 'rt') as file:
         file.read()
 
