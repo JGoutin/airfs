@@ -57,10 +57,9 @@ def get_instance(name, cls='system', storage=None,
         pycosio._core.io_base.ObjectIOBase subclass: Instance
     """
     # Gets storage information
-    name_lower = name.lower()
     with _STORAGE_LOCK:
         for prefix in STORAGE:
-            if name_lower.startswith(prefix):
+            if name.startswith(prefix):
                 info = STORAGE[prefix]
                 break
 
@@ -139,7 +138,7 @@ def register(storage=None, name='', storage_parameters=None,
     # Registers
     with _STORAGE_LOCK:
         for prefix in prefixes:
-            STORAGE[prefix.lower()] = storage_info
+            STORAGE[prefix] = storage_info
 
         # Reorder to have correct lookup
         items = OrderedDict((key, STORAGE[key])
