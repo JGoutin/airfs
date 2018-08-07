@@ -227,9 +227,6 @@ class S3BufferedIO(_ObjectBufferedIOBase):
 
     _RAW_CLASS = S3RawIO
 
-    #: Default buffer_size value in bytes (Boto3 8MB default buffer)
-    DEFAULT_BUFFER_SIZE = 8388608
-
     #: Minimal buffer_size in bytes (S3 multipart upload minimal part size)
     MINIMUM_BUFFER_SIZE = 5242880
 

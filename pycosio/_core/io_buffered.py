@@ -2,7 +2,7 @@
 """Cloud storage abstract buffered IO class"""
 from abc import abstractmethod
 from concurrent.futures import ProcessPoolExecutor
-from io import BufferedIOBase, UnsupportedOperation, DEFAULT_BUFFER_SIZE
+from io import BufferedIOBase, UnsupportedOperation
 from math import ceil
 from os import SEEK_SET
 from time import sleep
@@ -33,8 +33,8 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
     # Raw I/O class
     _RAW_CLASS = ObjectRawIOBase
 
-    #: Default buffer_size value in bytes (Default to io.DEFAULT_BUFFER_SIZE)
-    DEFAULT_BUFFER_SIZE = DEFAULT_BUFFER_SIZE
+    #: Default buffer_size value in bytes (Default to 8MB)
+    DEFAULT_BUFFER_SIZE = 8388608
 
     #: Minimal buffer_size value in bytes
     MINIMUM_BUFFER_SIZE = 1
