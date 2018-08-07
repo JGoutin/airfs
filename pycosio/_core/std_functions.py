@@ -252,7 +252,7 @@ def cos_open(file, mode='r', buffering=-1, encoding=None, errors=None,
         with get_instance(
                 name=file, cls='raw' if buffering == 0 else 'buffered',
                 storage=storage, storage_parameters=storage_parameters,
-                **kwargs) as stream:
+                mode=mode, **kwargs) as stream:
             with _text_io_wrapper(stream, mode=mode, encoding=encoding,
                                   errors=errors, newline=newline) as wrapped:
                 yield wrapped
