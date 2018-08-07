@@ -84,13 +84,13 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
 
         # Initialize read mode
         elif self._readable:
+            self._size = self._raw._size
+            self._read_range = self.raw._read_range
             if max_buffers:
                 self._max_buffers = max_buffers
             else:
                 self._max_buffers = ceil(self._size / self._buffer_size)
             self._read_queue = dict()
-            self._size = self._raw._size
-            self._read_range = self.raw._read_range
 
     def close(self):
         """
