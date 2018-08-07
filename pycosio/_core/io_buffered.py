@@ -53,6 +53,7 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
         # Instantiate raw IO
         self._raw = self._RAW_CLASS(
             name, mode=mode, storage_parameters=storage_parameters)
+        self._raw._is_raw_of_buffered = True
 
         # Link to RAW methods
         self._mode = self._raw.mode
@@ -112,7 +113,7 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
                 # If closed and data lower than buffer size
                 # flush data with raw stream to reduce IO calls
                 elif self._buffer_seek:
-                    self.raw._write_buffer = self._write_buffer
+                    self.raw._write_buffer = self._get_buffer()
                     self.raw._seek = self._buffer_seek
                     self.raw.flush()
 

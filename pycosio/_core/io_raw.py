@@ -55,6 +55,9 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         self._client_kwargs = self._system.get_client_kwargs(name)
         self._client = self._system.client
 
+        # Mark as standalone RAW to avoid flush conflics on close
+        self._is_raw_of_buffered = False
+
         # Configures write mode
         if self._writable:
             # In write mode, since it is not possible
@@ -84,6 +87,15 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
             with handle_os_exceptions():
                 self._head()
 
+    def close(self):
+        """
+        Flush the write buffers of the stream if applicable and
+        close the object.
+        """
+        if self._writable and not self._is_raw_of_buffered:
+            with self._seek_lock:
+                self._flush()
+
     def flush(self):
         """
         Flush the write buffers of the stream if applicable and
@@ -98,6 +110,16 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         """
         Flush the write buffers of the stream if applicable.
         """
+
+    def _get_buffer(self):
+        """
+        Get a memory view of the current write buffer
+        until its seek value.
+
+        Returns:
+            memoryview: buffer view.
+        """
+        return memoryview(self._write_buffer)
 
     @property
     @memoizedmethod

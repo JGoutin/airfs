@@ -206,7 +206,7 @@ class S3RawIO(_ObjectRawIOBase):
         """
         # Sends to S3 the entire file at once
         with _handle_client_error():
-            self._put_object(Body=memoryview(self._write_buffer).tobytes(),
+            self._put_object(Body=self._get_buffer().tobytes(),
                              **self._client_kwargs)
 
 

@@ -158,7 +158,7 @@ class SwiftRawIO(_ObjectRawIOBase):
         """
         container, obj = self._client_args
         with _handle_client_exception():
-            self._put_object(container, obj, memoryview(self._write_buffer))
+            self._put_object(container, obj, self._get_buffer())
 
 
 class SwiftBufferedIO(_ObjectBufferedIOBase):

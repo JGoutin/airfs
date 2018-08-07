@@ -121,6 +121,7 @@ def test_object_raw_base_io():
     object_io.seek(10)
     assert object_io.write(10 * BYTE) == 10
     assert object_io.tell() == 20
+    assert object_io._get_buffer().tobytes() == 20 * BYTE
 
     # Test flush
     assert not len(flushed)
