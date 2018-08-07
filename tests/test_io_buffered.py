@@ -61,7 +61,7 @@ def test_object_buffered_base_io():
 
         def _flush(self):
             """Do nothing"""
-            raw_flushed.extend(self._write_buffer[:self._seek])
+            raw_flushed.extend(self._write_buffer)
 
         def _read_range(self, start, end=0):
             """Read fake bytes"""
@@ -87,6 +87,7 @@ def test_object_buffered_base_io():
         def _close_writable(self):
             """Checks called"""
             self.close_called = True
+            self.ensure_ready()
 
         def _flush(self):
             """Flush"""
@@ -154,7 +155,7 @@ def test_object_buffered_base_io():
     object_io._read_range = read_range
     assert object_io.read() == b''
 
-    # Tests write
+    # Tests write (with auto flush)
     assert bytes(flushed) == b''
     object_io = DummyBufferedIO(name, mode='w')
     assert object_io.write(250 * BYTE) == 250
@@ -166,13 +167,31 @@ def test_object_buffered_base_io():
     assert len(flushed) == 200
     assert bytes(flushed) == 200 * BYTE
 
+    # Tests manual flush
     object_io.flush()
     object_io.ensure_ready()
     assert object_io._seek == 3
     assert bytes(flushed) == 250 * BYTE
     assert object_io._buffer_seek == 0
 
+    # Tests write, only buffered should flush
+    flushed = bytearray()
+    raw_flushed = bytearray()
+    assert bytes(flushed) == b''
     assert bytes(raw_flushed) == b''
+
+    with DummyBufferedIO(name, mode='w') as object_io:
+        assert object_io.write(150 * BYTE) == 150
+        object_io.ensure_ready()
+        assert len(flushed) == 100
+        assert object_io._buffer_seek == 50
+        assert len(object_io._get_buffer()) == 50
+        object_io.raw._write_buffer = object_io._get_buffer()
+        assert len(object_io.raw._get_buffer()) == 50
+    assert len(flushed) == 150
+    assert not len(raw_flushed)
+
+    # Tests write small data flushed by raw
     object_io = DummyBufferedIO(name, mode='w')
     assert object_io.write(10 * BYTE) == 10
     object_io.close()
