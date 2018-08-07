@@ -50,23 +50,43 @@ def equivalent_to(std_function):
     return decorate
 
 
+def _format_and_is_storage(path):
+    """
+    Checks if path is storage and format it.
+
+    If path is an opened file-like object, returns is storage as True.
+
+    Args:
+        path (path-like object or file-like object):
+
+    Returns:
+        tuple: str or file-like object (Updated path),
+            bool (True if is storage).
+    """
+    if not hasattr(path, 'read'):
+        return fsdecode(path), is_storage(path)
+    return path, True
+
+
 def copy(src, dst):
     """
     Copies a source file to a destination file or directory.
 
     Equivalent to "shutil.copy".
 
+    Source and destination can also be binary opened file-like objects.
+
     Args:
-        src (path-like object): Source file.
-        dst (path-like object): Destination file or directory.
+        src (path-like object or file-like object): Source file.
+        dst (path-like object or file-like object):
+            Destination file or directory.
     """
-    # Handles path-like objects
-    src = fsdecode(src)
-    dst = fsdecode(dst)
+    # Handles path-like objects and checks if storage
+    src, src_is_storage = _format_and_is_storage(src)
+    dst, dst_is_storage = _format_and_is_storage(dst)
 
     # Local files: Redirects to "shutil.copy"
-    dst_is_storage = is_storage(dst)
-    if not is_storage(src) and not dst_is_storage:
+    if not src_is_storage and not dst_is_storage:
         return shutil_copy(src, dst)
 
     # If destination si local directory, defines
@@ -149,6 +169,30 @@ def isfile(path):
 
 
 @contextmanager
+def _text_io_wrapper(stream, mode, encoding, errors, newline):
+    """Wrap a binary stream to Text stream.
+
+    Args:
+        stream (file-like object): binary stream.
+        mode (str): Open mode.
+        encoding (str): Stream encoding.
+        errors (str): Decoding error handling.
+        newline (str): Universal newlines
+    """
+    # Text mode, if not already a text stream
+    # That has the "encoding" attribute
+    if "t" in mode and not hasattr(stream, 'encoding'):
+        text_stream = TextIOWrapper(
+            stream, encoding=encoding, errors=errors, newline=newline)
+        yield text_stream
+        text_stream.flush()
+
+    # Binary mode (Or already text stream)
+    else:
+        yield stream
+
+
+@contextmanager
 def cos_open(file, mode='r', buffering=-1, encoding=None, errors=None,
              newline=None, storage=None, storage_parameters=None, **kwargs):
     """
@@ -156,8 +200,11 @@ def cos_open(file, mode='r', buffering=-1, encoding=None, errors=None,
 
     Equivalent to "io.open" or builtin "open".
 
+    File can also be binary opened file-like object.
+
     Args:
-        file (path-like object): File path or URL.
+        file (path-like object or file-like object): File path, object URL or
+            opened file-like object.
         mode (str): mode in which the file is opened (default to 'rb').
             see "io.open" for all possible modes. Note that all modes may
             not be supported by all kind of file and storage.
@@ -191,6 +238,12 @@ def cos_open(file, mode='r', buffering=-1, encoding=None, errors=None,
     Raises:
         OSError: If the file cannot be opened.
     """
+    # Handles file-like objects:
+    if hasattr(file, 'read'):
+        with _text_io_wrapper(file, mode, encoding, errors, newline) as wrapped:
+            yield wrapped
+        return
+
     # Handles path-like objects
     file = fsdecode(file)
 
@@ -200,22 +253,14 @@ def cos_open(file, mode='r', buffering=-1, encoding=None, errors=None,
                 name=file, cls='raw' if buffering == 0 else 'buffered',
                 storage=storage, storage_parameters=storage_parameters,
                 **kwargs) as stream:
-
-            # Text mode
-            if "t" in mode:
-                text_stream = TextIOWrapper(
-                    stream, encoding=encoding, errors=errors, newline=newline)
-                yield text_stream
-                text_stream.flush()
-
-            # Binary mode
-            else:
-                yield stream
+            with _text_io_wrapper(stream, mode=mode, encoding=encoding,
+                                  errors=errors, newline=newline) as wrapped:
+                yield wrapped
 
     # Local file: Redirect to "io.open"
     else:
-        with io_open(file, mode=mode, buffering=buffering, encoding=encoding,
-                     errors=errors, newline=newline, **kwargs) as stream:
+        with io_open(file, mode, buffering, encoding, errors, newline,
+                     **kwargs) as stream:
             yield stream
 
 

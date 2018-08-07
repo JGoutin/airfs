@@ -153,6 +153,16 @@ def test_cos_open(tmpdir):
             assert isinstance(file, TextIOWrapper)
             assert file.read() == content.decode()
 
+        # open: Stream Binary
+        with cos_open(BytesIO(content), 'rb') as file:
+            assert isinstance(file, BytesIO)
+            assert file.read() == content
+
+        # open: Stream Text
+        with cos_open(BytesIO(content), 'rt') as file:
+            assert isinstance(file, TextIOWrapper)
+            assert file.read() == content.decode()
+
         # open: Local file
         local_file = tmpdir.join('file.txt')
         local_file.write(content)
@@ -169,6 +179,12 @@ def test_cos_open(tmpdir):
         # copy: storage file to local file
         assert not local_dst.check()
         copy(cos_path, str(local_dst))
+        assert local_dst.read_binary() == content
+        local_dst.remove()
+
+        # copy: stream to local file
+        assert not local_dst.check()
+        copy(BytesIO(content), str(local_dst))
         assert local_dst.read_binary() == content
         local_dst.remove()
 
