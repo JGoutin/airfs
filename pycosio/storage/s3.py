@@ -40,14 +40,14 @@ def _upload_part(storage_parameters=None, **kwargs):
     Used with ProcessPoolExecutor
 
     Args:
-        storage_parameters (dict): Boto3 Session keyword arguments.
-            This is generally AWS credentials and configuration.
-            This is generally not required if running on AWS EC2 instances.
-            (see "boto3.session.Session" for more information)
-        kwargs: see boto3 upload_part
+        storage_parameters (dict): see "S3BufferedIO" storage_parameters.
+        kwargs: see boto3 "upload_part"
+
     """
+    session_kwargs = storage_parameters.get('session', dict())
+    client_kwargs = storage_parameters.get('session', dict())
     return _boto3.session.Session(
-        **(storage_parameters or dict())).client('s3').upload_part(**kwargs)
+        **session_kwargs).client('s3', **client_kwargs).upload_part(**kwargs)
 
 
 class _S3System(_SystemBase):
@@ -57,8 +57,11 @@ class _S3System(_SystemBase):
     Args:
         storage_parameters (dict): Boto3 Session keyword arguments.
             This is generally AWS credentials and configuration.
-            Optional if running on AWS EC2 instances.
-            (see "boto3.session.Session" for more information)
+            This dict should contain two sub-dicts:
+            'session': That pass its arguments to "boto3.session.Session"
+            ; 'client': That pass its arguments to
+            "boto3.session.Session.client".
+            May be optional if running on AWS EC2 instances.
     """
 
     def __init__(self, *args, **kwargs):
@@ -88,7 +91,10 @@ class _S3System(_SystemBase):
         Returns:
             boto3.session.Session: client
         """
-        return _boto3.session.Session(**self._storage_parameters).client("s3")
+        session_kwargs = self._storage_parameters.get('session', dict())
+        client_kwargs = self._storage_parameters.get('session', dict())
+        return _boto3.session.Session(**session_kwargs).client(
+            "s3", **client_kwargs)
 
     def _get_prefixes(self):
         """
@@ -148,8 +154,11 @@ class S3RawIO(_ObjectRawIOBase):
             for reading (default), writing or appending
         storage_parameters (dict): Boto3 Session keyword arguments.
             This is generally AWS credentials and configuration.
-            Optional if running on AWS EC2 instances.
-            (see "boto3.session.Session" for more information)
+            This dict should contain two sub-dicts:
+            'session': That pass its arguments to "boto3.session.Session"
+            ; 'client': That pass its arguments to
+            "boto3.session.Session.client".
+            May be optional if running on AWS EC2 instances.
     """
     _SYSTEM_CLASS = _S3System
 
@@ -219,10 +228,13 @@ class S3BufferedIO(_ObjectBufferedIOBase):
         max_workers (int): The maximum number of threads that can be used to
             execute the given calls.
         workers_type (str): Parallel workers type: 'thread' or 'process'.
-        storage_parameters: Boto3 Session keyword arguments.
+        storage_parameters (dict): Boto3 Session keyword arguments.
             This is generally AWS credentials and configuration.
-            Optional if running on AWS EC2 instances.
-            (see "boto3.session.Session" for more information)
+            This dict should contain two sub-dicts:
+            'session': That pass its arguments to "boto3.session.Session"
+            ; 'client': That pass its arguments to
+            "boto3.session.Session.client".
+            May be optional if running on AWS EC2 instances.
     """
 
     _RAW_CLASS = S3RawIO
