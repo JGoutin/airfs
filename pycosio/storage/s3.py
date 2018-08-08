@@ -33,6 +33,22 @@ def _handle_client_error():
         raise
 
 
+def _get_parameters(storage_parameters):
+    """
+    Get session and client keyword arguments from "storage_parameters"
+
+    Args:
+        storage_parameters (dict): storage parameters
+
+    Returns:
+        tuple of dict: session and clients keyword arguments
+    """
+    storage_parameters = storage_parameters or dict()
+    session_kwargs = storage_parameters.get('session', dict())
+    client_kwargs = storage_parameters.get('client', dict())
+    return session_kwargs, client_kwargs
+
+
 def _upload_part(storage_parameters=None, **kwargs):
     """
     Upload part with picklable S3 client.
@@ -44,8 +60,7 @@ def _upload_part(storage_parameters=None, **kwargs):
         kwargs: see boto3 "upload_part"
 
     """
-    session_kwargs = storage_parameters.get('session', dict())
-    client_kwargs = storage_parameters.get('session', dict())
+    session_kwargs, client_kwargs = _get_parameters(storage_parameters)
     return _boto3.session.Session(
         **session_kwargs).client('s3', **client_kwargs).upload_part(**kwargs)
 
@@ -91,8 +106,8 @@ class _S3System(_SystemBase):
         Returns:
             boto3.session.Session: client
         """
-        session_kwargs = self._storage_parameters.get('session', dict())
-        client_kwargs = self._storage_parameters.get('session', dict())
+        session_kwargs, client_kwargs = _get_parameters(
+            self._storage_parameters)
         return _boto3.session.Session(**session_kwargs).client(
             "s3", **client_kwargs)
 

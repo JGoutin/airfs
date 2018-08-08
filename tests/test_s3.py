@@ -153,7 +153,7 @@ def test_s3_raw_io():
 
 def test_s3_buffered_io():
     """Tests pycosio.s3.S3BufferedIO"""
-    from pycosio.storage.s3 import S3BufferedIO, _upload_part
+    from pycosio.storage.s3 import S3BufferedIO, _upload_part, _get_parameters
     import boto3
 
     # Mocks client
@@ -245,6 +245,18 @@ def test_s3_buffered_io():
         assert _upload_part(
             Body=BYTE * 10, PartNumber=1, UploadId=123,
             **client_args) == dict(ETag=456)
+
+        # _get_parameters
+        session_parameters = {'session': 0}
+        client_parameters = {'client': 0}
+        assert _get_parameters({'session': session_parameters,
+                                'client': client_parameters}) == (
+            session_parameters, client_parameters)
+        assert _get_parameters({'session': session_parameters}) == (
+            session_parameters, {})
+        assert _get_parameters({'client': client_parameters}) == (
+            {}, client_parameters)
+        assert _get_parameters(None) == ({}, {})
 
     # Restore mocked class
     finally:
