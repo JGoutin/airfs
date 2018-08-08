@@ -4,6 +4,8 @@ from datetime import datetime
 import io
 import pickle
 import time
+from sys import version_info
+
 from tests.utilities import (BYTE, SIZE, parse_range, check_head_methods,
                              check_raw_read_methods)
 
@@ -237,8 +239,11 @@ def test_s3_buffered_io():
             s3object.write(BYTE * 95)
 
         # Tests pickle without error
-        for mode in ('r', 'w'):
-            pickle.loads(pickle.dumps(S3BufferedIO(path, mode=mode)))
+        # Don't tests on Python 2, because futures package say to not use
+        # process on it.
+        if version_info[0] > 2:
+            for mode in ('r', 'w'):
+                pickle.loads(pickle.dumps(S3BufferedIO(path, mode=mode)))
 
     # Restore mocked class
     finally:
