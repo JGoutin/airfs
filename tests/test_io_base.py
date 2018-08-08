@@ -17,6 +17,7 @@ def test_object_base_io():
     assert object_io.readable()
     assert object_io.seekable()
     assert not object_io.writable()
+    assert name in str(object_io)
 
     object_io = ObjectIOBase(name, mode='w')
     assert object_io.mode == 'w'

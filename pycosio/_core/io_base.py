@@ -43,6 +43,11 @@ class ObjectIOBase(IOBase):
         else:
             raise ValueError('Invalid mode "%s"' % mode)
 
+    def __str__(self):
+        return "<%s.%s name='%s' mode='%s'>" % (
+            self.__class__.__module__, self.__class__.__name__,
+            self._name, self._mode)
+
     @property
     def mode(self):
         """
