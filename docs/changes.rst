@@ -30,3 +30,10 @@ Possibles futures features
 * More cloud storage.
 * Extra ``max_buffers`` for swap on local disk in ``ObjectBufferedIOBase``.
 * Global computer resource managements for cloud object IO.
+
+Known issues
+------------
+
+* On Python 2, using ``ObjectBufferedIOBase`` with ``workers_type='process'``
+  don't work. This will not be fixed, the *futures* package recommends to not
+  use ``ProcessPoolExecutor`` on Python 2.

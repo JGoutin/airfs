@@ -74,7 +74,7 @@ def get_instance(name, cls='system', storage=None,
 
     # Passes cached system instance and instantiates class
     if not storage_parameters:
-        storage_parameters = info['storage_parameters']
+        storage_parameters = info['storage_parameters'] or dict()
     storage_parameters['pycosio.system_cached'] = info['system_cached']
     return info[cls](storage_parameters=storage_parameters,
                      name=name, *args, **kwargs)
