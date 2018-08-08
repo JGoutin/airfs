@@ -43,12 +43,6 @@ class _SwiftSystem(_SystemBase):
             (see "swiftclient.client.Connection" for more information)
     """
 
-    def __init__(self, *args, **kwargs):
-        _SystemBase.__init__(self, *args, **kwargs)
-
-        # Head function
-        self._head_object = self._client.head_object
-
     def get_client_kwargs(self, path):
         """
         Get base keyword arguments for client for a
@@ -92,7 +86,7 @@ class _SwiftSystem(_SystemBase):
             dict: HTTP header.
         """
         with _handle_client_exception():
-            return self._head_object(**client_kwargs)
+            return self._client.head_object(**client_kwargs)
 
 
 class SwiftRawIO(_ObjectRawIOBase):
@@ -114,8 +108,6 @@ class SwiftRawIO(_ObjectRawIOBase):
         _ObjectRawIOBase.__init__(self, *args, **kwargs)
 
         # Prepares Swift I/O functions and common arguments
-        self._get_object = self._client.get_object
-        self._put_object = self._client.put_object
         self._client_args = (
             self._client_kwargs['container'], self._client_kwargs['obj'])
 
@@ -133,7 +125,7 @@ class SwiftRawIO(_ObjectRawIOBase):
         """
         try:
             with _handle_client_exception():
-                return self._get_object(*self._client_args, headers=dict(
+                return self._client.get_object(*self._client_args, headers=dict(
                     Range=self._http_range(start, end)))[1]
 
         except _ClientException as exception:
@@ -150,7 +142,7 @@ class SwiftRawIO(_ObjectRawIOBase):
             bytes: Object content
         """
         with _handle_client_exception():
-            return self._get_object(*self._client_args)[1]
+            return self._client.get_object(*self._client_args)[1]
 
     def _flush(self):
         """
@@ -158,7 +150,7 @@ class SwiftRawIO(_ObjectRawIOBase):
         """
         container, obj = self._client_args
         with _handle_client_exception():
-            self._put_object(container, obj, self._get_buffer())
+            self._client.put_object(container, obj, self._get_buffer())
 
 
 class SwiftBufferedIO(_ObjectBufferedIOBase):
@@ -181,9 +173,6 @@ class SwiftBufferedIO(_ObjectBufferedIOBase):
 
         _ObjectBufferedIOBase.__init__(self, *args, **kwargs)
 
-        # Use same client as RAW class, but keep theses names
-        # protected to this module
-        self._put_object = self.raw._put_object
         self._container, self._object_name = self._raw._client_args
 
         if self._writable:
@@ -195,8 +184,9 @@ class SwiftBufferedIO(_ObjectBufferedIOBase):
         """
         # Upload segment with workers
         name = self._segment_name % self._seek
-        response = self._workers.submit(self._put_object, self._container, name,
-                                        self._get_buffer().tobytes())
+        response = self._workers.submit(
+            self._client.put_object, self._container, name,
+            self._get_buffer().tobytes())
 
         # Save segment information in manifest
         self._write_futures.append(dict(
@@ -212,5 +202,5 @@ class SwiftBufferedIO(_ObjectBufferedIOBase):
 
         # Upload manifest file
         with _handle_client_exception():
-            self._put_object(self._container, self._object_name, _dumps(
+            self._client.put_object(self._container, self._object_name, _dumps(
                 self._write_futures), query_string='multipart-manifest=put')

@@ -48,6 +48,17 @@ class ObjectIOBase(IOBase):
             self.__class__.__module__, self.__class__.__name__,
             self._name, self._mode)
 
+    def __getstate__(self):
+        # Lock cannot be dumped with pickle.
+        to_pickle = dict(self.__dict__)
+        del to_pickle['_seek_lock']
+        return to_pickle
+
+    def __setstate__(self, state):
+        # A new lock is recreated on pickle load.
+        self.__dict__.update(state)
+        self._seek_lock = Lock()
+
     @property
     def mode(self):
         """

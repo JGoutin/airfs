@@ -53,7 +53,6 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         # Gets storage local path from URL
         self._path = self._system.relpath(name)
         self._client_kwargs = self._system.get_client_kwargs(name)
-        self._client = self._system.client
 
         # Mark as standalone RAW to avoid flush conflics on close
         self._is_raw_of_buffered = False
@@ -86,6 +85,16 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
             # Get header and checks files exists
             with handle_os_exceptions():
                 self._head()
+
+    @property
+    def _client(self):
+        """
+        Returns client instance.
+
+        Returns:
+            client
+        """
+        return self._system.client
 
     def close(self):
         """

@@ -109,7 +109,7 @@ def test_register():
 
                 buffered = get_instance(name=http, cls='buffered')
                 assert isinstance(buffered, HTTPBufferedIO)
-                assert buffered._system is STORAGE[prefix]['system_cached']
+                assert buffered._raw._system is STORAGE[prefix]['system_cached']
 
             # Test register order
             assert tuple(STORAGE) == tuple(reversed(sorted(STORAGE)))

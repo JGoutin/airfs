@@ -33,38 +33,6 @@ def _handle_client_error():
         raise
 
 
-def _get_parameters(storage_parameters):
-    """
-    Get session and client keyword arguments from "storage_parameters"
-
-    Args:
-        storage_parameters (dict): storage parameters
-
-    Returns:
-        tuple of dict: session and clients keyword arguments
-    """
-    storage_parameters = storage_parameters or dict()
-    session_kwargs = storage_parameters.get('session', dict())
-    client_kwargs = storage_parameters.get('client', dict())
-    return session_kwargs, client_kwargs
-
-
-def _upload_part(storage_parameters=None, **kwargs):
-    """
-    Upload part with picklable S3 client.
-
-    Used with ProcessPoolExecutor
-
-    Args:
-        storage_parameters (dict): see "S3BufferedIO" storage_parameters.
-        kwargs: see boto3 "upload_part"
-
-    """
-    session_kwargs, client_kwargs = _get_parameters(storage_parameters)
-    return _boto3.session.Session(
-        **session_kwargs).client('s3', **client_kwargs).upload_part(**kwargs)
-
-
 class _S3System(_SystemBase):
     """
     S3 system.
@@ -79,11 +47,19 @@ class _S3System(_SystemBase):
             May be optional if running on AWS EC2 instances.
     """
 
-    def __init__(self, *args, **kwargs):
-        _SystemBase.__init__(self, *args, **kwargs)
+    def __getstate__(self):
+        to_pickle = dict(self.__dict__)
 
-        # Head function
-        self._head_object = self._client.head_object
+        # Boto3 client cannot be dumped with pickle
+        del to_pickle['_client']
+
+        return to_pickle
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+
+        # A new client is recreated on pickle load
+        self._client = self._get_client()
 
     def get_client_kwargs(self, path):
         """
@@ -104,12 +80,12 @@ class _S3System(_SystemBase):
         S3 Boto3 client
 
         Returns:
-            boto3.session.Session: client
+            boto3.session.Session.client: client
         """
-        session_kwargs, client_kwargs = _get_parameters(
-            self._storage_parameters)
-        return _boto3.session.Session(**session_kwargs).client(
-            "s3", **client_kwargs)
+        storage_parameters = self._storage_parameters or dict()
+        return _boto3.session.Session(
+            **storage_parameters.get('session', dict())).client(
+            "s3", **storage_parameters.get('client', dict()))
 
     def _get_prefixes(self):
         """
@@ -157,7 +133,7 @@ class _S3System(_SystemBase):
             dict: HTTP header.
         """
         with _handle_client_error():
-            return self._head_object(**client_kwargs)
+            return self._client.head_object(**client_kwargs)
 
 
 class S3RawIO(_ObjectRawIOBase):
@@ -177,15 +153,6 @@ class S3RawIO(_ObjectRawIOBase):
     """
     _SYSTEM_CLASS = _S3System
 
-    def __init__(self, *args, **kwargs):
-
-        _ObjectRawIOBase.__init__(self, *args, **kwargs)
-
-        # Prepares S3 I/O functions and common arguments
-        self._get_object = self._client.get_object
-        self._put_object = self._client.put_object
-        self._head_object = self._client.head_object
-
     def _read_range(self, start, end=0):
         """
         Read a range of bytes in stream.
@@ -201,7 +168,7 @@ class S3RawIO(_ObjectRawIOBase):
         # Get object part from S3
         try:
             with _handle_client_error():
-                response = self._get_object(
+                response = self._client.get_object(
                     Range=self._http_range(start, end), **self._client_kwargs)
 
         # Check for end of file
@@ -222,7 +189,7 @@ class S3RawIO(_ObjectRawIOBase):
             bytes: Object content
         """
         with _handle_client_error():
-            return self._get_object(**self._client_kwargs)['Body'].read()
+            return self._client.get_object(**self._client_kwargs)['Body'].read()
 
     def _flush(self):
         """
@@ -230,8 +197,8 @@ class S3RawIO(_ObjectRawIOBase):
         """
         # Sends to S3 the entire file at once
         with _handle_client_error():
-            self._put_object(Body=self._get_buffer().tobytes(),
-                             **self._client_kwargs)
+            self._client.put_object(Body=self._get_buffer().tobytes(),
+                                    **self._client_kwargs)
 
 
 class S3BufferedIO(_ObjectBufferedIOBase):
@@ -265,15 +232,6 @@ class S3BufferedIO(_ObjectBufferedIOBase):
         if self._writable:
             self._upload_args = self._client_kwargs.copy()
 
-            if self._workers_type == 'thread':
-                self._upload_part = self._client.upload_part
-
-            # Multi processing needs external function
-            else:
-                self._upload_part = _upload_part
-                self._upload_args['get_storage_parameters'] = (
-                    self._system.storage_parameters)
-
     def _flush(self):
         """
         Flush the write buffers of the stream.
@@ -306,3 +264,12 @@ class S3BufferedIO(_ObjectBufferedIOBase):
         self._client.complete_multipart_upload(
             MultipartUpload={'Parts': self._write_futures},
             UploadId=self._upload_args['UploadId'], **self._client_kwargs)
+
+    def _upload_part(self, **kwargs):
+        """
+        "upload_part" that can be submitted to "ProcessPoolExecutor".
+
+        Args:
+            kwargs: see boto3 "upload_part"
+        """
+        return self._client.upload_part(**kwargs)

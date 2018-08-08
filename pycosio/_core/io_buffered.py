@@ -5,6 +5,7 @@ from concurrent.futures import ProcessPoolExecutor
 from io import BufferedIOBase, UnsupportedOperation
 from math import ceil
 from os import SEEK_SET
+from threading import Lock
 from time import sleep
 
 from pycosio._core.compat import ThreadPoolExecutor
@@ -58,8 +59,6 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
         # Link to RAW methods
         self._mode = self._raw.mode
         self._name = self._raw.name
-        self._system = self._raw._system
-        self._client = self._raw._client
         self._client_kwargs = self._raw._client_kwargs
 
         # Initialize parallel processing
@@ -93,6 +92,42 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
                 self._max_buffers = ceil(self._size / self._buffer_size)
             self._read_queue = dict()
 
+    def __getstate__(self):
+        to_pickle = dict(self.__dict__)
+
+        # Some objects cannot be dumped with pickle
+        del to_pickle['_seek_lock']
+
+        del to_pickle['_workers_pool']
+        if self._writable:
+            del to_pickle['_write_futures']
+        elif self._readable:
+            del to_pickle['_read_queue']
+
+        return to_pickle
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+
+        # Objects are recreated on pickle load
+        self._seek_lock = Lock()
+
+        self._workers_pool = None
+        if self._writable:
+            self._write_futures = []
+        elif self._readable:
+            self._read_queue = dict()
+
+    @property
+    def _client(self):
+        """
+        Returns client instance.
+
+        Returns:
+            client
+        """
+        return self._raw._system.client
+
     def close(self):
         """
         Flush the write buffers of the stream if applicable and
@@ -113,9 +148,9 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
                 # If closed and data lower than buffer size
                 # flush data with raw stream to reduce IO calls
                 elif self._buffer_seek:
-                    self.raw._write_buffer = self._get_buffer()
-                    self.raw._seek = self._buffer_seek
-                    self.raw.flush()
+                    self._raw._write_buffer = self._get_buffer()
+                    self._raw._seek = self._buffer_seek
+                    self._raw.flush()
 
     @abstractmethod
     def _close_writable(self):
