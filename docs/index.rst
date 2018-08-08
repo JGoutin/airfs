@@ -1,10 +1,10 @@
-Pycosio (Python Cloud Object _Storage I/O)
+Pycosio (Python Cloud Object Storage I/O)
 =========================================
 
 Pycosio brings standard Python I/O to cloud objects by providing:
 
-* Abstract classes of Cloud objects with the complete ``RawIOBase`` and
-  ``io.BufferedIOBase``` standard interfaces..
+* Abstract classes of Cloud objects with the complete ``io.RawIOBase`` and
+  ``io.BufferedIOBase`` standard interfaces.
 * Features equivalent to the standard library for seamlessly managing cloud
   objects and local files.: ``open``, ``copy``, ``getmtime``, ``getsize``,
   ``isfile``, ``relpath``

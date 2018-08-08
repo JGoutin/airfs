@@ -4,44 +4,36 @@
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/0c9fc64f5fe94defac90140d769e1de3)](https://www.codacy.com/app/Accelize/pycosio?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Accelize/pycosio&amp;utm_campaign=Badge_Grade)
 [![Documentation Status](https://readthedocs.org/projects/pycosio/badge/?version=latest)](https://pycosio.readthedocs.io/en/latest/?badge=latest)
 
+Pycosio (Python Cloud Object Storage I/O)
+=========================================
+
+For more information, read the [Pycosio documentation](https://pycosio.readthedocs.io).
+
 Pycosio brings standard Python I/O to cloud objects by providing:
 
-* Cloud objects classes with standards full featured ``io.RawIOBase`` and
-  ``io.BufferedIOBase`` interfaces.
-* Standard library functions equivalent to handle cloud objects and local files
-  transparently:
-  ``open``, ``copy``, ``getmtime``, ``getsize``, ``isfile``,
-  ``relpath``
+* Abstract classes of Cloud objects with the complete ``io.RawIOBase`` and
+  ``io.BufferedIOBase`` standard interfaces.
+* Features equivalent to the standard library for seamlessly managing cloud
+  objects and local files.: ``open``, ``copy``, ``getmtime``, ``getsize``,
+  ``isfile``, ``relpath``
+
+Theses functions are source agnostic and always provide the same interface for
+all files from cloud storage or local file systems.
 
 Buffered cloud objects also support following features:
 
-* Buffered asynchronous writing of object of any size.
+* Buffered asynchronous writing of any object size.
 * Buffered asynchronous preloading in read mode.
-* Blocking write or read based on memory usage limitation.
-* Bandwidth optimization using parallels connections.
+* Write or read lock depending on memory usage limitation.
+* Maximization of bandwidth using parallels connections.
 
-Example of code:
+Supported Cloud storage
+-----------------------
 
-```python
-import pycosio
+Pycosio is compatible with following cloud objects storage services:
 
-# Open an object on AWS S3 as text for reading
-with pycosio.open('s3://my_bucket/text.txt', 'rt') as file:
-    text = file.read()
+* Amazon Web Services S3
+* OpenStack Swift
 
-# Open an object on AWS S3 as binary for writing
-with pycosio.open('s3://my_bucket/data.bin', 'wb') as file:
-    file.write(b'binary_data')
-
-# Copy file from local file system to OpenStack Swift
-pycosio.copy(
-    'my_file',
-    'https://objects.mycloud.com/v1/12345678912345/my_container/my_file')
-
-# Get size of a file over internet
-pycosio.getsize('https://example.org/file')
->>> 956
-
-```
-
-For more information, read the [Pycosio documentation](https://pycosio.readthedocs.io).
+Pycosio can also access any publicly accessible file via HTTP/HTTPS
+(Read only).
