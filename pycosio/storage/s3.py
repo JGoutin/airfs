@@ -89,6 +89,7 @@ class _S3System(_SystemBase):
 
         # Handles unsecure mode
         if self._unsecure:
+            client_kwargs = client_kwargs.copy()
             client_kwargs['use_ssl'] = False
 
         return _boto3.session.Session(

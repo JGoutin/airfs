@@ -70,9 +70,10 @@ class _SwiftSystem(_SystemBase):
 
         # Handles unsecure mode
         if self._unsecure:
+            kwargs = kwargs.copy()
             kwargs['ssl_compression'] = False
 
-        return _swift.client.Connection(**self._storage_parameters)
+        return _swift.client.Connection(**kwargs)
 
     def _get_prefixes(self):
         """
