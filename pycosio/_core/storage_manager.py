@@ -91,6 +91,10 @@ def get_instance(name, cls='system', storage=None, storage_parameters=None,
                     same_parameters = True
                 else:
                     same_parameters = False
+                    # Copy not specified parameters from default
+                    system_parameters.update({
+                        key: value for key, value in stored_parameters.items()
+                        if key not in system_parameters})
                 break
 
         # If not found, tries to register before getting
