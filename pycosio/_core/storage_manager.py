@@ -61,21 +61,34 @@ def get_instance(name, cls='system', storage=None,
         for prefix in STORAGE:
             if name.startswith(prefix):
                 info = STORAGE[prefix]
+
+                # Get stored storage parameters
+                stored_parameters = info.get('storage_parameters') or dict()
+                if not storage_parameters:
+                    same_parameters = True
+                    storage_parameters = stored_parameters
+                elif stored_parameters == storage_parameters:
+                    same_parameters = True
+                else:
+                    same_parameters = False
                 break
 
         # If not found, tries to register before getting
         else:
             info = register(storage=storage, name=name,
                             storage_parameters=storage_parameters)
+            same_parameters = True
 
-    # Returns cached system instance
+    # Returns system class
     if cls == 'system':
-        return info['system_cached']
+        if same_parameters:
+            return info['system_cached']
+        else:
+            return info['system'](storage_parameters=storage_parameters)
 
-    # Passes cached system instance and instantiates class
-    if not storage_parameters:
-        storage_parameters = info['storage_parameters'] or dict()
-    storage_parameters['pycosio.system_cached'] = info['system_cached']
+    # Returns other classes
+    if same_parameters:
+        storage_parameters['pycosio.system_cached'] = info['system_cached']
     return info[cls](storage_parameters=storage_parameters,
                      name=name, *args, **kwargs)
 

@@ -59,7 +59,7 @@ class _S3System(_SystemBase):
         self.__dict__.update(state)
 
         # A new client is recreated on pickle load
-        self._client = self._get_client()
+        self._client = None
 
     def get_client_kwargs(self, path):
         """
@@ -133,7 +133,7 @@ class _S3System(_SystemBase):
             dict: HTTP header.
         """
         with _handle_client_error():
-            return self._client.head_object(**client_kwargs)
+            return self.client.head_object(**client_kwargs)
 
 
 class S3RawIO(_ObjectRawIOBase):

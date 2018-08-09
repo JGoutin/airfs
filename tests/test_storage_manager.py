@@ -25,6 +25,7 @@ def test_register():
     # Get HTTP as storage to register
     prefixes = _HTTPSystem().prefixes
     storage_parameters = {'arg1': 1, 'arg2': 2}
+    storage_parameters_2 = {'arg1': 1, 'arg2': 3}
     expected_info = dict(
         raw=HTTPRawIO, system=_HTTPSystem,
         buffered=HTTPBufferedIO,
@@ -101,6 +102,14 @@ def test_register():
                 # Tests get_instance cached system
                 assert get_instance(
                     name=prefix) is STORAGE[prefix]['system_cached']
+
+                assert get_instance(
+                    storage_parameters=storage_parameters,
+                    name=prefix) is STORAGE[prefix]['system_cached']
+
+                assert get_instance(
+                    storage_parameters=storage_parameters_2,
+                    name=prefix) is not STORAGE[prefix]['system_cached']
 
                 # Test get_instance other classes with cached system
                 raw = get_instance(name=https, cls='raw')

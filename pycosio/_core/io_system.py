@@ -25,7 +25,7 @@ class SystemBase(ABC):
         self._storage_parameters = storage_parameters or dict()
 
         # Initialize client
-        self._client = self._get_client()
+        self._client = None
 
         # Initialize prefixes
         self._prefixes = self._get_prefixes()
@@ -38,6 +38,8 @@ class SystemBase(ABC):
         Returns:
             client
         """
+        if self._client is None:
+            self._client = self._get_client()
         return self._client
 
     @abstractmethod

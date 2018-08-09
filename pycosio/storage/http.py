@@ -37,12 +37,6 @@ class _HTTPSystem(_SystemBase):
     HTTP system.
     """
 
-    def __init__(self, *args, **kwargs):
-        _SystemBase.__init__(self, *args, **kwargs)
-
-        # HTTP session
-        self._request = self._client.request
-
     def get_client_kwargs(self, path):
         """
         Get base keyword arguments for client for a
@@ -85,7 +79,7 @@ class _HTTPSystem(_SystemBase):
             dict: HTTP header.
         """
         return _handle_http_errors(
-            self._request('HEAD', **client_kwargs)).headers
+            self.client.request('HEAD', **client_kwargs)).headers
 
 
 class HTTPRawIO(_ObjectRawIOBase):
@@ -105,9 +99,6 @@ class HTTPRawIO(_ObjectRawIOBase):
         if 'r' not in self._mode:
             raise _UnsupportedOperation('write')
 
-        # HTTP session
-        self._request = self._client.request
-
         # Check if object support random read
         self._seekable = self._head().get('Accept-Ranges') == 'bytes'
 
@@ -124,7 +115,7 @@ class HTTPRawIO(_ObjectRawIOBase):
             bytes: number of bytes read
         """
         # Get object part
-        response = self._request(
+        response = self._client.request(
             'GET', self.name, headers=dict(Range=self._http_range(start, end)))
 
         if response.status_code == 416:
@@ -141,7 +132,8 @@ class HTTPRawIO(_ObjectRawIOBase):
         Returns:
             bytes: Object content
         """
-        return _handle_http_errors(self._request('GET', self.name)).content
+        return _handle_http_errors(
+            self._client.request('GET', self.name)).content
 
     def _flush(self):
         """

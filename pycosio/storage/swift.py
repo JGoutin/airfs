@@ -73,7 +73,7 @@ class _SwiftSystem(_SystemBase):
         Returns:
             tuple of str: URL prefixes
         """
-        return self._client.get_auth()[0] + '/',
+        return self.client.get_auth()[0] + '/',
 
     def _head(self, client_kwargs):
         """
@@ -86,7 +86,7 @@ class _SwiftSystem(_SystemBase):
             dict: HTTP header.
         """
         with _handle_client_exception():
-            return self._client.head_object(**client_kwargs)
+            return self.client.head_object(**client_kwargs)
 
 
 class SwiftRawIO(_ObjectRawIOBase):
