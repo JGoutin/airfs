@@ -29,7 +29,7 @@ def test_register():
     expected_info = dict(
         raw=HTTPRawIO, system=_HTTPSystem,
         buffered=HTTPBufferedIO,
-        storage_parameters=storage_parameters)
+        system_parameters={'storage_parameters': storage_parameters})
     https = 'https://path'
     http = 'http://path'
 

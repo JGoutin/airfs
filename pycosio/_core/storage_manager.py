@@ -39,8 +39,22 @@ def is_storage(url, storage=None):
     return False
 
 
-def get_instance(name, cls='system', storage=None,
-                 storage_parameters=None, *args, **kwargs):
+def _system_parameters(**kwargs):
+    """
+    Returns system keyword arguments removing Nones.
+
+    Args:
+        kwargs: system keyword arguments.
+
+    Returns:
+        dict: system keyword arguments.
+    """
+    return {key: value for key, value in kwargs.items()
+            if (value is not None or value == {})}
+
+
+def get_instance(name, cls='system', storage=None, storage_parameters=None,
+                 unsecure=None, *args, **kwargs):
     """
     Get a cloud object storage instance.
 
@@ -51,11 +65,17 @@ def get_instance(name, cls='system', storage=None,
         storage (str): Storage name.
         storage_parameters (dict): Storage configuration parameters.
             Generally, client configuration and credentials.
+        unsecure (bool): If True, disables TLS/SSL to improves
+            transfer performance. But makes connection unsecure.
+            Default to False.
         args, kwargs: Instance arguments
 
     Returns:
         pycosio._core.io_base.ObjectIOBase subclass: Instance
     """
+    system_parameters = _system_parameters(
+        unsecure=unsecure, storage_parameters=storage_parameters)
+
     # Gets storage information
     with _STORAGE_LOCK:
         for prefix in STORAGE:
@@ -63,11 +83,11 @@ def get_instance(name, cls='system', storage=None,
                 info = STORAGE[prefix]
 
                 # Get stored storage parameters
-                stored_parameters = info.get('storage_parameters') or dict()
-                if not storage_parameters:
+                stored_parameters = info.get('system_parameters') or dict()
+                if not system_parameters:
                     same_parameters = True
-                    storage_parameters = stored_parameters
-                elif stored_parameters == storage_parameters:
+                    system_parameters = stored_parameters
+                elif system_parameters == stored_parameters:
                     same_parameters = True
                 else:
                     same_parameters = False
@@ -75,8 +95,7 @@ def get_instance(name, cls='system', storage=None,
 
         # If not found, tries to register before getting
         else:
-            info = register(storage=storage, name=name,
-                            storage_parameters=storage_parameters)
+            info = register(storage=storage, name=name, **system_parameters)
             same_parameters = True
 
     # Returns system class
@@ -84,17 +103,20 @@ def get_instance(name, cls='system', storage=None,
         if same_parameters:
             return info['system_cached']
         else:
-            return info['system'](storage_parameters=storage_parameters)
+            return info['system'](**system_parameters)
 
     # Returns other classes
     if same_parameters:
-        storage_parameters['pycosio.system_cached'] = info['system_cached']
-    return info[cls](storage_parameters=storage_parameters,
-                     name=name, *args, **kwargs)
+        if 'storage_parameters' not in system_parameters:
+            system_parameters['storage_parameters'] = dict()
+        system_parameters['storage_parameters'][
+            'pycosio.system_cached'] = info['system_cached']
+    kwargs.update(system_parameters)
+    return info[cls](name=name, *args, **kwargs)
 
 
 def register(storage=None, name='', storage_parameters=None,
-             extra_url_prefix=None):
+             unsecure=None, extra_url_prefix=None):
     """
     Register a new storage.
 
@@ -104,6 +126,9 @@ def register(storage=None, name='', storage_parameters=None,
             URL scheme will be used as storage value.
         storage_parameters (dict): Storage configuration parameters.
             Generally, client configuration and credentials.
+        unsecure (bool): If True, disables TLS/SSL to improves
+            transfer performance. But makes connection unsecure.
+            Default to False.
         extra_url_prefix (str): Extra URL prefix that can be used in
             replacement of root URL in path. This can be used to
             provides support for shorter URLS.
@@ -121,7 +146,9 @@ def register(storage=None, name='', storage_parameters=None,
             storage = name.split('://', 1)[0].lower()
 
     # Saves get_storage_parameters
-    storage_info = dict(storage_parameters=storage_parameters)
+    system_parameters = _system_parameters(
+        unsecure=unsecure, storage_parameters=storage_parameters)
+    storage_info = dict(system_parameters=system_parameters)
 
     # Finds module containing target subclass
     module = import_module('pycosio.storage.%s' % storage)
@@ -138,7 +165,7 @@ def register(storage=None, name='', storage_parameters=None,
                 continue
 
     # Caches a system instance
-    storage_info['system_cached'] = storage_info['system'](storage_parameters)
+    storage_info['system_cached'] = storage_info['system'](**system_parameters)
 
     # Gets prefixes
     prefixes = storage_info['system_cached'].prefixes

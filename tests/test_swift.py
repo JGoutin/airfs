@@ -145,8 +145,9 @@ def test_swift_buffered_io():
     class Connection:
         """Fake Connection"""
 
-        def __init__(self, *_, **__):
+        def __init__(self, *_, **kwargs):
             """Do nothing"""
+            self.kwargs = kwargs
             self.called = 0
 
         @staticmethod
@@ -198,6 +199,10 @@ def test_swift_buffered_io():
 
         swift_object.write(BYTE * 95)
         swift_object.close()
+
+        # Tests unsecure
+        with SwiftBufferedIO(path, mode='w', unsecure=True) as swift_object:
+            assert swift_object._client.kwargs['ssl_compression'] is False
 
     # Restore mocked functions
     finally:

@@ -29,11 +29,13 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
             for reading (default), writing or appending
         storage_parameters (dict): Storage configuration parameters.
             Generally, client configuration and credentials.
+        unsecure (bool): If True, disables TLS/SSL to improves
+            transfer performance. But makes connection unsecure.
     """
     # System I/O class
     _SYSTEM_CLASS = SystemBase
 
-    def __init__(self, name, mode='r', storage_parameters=None):
+    def __init__(self, name, mode='r', storage_parameters=None, **kwargs):
 
         RawIOBase.__init__(self)
         ObjectIOBase.__init__(self, name, mode=mode)
@@ -48,7 +50,7 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         if not self._system:
             # If none cached, create a new system
             self._system = self._SYSTEM_CLASS(
-                storage_parameters=storage_parameters)
+                storage_parameters=storage_parameters, **kwargs)
 
         # Gets storage local path from URL
         self._path = self._system.relpath(name)

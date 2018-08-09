@@ -18,11 +18,14 @@ class SystemBase(ABC):
     Args:
         storage_parameters (dict): Storage configuration parameters.
             Generally, client configuration and credentials.
+        unsecure (bool): If True, disables TLS/SSL to improves
+            transfer performance. But makes connection unsecure.
     """
 
-    def __init__(self, storage_parameters=None):
+    def __init__(self, storage_parameters=None, unsecure=False):
         # Save storage parameters
         self._storage_parameters = storage_parameters or dict()
+        self._unsecure = unsecure
 
         # Initialize client
         self._client = None

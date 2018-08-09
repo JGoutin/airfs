@@ -41,6 +41,8 @@ class _SwiftSystem(_SystemBase):
         storage_parameters (dict): Swift connection keyword arguments.
             This is generally OpenStack credentials and configuration.
             (see "swiftclient.client.Connection" for more information)
+        unsecure (bool): If True, disables TLS/SSL to improves
+            transfer performance. But makes connection unsecure.
     """
 
     def get_client_kwargs(self, path):
@@ -64,6 +66,12 @@ class _SwiftSystem(_SystemBase):
         Returns:
             swiftclient.client.Connection: client
         """
+        kwargs = self._storage_parameters
+
+        # Handles unsecure mode
+        if self._unsecure:
+            kwargs['ssl_compression'] = False
+
         return _swift.client.Connection(**self._storage_parameters)
 
     def _get_prefixes(self):
@@ -99,6 +107,8 @@ class SwiftRawIO(_ObjectRawIOBase):
         storage_parameters (dict): Swift connection keyword arguments.
             This is generally OpenStack credentials and configuration.
             (see "swiftclient.client.Connection" for more information)
+        unsecure (bool): If True, disables TLS/SSL to improves
+            transfer performance. But makes connection unsecure.
     """
     _SYSTEM_CLASS = _SwiftSystem
 
@@ -165,6 +175,8 @@ class SwiftBufferedIO(_ObjectBufferedIOBase):
         storage_parameters (dict): Swift connection keyword arguments.
             This is generally OpenStack credentials and configuration.
             (see "swiftclient.client.Connection" for more information)
+        unsecure (bool): If True, disables TLS/SSL to improves
+            transfer performance. But makes connection unsecure.
     """
 
     _RAW_CLASS = SwiftRawIO

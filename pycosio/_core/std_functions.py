@@ -194,7 +194,8 @@ def _text_io_wrapper(stream, mode, encoding, errors, newline):
 
 @contextmanager
 def cos_open(file, mode='r', buffering=-1, encoding=None, errors=None,
-             newline=None, storage=None, storage_parameters=None, **kwargs):
+             newline=None, storage=None, storage_parameters=None, unsecure=None,
+             **kwargs):
     """
     Open file and return a corresponding file object.
 
@@ -228,6 +229,9 @@ def cos_open(file, mode='r', buffering=-1, encoding=None, errors=None,
         storage (str): Storage name.
         storage_parameters (dict): Storage configuration parameters.
             Generally, client configuration and credentials.
+        unsecure (bool): If True, disables TLS/SSL to improves
+            transfer performance. But makes connection unsecure.
+            Default to False.
         kwargs: Other arguments to pass to opened object.
             Note that theses arguments may not be compatible with
             all kind of file and storage.
@@ -252,7 +256,7 @@ def cos_open(file, mode='r', buffering=-1, encoding=None, errors=None,
         with get_instance(
                 name=file, cls='raw' if buffering == 0 else 'buffered',
                 storage=storage, storage_parameters=storage_parameters,
-                mode=mode, **kwargs) as stream:
+                mode=mode, unsecure=unsecure, **kwargs) as stream:
             with _text_io_wrapper(stream, mode=mode, encoding=encoding,
                                   errors=errors, newline=newline) as wrapped:
                 yield wrapped

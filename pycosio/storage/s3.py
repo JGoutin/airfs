@@ -45,6 +45,8 @@ class _S3System(_SystemBase):
             ; 'client': That pass its arguments to
             "boto3.session.Session.client".
             May be optional if running on AWS EC2 instances.
+        unsecure (bool): If True, disables TLS/SSL to improves
+            transfer performance. But makes connection unsecure.
     """
 
     def __getstate__(self):
@@ -83,9 +85,15 @@ class _S3System(_SystemBase):
             boto3.session.Session.client: client
         """
         storage_parameters = self._storage_parameters or dict()
+        client_kwargs = storage_parameters.get('client', dict())
+
+        # Handles unsecure mode
+        if self._unsecure:
+            client_kwargs['use_ssl'] = False
+
         return _boto3.session.Session(
             **storage_parameters.get('session', dict())).client(
-            "s3", **storage_parameters.get('client', dict()))
+            "s3", **client_kwargs)
 
     def _get_prefixes(self):
         """
@@ -150,6 +158,8 @@ class S3RawIO(_ObjectRawIOBase):
             ; 'client': That pass its arguments to
             "boto3.session.Session.client".
             May be optional if running on AWS EC2 instances.
+        unsecure (bool): If True, disables TLS/SSL to improves
+            transfer performance. But makes connection unsecure.
     """
     _SYSTEM_CLASS = _S3System
 
@@ -217,6 +227,8 @@ class S3BufferedIO(_ObjectBufferedIOBase):
             ; 'client': That pass its arguments to
             "boto3.session.Session.client".
             May be optional if running on AWS EC2 instances.
+        unsecure (bool): If True, disables TLS/SSL to improves
+            transfer performance. But makes connection unsecure.
     """
 
     _RAW_CLASS = S3RawIO

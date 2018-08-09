@@ -30,6 +30,8 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
         workers_type (str): Parallel workers type: 'thread' or 'process'.
         storage_parameters (dict): Storage configuration parameters.
             Generally, client configuration and credentials.
+        unsecure (bool): If True, disables TLS/SSL to improves
+            transfer performance. But makes connection unsecure.
     """
     # Raw I/O class
     _RAW_CLASS = ObjectRawIOBase
@@ -46,14 +48,14 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
 
     def __init__(self, name, mode='r', buffer_size=None,
                  max_buffers=0, max_workers=None, workers_type='thread',
-                 storage_parameters=None):
+                 **kwargs):
 
         BufferedIOBase.__init__(self)
         ObjectIOBase.__init__(self, name, mode=mode)
 
         # Instantiate raw IO
         self._raw = self._RAW_CLASS(
-            name, mode=mode, storage_parameters=storage_parameters)
+            name, mode=mode, **kwargs)
         self._raw._is_raw_of_buffered = True
 
         # Link to RAW methods

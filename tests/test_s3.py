@@ -168,8 +168,9 @@ def test_s3_buffered_io():
     class Client:
         """Dummy client"""
 
-        def __init__(self, *_, **__):
+        def __init__(self, *_, **kwargs):
             """Do nothing"""
+            self.kwargs = kwargs
 
         @staticmethod
         def create_multipart_upload(**kwargs):
@@ -244,6 +245,10 @@ def test_s3_buffered_io():
         if version_info[0] > 2:
             for mode in ('r', 'w'):
                 pickle.loads(pickle.dumps(S3BufferedIO(path, mode=mode)))
+
+        # Tests unsecure
+        with S3BufferedIO(path, mode='w', unsecure=True) as s3object:
+            assert s3object._client.kwargs['use_ssl'] is False
 
     # Restore mocked class
     finally:
