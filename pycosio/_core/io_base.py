@@ -48,6 +48,8 @@ class ObjectIOBase(IOBase):
             self.__class__.__module__, self.__class__.__name__,
             self._name, self._mode)
 
+    __repr__ = __str__
+
     @property
     def mode(self):
         """
