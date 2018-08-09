@@ -34,6 +34,9 @@ Possibles futures features
 Known issues
 ------------
 
-* On Python 2, using ``ObjectBufferedIOBase`` with ``workers_type='process'``
-  don't work. This will not be fixed, the *futures* package recommends to not
-  use ``ProcessPoolExecutor`` on Python 2.
+* On Python 2, using ``pycosio.io.ObjectBufferedIOBase`` with
+  ``workers_type='process'`` don't work. This will not be fixed,
+  the *futures* package recommends to not use ``ProcessPoolExecutor`` on
+  Python 2.
+* Using ``pycosio.storage.s3.S3BufferedIO`` with ``workers_type='process'``
+  in write mode may raises ``NoSuchUpload`` boto3 exception.
