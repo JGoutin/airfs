@@ -149,7 +149,6 @@ class HTTPBufferedIO(_ObjectBufferedIOBase):
         mode (str): The mode can be 'r' for reading.
         max_workers (int): The maximum number of threads that can be used to
             execute the given calls.
-        workers_type (str): Parallel workers type: 'thread' or 'process'.
     """
 
     _RAW_CLASS = HTTPRawIO

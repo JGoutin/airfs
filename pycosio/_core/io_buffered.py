@@ -1,11 +1,9 @@
 # coding=utf-8
 """Cloud storage abstract buffered IO class"""
 from abc import abstractmethod
-from concurrent.futures import ProcessPoolExecutor
 from io import BufferedIOBase, UnsupportedOperation
 from math import ceil
 from os import SEEK_SET
-from threading import Lock
 from time import sleep
 
 from pycosio._core.compat import ThreadPoolExecutor
@@ -27,7 +25,6 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
             or awaiting flush in write mode. 0 for no limit.
         max_workers (int): The maximum number of threads that can be used to
             execute the given calls.
-        workers_type (str): Parallel workers type: 'thread' or 'process'.
         storage_parameters (dict): Storage configuration parameters.
             Generally, client configuration and credentials.
         unsecure (bool): If True, disables TLS/SSL to improves
@@ -47,8 +44,7 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
     _FLUSH_WAIT = 0.01
 
     def __init__(self, name, mode='r', buffer_size=None,
-                 max_buffers=0, max_workers=None, workers_type='thread',
-                 **kwargs):
+                 max_buffers=0, max_workers=None, **kwargs):
 
         BufferedIOBase.__init__(self)
         ObjectIOBase.__init__(self, name, mode=mode)
@@ -66,7 +62,6 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
         # Initialize parallel processing
         self._workers_pool = None
         self._workers_count = max_workers
-        self._workers_type = workers_type
 
         # Initializes buffer
         if not buffer_size or buffer_size < 0:
@@ -92,32 +87,6 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
                 self._max_buffers = max_buffers
             else:
                 self._max_buffers = ceil(self._size / self._buffer_size)
-            self._read_queue = dict()
-
-    def __getstate__(self):
-        to_pickle = dict(self.__dict__)
-
-        # Some objects cannot be dumped with pickle
-        del to_pickle['_seek_lock']
-
-        del to_pickle['_workers_pool']
-        if self._writable:
-            del to_pickle['_write_futures']
-        elif self._readable:
-            del to_pickle['_read_queue']
-
-        return to_pickle
-
-    def __setstate__(self, state):
-        self.__dict__.update(state)
-
-        # Objects are recreated on pickle load
-        self._seek_lock = Lock()
-
-        self._workers_pool = None
-        if self._writable:
-            self._write_futures = []
-        elif self._readable:
             self._read_queue = dict()
 
     @property
@@ -446,9 +415,8 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
             concurrent.futures.Executor: Executor pool"""
         # Lazy instantiate workers pool on first call
         if self._workers_pool is None:
-            self._workers_pool = (
-                ThreadPoolExecutor if self._workers_type == 'thread'
-                else ProcessPoolExecutor)(max_workers=self._workers_count)
+            self._workers_pool = ThreadPoolExecutor(
+                max_workers=self._workers_count)
 
         # Get worker pool
         return self._workers_pool

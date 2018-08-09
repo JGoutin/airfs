@@ -172,7 +172,6 @@ class SwiftBufferedIO(_ObjectBufferedIOBase):
         mode (str): The mode can be 'r', 'w' for reading (default) or writing
         max_workers (int): The maximum number of threads that can be used to
             execute the given calls.
-        workers_type (str): Parallel workers type: 'thread' or 'process'.
         storage_parameters (dict): Swift connection keyword arguments.
             This is generally OpenStack credentials and configuration.
             (see "swiftclient.client.Connection" for more information)

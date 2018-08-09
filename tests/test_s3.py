@@ -239,13 +239,6 @@ def test_s3_buffered_io():
             s3object._buffer_size = 10
             s3object.write(BYTE * 95)
 
-        # Tests pickle without error
-        # Don't tests on Python 2, because futures package say to not use
-        # process on it.
-        if version_info[0] > 2:
-            for mode in ('r', 'w'):
-                pickle.loads(pickle.dumps(S3BufferedIO(path, mode=mode)))
-
         # Tests unsecure
         with S3BufferedIO(path, mode='w', unsecure=True) as s3object:
             assert s3object._client.kwargs['use_ssl'] is False

@@ -49,20 +49,6 @@ class _S3System(_SystemBase):
             transfer performance. But makes connection unsecure.
     """
 
-    def __getstate__(self):
-        to_pickle = dict(self.__dict__)
-
-        # Boto3 client cannot be dumped with pickle
-        del to_pickle['_client']
-
-        return to_pickle
-
-    def __setstate__(self, state):
-        self.__dict__.update(state)
-
-        # A new client is recreated on pickle load
-        self._client = None
-
     def get_client_kwargs(self, path):
         """
         Get base keyword arguments for client for a
@@ -220,7 +206,6 @@ class S3BufferedIO(_ObjectBufferedIOBase):
         mode (str): The mode can be 'r', 'w' for reading (default) or writing
         max_workers (int): The maximum number of threads that can be used to
             execute the given calls.
-        workers_type (str): Parallel workers type: 'thread' or 'process'.
         storage_parameters (dict): Boto3 Session keyword arguments.
             This is generally AWS credentials and configuration.
             This dict should contain two sub-dicts:
@@ -258,7 +243,7 @@ class S3BufferedIO(_ObjectBufferedIOBase):
 
         # Upload part with workers
         response = self._workers.submit(
-            self._upload_part, Body=self._get_buffer().tobytes(),
+            self._client.upload_part, Body=self._get_buffer().tobytes(),
             PartNumber=self._seek, **self._upload_args)
 
         # Save part information
@@ -277,12 +262,3 @@ class S3BufferedIO(_ObjectBufferedIOBase):
         self._client.complete_multipart_upload(
             MultipartUpload={'Parts': self._write_futures},
             UploadId=self._upload_args['UploadId'], **self._client_kwargs)
-
-    def _upload_part(self, **kwargs):
-        """
-        "upload_part" that can be submitted to "ProcessPoolExecutor".
-
-        Args:
-            kwargs: see boto3 "upload_part"
-        """
-        return self._client.upload_part(**kwargs)

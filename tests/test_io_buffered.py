@@ -218,12 +218,6 @@ def test_object_buffered_base_io():
     with pytest.raises(io.UnsupportedOperation):
         object_io.write(BYTE)
 
-    # Test workers type
-    object_io = DummyBufferedIO(name, workers_type='thread')
-    assert isinstance(object_io._workers, ThreadPoolExecutor)
-    object_io = DummyBufferedIO(name, workers_type='process')
-    assert isinstance(object_io._workers, ProcessPoolExecutor)
-
     # Test buffer size
     object_io = DummyBufferedIO(name, mode='w')
     assert object_io._buffer_size == DummyBufferedIO.DEFAULT_BUFFER_SIZE
