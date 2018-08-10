@@ -198,7 +198,7 @@ class SwiftBufferedIO(_ObjectBufferedIOBase):
         name = self._segment_name % self._seek
         response = self._workers.submit(
             self._client.put_object, self._container, name,
-            self._get_buffer().tobytes())
+            self._get_buffer())
 
         # Save segment information in manifest
         self._write_futures.append(dict(
