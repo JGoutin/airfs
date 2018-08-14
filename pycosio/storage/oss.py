@@ -42,10 +42,10 @@ class _OSSSystem(_SystemBase):
             transfer performance. But makes connection unsecure.
     """
 
-    def __init__(self, *args, **kwargs):
-        _SystemBase.__init__(self, *args, **kwargs)
-        self._endpoint = self._storage_parameters.get('endpoint')
-
+    def __init__(self, storage_parameters=None, *args, **kwargs):
+        self._endpoint = storage_parameters.pop('endpoint')
+        _SystemBase.__init__(self, storage_parameters=storage_parameters,
+                             *args, **kwargs)
         if self._unsecure:
             self._endpoint.replace('https://', 'http://')
 
@@ -140,11 +140,13 @@ class OSSRawIO(_ObjectRawIOBase):
         Returns:
             bytes: number of bytes read
         """
-        # Get object part from S3
+        # Get object bytes range
         try:
             with _handle_oss_error():
                 response = self._bucket.get_object(key=self._key, headers=dict(
-                    Range=self._http_range(start, end)))
+                    Range=self._http_range(
+                        # Returns full file if end > size
+                        start, end if end <= self._size else self._size)))
 
         # Check for end of file
         except _OssError as exception:
@@ -204,13 +206,14 @@ class OSSBufferedIO(_ObjectBufferedIOBase):
         """
         # Initialize multipart upload
         if self._upload_id is None:
-            self._upload_id = self._bucket.init_multipart_upload(
-                self._key).upload_id
+            with _handle_oss_error():
+                self._upload_id = self._bucket.init_multipart_upload(
+                    self._key).upload_id
 
         # Upload part with workers
         response = self._workers.submit(
             self._bucket.upload_part, key=self._key, upload_id=self._upload_id,
-            part_number=self._seek, data=self._get_buffer())
+            part_number=self._seek, data=self._get_buffer().tobytes())
 
         # Save part information
         self._write_futures.append(
