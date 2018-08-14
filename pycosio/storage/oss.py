@@ -43,11 +43,16 @@ class _OSSSystem(_SystemBase):
     """
 
     def __init__(self, storage_parameters=None, *args, **kwargs):
-        self._endpoint = storage_parameters.pop('endpoint')
+        if storage_parameters is not None:
+            storage_parameters = storage_parameters.copy()
+            self._endpoint = storage_parameters.pop('endpoint')
+        else:
+            self._endpoint = None
+
         _SystemBase.__init__(self, storage_parameters=storage_parameters,
                              *args, **kwargs)
         if self._unsecure:
-            self._endpoint.replace('https://', 'http://')
+            self._endpoint = self._endpoint.replace('https://', 'http://')
 
     def get_client_kwargs(self, path):
         """

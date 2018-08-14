@@ -2,9 +2,7 @@
 """Test pycosio.s3"""
 from datetime import datetime
 import io
-import pickle
 import time
-from sys import version_info
 
 from tests.utilities import (BYTE, SIZE, parse_range, check_head_methods,
                              check_raw_read_methods)
