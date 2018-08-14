@@ -8,8 +8,8 @@ from pycosio._core.io_raw import ObjectRawIOBase
 from pycosio._core.io_buffered import ObjectBufferedIOBase
 from pycosio._core.io_system import SystemBase
 
-STORAGE = OrderedDict()
-_STORAGE_LOCK = RLock()
+MOUNTED = OrderedDict()
+_MOUNT_LOCK = RLock()
 _BASE_CLASSES = {
     'raw': ObjectRawIOBase, 'buffered': ObjectBufferedIOBase,
     'system': SystemBase}
@@ -77,10 +77,10 @@ def get_instance(name, cls='system', storage=None, storage_parameters=None,
         unsecure=unsecure, storage_parameters=storage_parameters)
 
     # Gets storage information
-    with _STORAGE_LOCK:
-        for prefix in STORAGE:
+    with _MOUNT_LOCK:
+        for prefix in MOUNTED:
             if name.startswith(prefix):
-                info = STORAGE[prefix]
+                info = MOUNTED[prefix]
 
                 # Get stored storage parameters
                 stored_parameters = info.get('system_parameters') or dict()
@@ -97,9 +97,9 @@ def get_instance(name, cls='system', storage=None, storage_parameters=None,
                         if key not in system_parameters})
                 break
 
-        # If not found, tries to register before getting
+        # If not found, tries to mount before getting
         else:
-            info = register(storage=storage, name=name, **system_parameters)
+            info = mount(storage=storage, name=name, **system_parameters)
             same_parameters = True
 
     # Returns system class
@@ -119,10 +119,10 @@ def get_instance(name, cls='system', storage=None, storage_parameters=None,
     return info[cls](name=name, *args, **kwargs)
 
 
-def register(storage=None, name='', storage_parameters=None,
-             unsecure=None, extra_url_prefix=None):
+def mount(storage=None, name='', storage_parameters=None,
+          unsecure=None, extra_url_prefix=None):
     """
-    Register a new storage.
+    Mount a new storage.
 
     Args:
         storage (str): Storage name.
@@ -179,15 +179,15 @@ def register(storage=None, name='', storage_parameters=None,
         prefixes = list(prefixes)
         prefixes.append(extra_url_prefix)
 
-    # Registers
-    with _STORAGE_LOCK:
+    # Mounts
+    with _MOUNT_LOCK:
         for prefix in prefixes:
-            STORAGE[prefix] = storage_info
+            MOUNTED[prefix] = storage_info
 
         # Reorder to have correct lookup
-        items = OrderedDict((key, STORAGE[key])
-                            for key in reversed(sorted(STORAGE)))
-        STORAGE.clear()
-        STORAGE.update(items)
+        items = OrderedDict((key, MOUNTED[key])
+                            for key in reversed(sorted(MOUNTED)))
+        MOUNTED.clear()
+        MOUNTED.update(items)
 
     return storage_info

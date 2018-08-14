@@ -44,7 +44,7 @@ Pycosio natively recognizes the URL/path with the following formats:
 
 * Local path, or URL with the``file`` scheme:
   ``file:///home/user/my_file`` or ``/home/user/my_file``.
-* Registered cloud storage domains (See below for registration):
+* Configured cloud storage domains (See below for storage configuration):
   ``https://objects.my_cloud.com/v1/12345678912345/my_container/my_object``.
 * Cloud storage URL with specific schemes:
   ``s3://my_bucket/my_object``.
@@ -72,25 +72,27 @@ Examples of functions:
     pycosio.getsize('https://my_cloud.com/object')
     >>> 956
 
-Cloud storage configuration and registration
---------------------------------------------
+Cloud storage configuration
+---------------------------
+
+Like with file systems, Cloud storage need to be *mounted* to be used.
 
 Some storage requires configuration before use (such as user access keys).
 For the required parameter detail, see the targeted storage class or the
 targeted storage documentation.
 
-Registration is automatic for storage that does not require configuration.
+Storage that does not require configuration are automatically mounted.
 
 All storage parameters must be defined in a ``storage_parameters`` dictionary.
-This dictionary must be transmitted either to the ``pycosio.register`` function
+This dictionary must be transmitted either to the ``pycosio.mount`` function
 or when a file is opened using the ``pycosio.open`` function.
 
-Once registered, all functions can be used without the needs to pass
+Once mounted, all functions can be used without the needs to pass
 the ``storage_parameters`` dictionary.
 
-The registration of ``my_cloud`` storage can be performed as follows:
+``my_cloud`` storage is mounted as follows:
 
-**With ``register`` function:**
+**With ``mount`` function:**
 
 .. code-block:: python
 
@@ -100,8 +102,8 @@ The registration of ``my_cloud`` storage can be performed as follows:
     storage_parameters = dict(
         client_id='my_client_id', secret_id='my_secret_id')
 
-    # Register "my_cloud" storage with "register" function
-    pycosio.register(
+    # Mount "my_cloud" storage with "mount" function
+    pycosio.mount(
         storage='my_cloud', storage_parameters=storage_parameters)
 
     # _Storage files can now be used transparently
@@ -117,13 +119,13 @@ The registration of ``my_cloud`` storage can be performed as follows:
     storage_parameters = dict(
         client_id='my_client_id', secret_id='my_secret_id')
 
-    # The storage is registered on first use by passing "storage_parameters"
+    # The storage is mounted on first use by passing "storage_parameters"
     with pycosio.open('https://my_cloud.com/my_object', 'rt',
                       storage='my_cloud',
                       storage_parameters=storage_parameters) as file:
         file.read()
 
-    # Next calls uses registered storage transparently
+    # Next calls uses mounted storage transparently
     with pycosio.open(
             'https://my_cloud.com/my_other_object', 'rt') as file:
         file.read()

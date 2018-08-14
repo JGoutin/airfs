@@ -15,14 +15,14 @@ def test_is_storage():
     assert not is_storage('file://path')
 
 
-def test_register():
-    """Tests pycosio._core.storage_manager.register and get_instance"""
-    from pycosio._core.storage_manager import register, STORAGE, get_instance
+def test_mount():
+    """Tests pycosio._core.storage_manager.mount and get_instance"""
+    from pycosio._core.storage_manager import mount, MOUNTED, get_instance
     from pycosio.storage.http import (
         HTTPRawIO, _HTTPSystem, HTTPBufferedIO)
     import requests
 
-    # Get HTTP as storage to register
+    # Get HTTP as storage to mount
     prefixes = _HTTPSystem().prefixes
     storage_parameters = {'arg1': 1, 'arg2': 2}
     storage_parameters_2 = {'arg1': 1, 'arg2': 3}
@@ -54,9 +54,9 @@ def test_register():
     requests_session = requests.Session
     requests.Session = Session
 
-    # Tests register:
+    # Tests mount:
     try:
-        for register_kwargs in (
+        for mount_kwargs in (
                 # With storage
                 dict(storage='http',
                      storage_parameters=storage_parameters),
@@ -69,21 +69,21 @@ def test_register():
                 # Lazy registration
                 None):
 
-            # Unregister if already registered
+            # Unmount if already mounted
             for prefix in prefixes:
                 try:
-                    del STORAGE[prefix]
+                    del MOUNTED[prefix]
                 except KeyError:
                     continue
 
-            # Add dummy storage to registered
-            STORAGE['aaaa'] = {}
-            STORAGE['zzzz'] = {}
+            # Add dummy storage to mounted
+            MOUNTED['aaaa'] = {}
+            MOUNTED['zzzz'] = {}
 
-            # Register
-            if register_kwargs:
-                # Using register function
-                register(**register_kwargs)
+            # mount
+            if mount_kwargs:
+                # Using mount function
+                mount(**mount_kwargs)
             else:
                 # Using lazy registration
                 get_instance(name=http,
@@ -93,51 +93,51 @@ def test_register():
             for prefix in prefixes:
                 # Test infos
                 for key, value in expected_info.items():
-                    assert STORAGE[prefix][key] == value
+                    assert MOUNTED[prefix][key] == value
 
                 # Tests cached system
                 assert isinstance(
-                    STORAGE[prefix]['system_cached'], _HTTPSystem)
+                    MOUNTED[prefix]['system_cached'], _HTTPSystem)
 
                 # Tests get_instance cached system
                 assert get_instance(
-                    name=prefix) is STORAGE[prefix]['system_cached']
+                    name=prefix) is MOUNTED[prefix]['system_cached']
 
                 assert get_instance(
                     storage_parameters=storage_parameters,
-                    name=prefix) is STORAGE[prefix]['system_cached']
+                    name=prefix) is MOUNTED[prefix]['system_cached']
 
                 assert get_instance(
                     storage_parameters=storage_parameters_2,
-                    name=prefix) is not STORAGE[prefix]['system_cached']
+                    name=prefix) is not MOUNTED[prefix]['system_cached']
 
                 # Test get_instance other classes with cached system
                 raw = get_instance(name=https, cls='raw')
                 assert isinstance(raw, HTTPRawIO)
-                assert raw._system is STORAGE[prefix]['system_cached']
+                assert raw._system is MOUNTED[prefix]['system_cached']
 
                 buffered = get_instance(name=http, cls='buffered')
                 assert isinstance(buffered, HTTPBufferedIO)
-                assert buffered._raw._system is STORAGE[prefix]['system_cached']
+                assert buffered._raw._system is MOUNTED[prefix]['system_cached']
 
-            # Test register order
-            assert tuple(STORAGE) == tuple(reversed(sorted(STORAGE)))
+            # Test mount order
+            assert tuple(MOUNTED) == tuple(reversed(sorted(MOUNTED)))
 
             # Cleanup
-            del STORAGE['aaaa']
-            del STORAGE['zzzz']
+            del MOUNTED['aaaa']
+            del MOUNTED['zzzz']
             for prefix in prefixes:
-                del STORAGE[prefix]
+                del MOUNTED[prefix]
 
         # Tests extra prefix
         extra = 'extra_http://'
-        register(storage='http', extra_url_prefix=extra,
-                 storage_parameters=storage_parameters),
-        assert STORAGE[extra] == STORAGE[prefixes[0]]
+        mount(storage='http', extra_url_prefix=extra,
+              storage_parameters=storage_parameters),
+        assert MOUNTED[extra] == MOUNTED[prefixes[0]]
 
         for prefix in prefixes:
-            del STORAGE[prefix]
-        del STORAGE[extra]
+            del MOUNTED[prefix]
+        del MOUNTED[extra]
 
     # Restore mocked functions
     finally:

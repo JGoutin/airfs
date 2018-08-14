@@ -61,7 +61,7 @@ def test_equivalent_to():
 
 def test_equivalent_functions():
     """Tests functions using pycosio._core.std_functions._equivalent_to"""
-    from pycosio._core.storage_manager import STORAGE
+    from pycosio._core.storage_manager import MOUNTED
     import pycosio._core.std_functions as std
 
     # Mock system
@@ -80,7 +80,7 @@ def test_equivalent_functions():
             return path.split('://')[1]
 
     system = System()
-    STORAGE[prefix] = dict(system_cached=system)
+    MOUNTED[prefix] = dict(system_cached=system)
 
     # Tests
     try:
@@ -101,13 +101,13 @@ def test_equivalent_functions():
 
     # Clean up
     finally:
-        del STORAGE[prefix]
+        del MOUNTED[prefix]
 
 
 def test_cos_open(tmpdir):
     """Tests  pycosio._core.std_functions.cos_open and copy"""
     from pycosio._core.std_functions import cos_open, copy
-    from pycosio._core.storage_manager import STORAGE
+    from pycosio._core.storage_manager import MOUNTED
     from io import TextIOWrapper
 
     prefix = 'dummy_read://'
@@ -127,7 +127,7 @@ def test_cos_open(tmpdir):
     class DummyBufferedIO(DummyIO):
         """Dummy buffered IO"""
 
-    STORAGE[prefix] = dict(
+    MOUNTED[prefix] = dict(
         raw=DummyRawIO, buffered=DummyBufferedIO,
         system_cached=None, storage_parameters={})
 
@@ -202,4 +202,4 @@ def test_cos_open(tmpdir):
 
     # Clean up
     finally:
-        del STORAGE[prefix]
+        del MOUNTED[prefix]

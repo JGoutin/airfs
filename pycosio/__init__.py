@@ -7,14 +7,14 @@ __version__ = '1.0.0'
 # Shadowing "open" built-in name is done to provides "pycosio.open" function
 from pycosio._core.std_functions import (
     cos_open as open, copy, getmtime, getsize, isfile, relpath)
-from pycosio._core.storage_manager import register
+from pycosio._core.storage_manager import mount
 
 __all__ = [
     # Standard functions
     'open', 'copy', 'getmtime', 'getsize', 'relpath', 'isfile',
 
     # Utilities
-    'register']
+    'mount']
 
 # Makes cleaner namespace
 for _name in __all__:
