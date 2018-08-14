@@ -17,6 +17,7 @@ You can also install these optional extras:
 
 * ``all``: Install all extras.
 * ``http``: HTTP/HTTPS files support.
+* ``oss``: Alibaba Cloud OSS support.
 * ``s3``: AWS S3 support.
 * ``swift``: OpenStack Swift support.
 

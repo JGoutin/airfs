@@ -44,6 +44,7 @@ PACKAGE_INFO = dict(
     extras_require={
         # Storage specific requirements
         'http': ['requests'],
+        'oss': ['oss2'],
         's3': ['boto3'],
         'swift': ['python-swiftclient[keystone]']},
     setup_requires=['setuptools'],

@@ -2,6 +2,7 @@
 """Amazon Web Services S3"""
 
 from contextlib import contextmanager as _contextmanager
+
 import boto3 as _boto3
 from botocore.exceptions import ClientError as _ClientError
 
@@ -192,7 +193,6 @@ class S3RawIO(_ObjectRawIOBase):
         """
         Flush the write buffers of the stream if applicable.
         """
-        # Sends to S3 the entire file at once
         with _handle_client_error():
             self._client.put_object(Body=self._get_buffer().tobytes(),
                                     **self._client_kwargs)

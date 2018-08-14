@@ -17,6 +17,7 @@ Provides cloud objects abstract classes with following interfaces:
 
 Adds support for following cloud storage:
 
+* Alibaba Cloud OSS
 * AWS S3
 * OpenStack Swift
 

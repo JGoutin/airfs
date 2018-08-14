@@ -9,5 +9,6 @@ pycosio.storage
    :maxdepth: 2
 
    api_storage_http
+   api_storage_oss
    api_storage_s3
    api_storage_swift
