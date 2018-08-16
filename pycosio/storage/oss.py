@@ -88,8 +88,8 @@ class _OSSSystem(_SystemBase):
         """
         return 'oss://', _re.compile(_re.sub(
             "(https?://)(oss-.+\.aliyuncs\.com)",
-            r"\1[\\w-]*.\2", self._endpoint, count=1).
-                replace('.', r'\.').replace(r'\.', '.', 1))
+            r"\1[\\w-]*.\2", self._endpoint.rstrip('/'),
+            count=1).replace('.', r'\.'))
 
     def _get_bucket(self, client_kwargs):
         """

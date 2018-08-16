@@ -82,7 +82,7 @@ class _SwiftSystem(_SystemBase):
         Returns:
             tuple of str or re.Pattern: URL prefixes
         """
-        return self.client.get_auth()[0] + '/',
+        return self.client.get_auth()[0],
 
     def _head(self, client_kwargs):
         """
