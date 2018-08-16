@@ -32,11 +32,7 @@ if _py[0] == 2:
     permission_error = OSError
     file_exits_error = OSError
 
-    # Mission re.Pattern
-    Pattern = type(_re.compile(''))
-
 else:
-    # Current Python
     def to_timestamp(dt):
         """Return POSIX timestamp as float"""
         return dt.timestamp()
@@ -47,16 +43,12 @@ else:
     file_not_found_error = FileNotFoundError
     permission_error = PermissionError
     file_exits_error = FileExistsError
-    Pattern = _re.Pattern
 
 
-# Python 3.4 compatibility
-if _py[0] == 3 and _py[1] == 4:
+# Python <= 3.4 compatibility
+if _py[0] == 3 and _py[1] <= 4:
 
     # "max_workers" as keyword argument for ThreadPoolExecutor
-    from os import cpu_count as _cpu_count
-
-
     class ThreadPoolExecutor(_futures.ThreadPoolExecutor):
         def __init__(self, max_workers=None, **kwargs):
             """Initializes a new ThreadPoolExecutor instance.
@@ -68,9 +60,16 @@ if _py[0] == 3 and _py[1] == 4:
             if max_workers is None:
                 # Use this number because ThreadPoolExecutor is often
                 # used to overlap I/O instead of CPU work.
-                max_workers = (_cpu_count() or 1) * 5
+                max_workers = (_os.cpu_count() or 1) * 5
             _futures.ThreadPoolExecutor.__init__(self, max_workers, **kwargs)
 
 else:
-    # Current Python
     ThreadPoolExecutor = _futures.ThreadPoolExecutor
+
+# Python <= 3.6 compatibility
+if _py[0] == 3 and _py[1] <= 6:
+    # Missing re.Pattern
+    Pattern = type(_re.compile(''))
+
+else:
+    Pattern = _re.Pattern
