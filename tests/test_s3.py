@@ -108,6 +108,7 @@ def test_s3_raw_io():
     class Session:
         """Dummy Session"""
         client = Client
+        region_name = ''
 
         def __init__(self, *_, **__):
             """Do nothing"""
@@ -221,6 +222,7 @@ def test_s3_buffered_io():
     class Session:
         """Dummy Session"""
         client = Client
+        region_name = ''
 
         def __init__(self, *_, **__):
             """Do nothing"""

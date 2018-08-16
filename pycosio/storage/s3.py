@@ -2,6 +2,7 @@
 """Amazon Web Services S3"""
 
 from contextlib import contextmanager as _contextmanager
+import re as _re
 
 import boto3 as _boto3
 from botocore.exceptions import ClientError as _ClientError
@@ -50,6 +51,10 @@ class _S3System(_SystemBase):
             transfer performance. But makes connection unsecure.
     """
 
+    def __init__(self, *args, **kwargs):
+        self._session = None
+        _SystemBase.__init__(self, *args, **kwargs)
+
     def get_client_kwargs(self, path):
         """
         Get base keyword arguments for client for a
@@ -64,6 +69,18 @@ class _S3System(_SystemBase):
         bucket_name, key = self.relpath(path).split('/', 1)
         return dict(Bucket=bucket_name, Key=key)
 
+    def _get_session(self):
+        """
+        S3 Boto3 Session.
+
+        Returns:
+            boto3.session.Session: session
+        """
+        if self._session is None:
+            self._session = _boto3.session.Session(
+                **self._storage_parameters.get('session', dict()))
+        return self._session
+
     def _get_client(self):
         """
         S3 Boto3 client
@@ -71,17 +88,14 @@ class _S3System(_SystemBase):
         Returns:
             boto3.session.Session.client: client
         """
-        storage_parameters = self._storage_parameters or dict()
-        client_kwargs = storage_parameters.get('client', dict())
+        client_kwargs = self._storage_parameters.get('client', dict())
 
         # Handles unsecure mode
         if self._unsecure:
             client_kwargs = client_kwargs.copy()
             client_kwargs['use_ssl'] = False
 
-        return _boto3.session.Session(
-            **storage_parameters.get('session', dict())).client(
-            "s3", **client_kwargs)
+        return self._get_session().client("s3", **client_kwargs)
 
     def _get_prefixes(self):
         """
@@ -90,7 +104,18 @@ class _S3System(_SystemBase):
         Returns:
             tuple of str or re.Pattern: URL prefixes
         """
-        return 's3://',
+        region = self._get_session().region_name or '[\w-]+'
+        return (
+                # "s3" URL scheme
+                's3://',
+
+                # Virtual-hosted–style URL
+                _re.compile('http://[\w.-]+\.s3\.amazonaws\.com'),
+                _re.compile('http://[\w.-]+\.s3-%s\.amazonaws\.com' % region),
+
+                # Path-hosted–style URL
+                _re.compile('http://s3\.amazonaws\.com'),
+                _re.compile('http://s3-%s\.amazonaws\.com' % region))
 
     @staticmethod
     def _getmtime_from_header(header):
