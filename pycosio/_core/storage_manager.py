@@ -167,6 +167,8 @@ def mount(storage=None, name='', storage_parameters=None,
     if storage is None:
         if '://' in name:
             storage = name.split('://', 1)[0].lower()
+            # Alias HTTPS to HTTP
+            storage = 'http' if storage == 'https' else storage
 
     # Saves get_storage_parameters
     system_parameters = _system_parameters(
