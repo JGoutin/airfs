@@ -45,8 +45,8 @@ else:
     file_exits_error = FileExistsError
 
 
-# Python <= 3.4 compatibility
-if _py[0] == 3 and _py[1] <= 4:
+# Python 3.4 compatibility
+if _py[0] == 3 and _py[1] == 4:
 
     # "max_workers" as keyword argument for ThreadPoolExecutor
     class ThreadPoolExecutor(_futures.ThreadPoolExecutor):
@@ -67,7 +67,7 @@ else:
     ThreadPoolExecutor = _futures.ThreadPoolExecutor
 
 # Python <= 3.6 compatibility
-if _py[0] == 3 and _py[1] <= 6:
+if _py[0] < 3 or (_py[0] == 3 and _py[1] <= 6):
     # Missing re.Pattern
     Pattern = type(_re.compile(''))
 
