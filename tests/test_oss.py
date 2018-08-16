@@ -107,9 +107,11 @@ def test_oss_raw_io():
 
     oss2_auth = oss2.Auth
     oss2_stsauth = oss2.StsAuth
+    oss2_anonymousauth = oss2.AnonymousAuth
     oss2_bucket = oss2.Bucket
     oss2.Auth = Auth
     oss2.StsAuth = Auth
+    oss2.AnonymousAuth = Auth
     oss2.Bucket = Bucket
 
     # Tests
@@ -157,6 +159,7 @@ def test_oss_raw_io():
     finally:
         oss2.Auth = oss2_auth
         oss2.StsAuth = oss2_stsauth
+        oss2.AnonymousAuth = oss2_anonymousauth
         oss2.Bucket = oss2_bucket
 
 
@@ -228,9 +231,11 @@ def test_oss_buffered_io():
 
     oss2_auth = oss2.Auth
     oss2_stsauth = oss2.StsAuth
+    oss2_anonymousauth = oss2.AnonymousAuth
     oss2_bucket = oss2.Bucket
     oss2.Auth = Auth
     oss2.StsAuth = Auth
+    oss2.AnonymousAuth = Auth
     oss2.Bucket = Bucket
 
     # Tests
@@ -245,4 +250,5 @@ def test_oss_buffered_io():
     finally:
         oss2.Auth = oss2_auth
         oss2.StsAuth = oss2_stsauth
+        oss2.AnonymousAuth = oss2_anonymousauth
         oss2.Bucket = oss2_bucket

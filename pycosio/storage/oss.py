@@ -44,10 +44,10 @@ class _OSSSystem(_SystemBase):
     """
 
     def __init__(self, storage_parameters=None, *args, **kwargs):
-        if storage_parameters is not None:
+        try:
             storage_parameters = storage_parameters.copy()
             self._endpoint = storage_parameters.pop('endpoint')
-        else:
+        except (AttributeError, KeyError):
             raise ValueError('"endpoint" is required as "storage_parameters"')
 
         _SystemBase.__init__(self, storage_parameters=storage_parameters,
@@ -77,7 +77,8 @@ class _OSSSystem(_SystemBase):
             oss2.Auth or oss2.StsAuth: client
         """
         return (_oss.StsAuth if 'security_token' in self._storage_parameters
-                else _oss.Auth)(**self._storage_parameters)
+                else _oss.Auth if self._storage_parameters
+                else _oss.AnonymousAuth)(**self._storage_parameters)
 
     def _get_prefixes(self):
         """
