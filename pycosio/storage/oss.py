@@ -1,6 +1,7 @@
 # coding=utf-8
 """Alibaba cloud OSS"""
 from contextlib import contextmanager as _contextmanager
+import re as _re
 
 import oss2 as _oss
 from oss2.models import PartInfo as _PartInfo
@@ -47,7 +48,7 @@ class _OSSSystem(_SystemBase):
             storage_parameters = storage_parameters.copy()
             self._endpoint = storage_parameters.pop('endpoint')
         else:
-            self._endpoint = None
+            raise ValueError('"endpoint" is required as "storage_parameters"')
 
         _SystemBase.__init__(self, storage_parameters=storage_parameters,
                              *args, **kwargs)
@@ -83,9 +84,12 @@ class _OSSSystem(_SystemBase):
         Return URL prefixes for this storage.
 
         Returns:
-            tuple of str: URL prefixes
+            tuple of str or re.Pattern: URL prefixes
         """
-        return 'oss://', self._endpoint,
+        return 'oss://', _re.compile(_re.sub(
+            "(https?://)(oss-.+\.aliyuncs\.com)",
+            r"\1[\\w-]*.\2", self._endpoint, count=1).
+                replace('.', r'\.').replace(r'\.', '.', 1))
 
     def _get_bucket(self, client_kwargs):
         """

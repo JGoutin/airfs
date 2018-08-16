@@ -88,7 +88,7 @@ class _S3System(_SystemBase):
         Return URL prefixes for this storage.
 
         Returns:
-            tuple of str: URL prefixes
+            tuple of str or re.Pattern: URL prefixes
         """
         return 's3://',
 

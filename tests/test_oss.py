@@ -149,6 +149,10 @@ def test_oss_raw_io():
             storage_parameters=storage_kwargs,
             unsecure=True)._endpoint == oss_endpoint.replace('https', 'http')
 
+        # Tests no endpoint
+        with pytest.raises(ValueError):
+            ossobject = OSSRawIO(url)
+
     # Restore mocked class
     finally:
         oss2.Auth = oss2_auth
@@ -165,6 +169,7 @@ def test_oss_buffered_io():
     bucket = 'bucket'
     key_value = 'key'
     path = '%s/%s' % (bucket, key_value)
+    storage_kwargs = dict(endpoint='https://oss-nowhere.aliyuncs.com')
 
     class Response:
         """Dummy response"""
@@ -231,7 +236,8 @@ def test_oss_buffered_io():
     # Tests
     try:
         # Write and flush using multipart upload
-        with OSSBufferedIO(path, mode='w') as ossobject:
+        with OSSBufferedIO(path, mode='w',
+                           storage_parameters=storage_kwargs) as ossobject:
             ossobject._buffer_size = 10
             ossobject.write(BYTE * 95)
 

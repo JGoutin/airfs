@@ -1,5 +1,6 @@
 # coding=utf-8
 """Test pycosio._core.storage_manager"""
+import re
 
 
 def test_is_storage():
@@ -17,7 +18,8 @@ def test_is_storage():
 
 def test_mount():
     """Tests pycosio._core.storage_manager.mount and get_instance"""
-    from pycosio._core.storage_manager import mount, MOUNTED, get_instance
+    from pycosio._core.storage_manager import (
+        mount, MOUNTED, get_instance, _compare_prefix)
     from pycosio.storage.http import (
         HTTPRawIO, _HTTPSystem, HTTPBufferedIO)
     import requests
@@ -79,6 +81,7 @@ def test_mount():
             # Add dummy storage to mounted
             MOUNTED['aaaa'] = {}
             MOUNTED['zzzz'] = {}
+            MOUNTED[re.compile('bbbbbb')] = {}
 
             # mount
             if mount_kwargs:
@@ -121,7 +124,8 @@ def test_mount():
                 assert buffered._raw._system is MOUNTED[prefix]['system_cached']
 
             # Test mount order
-            assert tuple(MOUNTED) == tuple(reversed(sorted(MOUNTED)))
+            assert tuple(MOUNTED) == tuple(reversed(sorted(
+                MOUNTED, key=_compare_prefix)))
 
             # Cleanup
             del MOUNTED['aaaa']

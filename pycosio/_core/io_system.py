@@ -4,7 +4,7 @@ from abc import abstractmethod
 from email.utils import parsedate
 from time import mktime
 
-from pycosio._core.compat import ABC
+from pycosio._core.compat import ABC, Pattern
 from pycosio._core.exceptions import ObjectNotFoundError
 
 
@@ -107,7 +107,7 @@ class SystemBase(ABC):
         Return URL prefixes for this storage.
 
         Returns:
-            tuple of str: URL prefixes
+            tuple of str or re.Pattern: URL prefixes
         """
 
     def getsize(self, path=None, client_kwargs=None, header=None):
@@ -223,7 +223,11 @@ class SystemBase(ABC):
         """
         for prefix in self.prefixes:
             try:
-                return path.split(prefix)[1]
+                if isinstance(prefix, Pattern):
+                    relative = prefix.split(path, maxsplit=1)[1]
+                else:
+                    relative = path.split(prefix, 1)[1]
+                return relative.strip(r'\/')
             except IndexError:
                 continue
         return path

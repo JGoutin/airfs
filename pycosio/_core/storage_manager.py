@@ -7,6 +7,7 @@ from threading import RLock
 from pycosio._core.io_raw import ObjectRawIOBase
 from pycosio._core.io_buffered import ObjectBufferedIOBase
 from pycosio._core.io_system import SystemBase
+from pycosio._core.compat import Pattern
 
 MOUNTED = OrderedDict()
 _MOUNT_LOCK = RLock()
@@ -53,6 +54,22 @@ def _system_parameters(**kwargs):
             if (value is not None or value == {})}
 
 
+def _compare_prefix(prefix):
+    """
+    Allow prefix comparison.
+
+    Args:
+        prefix (str or re.Pattern): Prefix.
+
+    Returns:
+        str: Comparable prefix string.
+    """
+    try:
+        return prefix.pattern
+    except AttributeError:
+        return prefix
+
+
 def get_instance(name, cls='system', storage=None, storage_parameters=None,
                  unsecure=None, *args, **kwargs):
     """
@@ -79,7 +96,9 @@ def get_instance(name, cls='system', storage=None, storage_parameters=None,
     # Gets storage information
     with _MOUNT_LOCK:
         for prefix in MOUNTED:
-            if name.startswith(prefix):
+            if ((isinstance(prefix, Pattern) and prefix.match(name)) or
+                    (not isinstance(prefix, Pattern) and
+                     name.startswith(prefix))):
                 info = MOUNTED[prefix]
 
                 # Get stored storage parameters
@@ -185,8 +204,9 @@ def mount(storage=None, name='', storage_parameters=None,
             MOUNTED[prefix] = storage_info
 
         # Reorder to have correct lookup
-        items = OrderedDict((key, MOUNTED[key])
-                            for key in reversed(sorted(MOUNTED)))
+        items = OrderedDict(
+            (key, MOUNTED[key]) for key in reversed(
+                sorted(MOUNTED, key=_compare_prefix)))
         MOUNTED.clear()
         MOUNTED.update(items)
 

@@ -1,6 +1,7 @@
 # coding=utf-8
 """Test pycosio._core.io_system"""
 import time
+import re
 from wsgiref.handlers import format_date_time
 
 from tests.utilities import SIZE, check_head_methods
@@ -15,7 +16,7 @@ def test_system_base():
     m_time = time.time()
     dummy_client_kwargs = {'arg1': 1, 'arg2': 2}
     client = 'client'
-    prefixes = 'prefix://', '://',
+    prefixes = re.compile('prefix2://'), 'prefix://', '://',
     storage_parameters = {'arg3': 3, 'arg4': 4}
     raise_not_exists_exception = False
 

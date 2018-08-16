@@ -2,6 +2,7 @@
 """Python old versions compatibility"""
 import abc as _abc
 import concurrent.futures as _futures
+import re as _re
 import os as _os
 from sys import version_info as _py
 
@@ -31,6 +32,9 @@ if _py[0] == 2:
     permission_error = OSError
     file_exits_error = OSError
 
+    # Mission re.Pattern
+    Pattern = type(_re.compile(''))
+
 else:
     # Current Python
     def to_timestamp(dt):
@@ -43,6 +47,8 @@ else:
     file_not_found_error = FileNotFoundError
     permission_error = PermissionError
     file_exits_error = FileExistsError
+    Pattern = _re.Pattern
+
 
 # Python 3.4 compatibility
 if _py[0] == 3 and _py[1] == 4:

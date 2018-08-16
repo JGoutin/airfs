@@ -80,7 +80,7 @@ class _SwiftSystem(_SystemBase):
         Return URL prefixes for this storage.
 
         Returns:
-            tuple of str: URL prefixes
+            tuple of str or re.Pattern: URL prefixes
         """
         return self.client.get_auth()[0] + '/',
 

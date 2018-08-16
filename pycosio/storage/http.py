@@ -64,7 +64,7 @@ class _HTTPSystem(_SystemBase):
         Return URL prefixes for this storage.
 
         Returns:
-            tuple of str: URL prefixes
+            tuple of str or re.Pattern: URL prefixes
         """
         return 'http://', 'https://'
 
