@@ -37,6 +37,9 @@ class _HTTPSystem(_SystemBase):
     HTTP system.
     """
 
+    # Request Timeout (seconds)
+    _TIMEOUT = 5
+
     def get_client_kwargs(self, path):
         """
         Get base keyword arguments for client for a
@@ -79,7 +82,8 @@ class _HTTPSystem(_SystemBase):
             dict: HTTP header.
         """
         return _handle_http_errors(
-            self.client.request('HEAD', **client_kwargs)).headers
+            self.client.request('HEAD', **client_kwargs,
+                                timeout=self._TIMEOUT)).headers
 
 
 class HTTPRawIO(_ObjectRawIOBase):
@@ -90,6 +94,7 @@ class HTTPRawIO(_ObjectRawIOBase):
         mode (str): The mode can be 'r' for reading (default)
     """
     _SYSTEM_CLASS = _HTTPSystem
+    _TIMEOUT = _HTTPSystem._TIMEOUT
 
     def __init__(self, *args, **kwargs):
 
@@ -116,7 +121,8 @@ class HTTPRawIO(_ObjectRawIOBase):
         """
         # Get object part
         response = self._client.request(
-            'GET', self.name, headers=dict(Range=self._http_range(start, end)))
+            'GET', self.name, headers=dict(Range=self._http_range(start, end)),
+            timeout=self._TIMEOUT)
 
         if response.status_code == 416:
             # EOF
@@ -133,7 +139,8 @@ class HTTPRawIO(_ObjectRawIOBase):
             bytes: Object content
         """
         return _handle_http_errors(
-            self._client.request('GET', self.name)).content
+            self._client.request(
+                'GET', self.name, timeout=self._TIMEOUT)).content
 
     def _flush(self):
         """
