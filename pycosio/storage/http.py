@@ -82,8 +82,8 @@ class _HTTPSystem(_SystemBase):
             dict: HTTP header.
         """
         return _handle_http_errors(
-            self.client.request('HEAD', **client_kwargs,
-                                timeout=self._TIMEOUT)).headers
+            self.client.request(
+                'HEAD', timeout=self._TIMEOUT, **client_kwargs)).headers
 
 
 class HTTPRawIO(_ObjectRawIOBase):
