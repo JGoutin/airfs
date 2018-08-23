@@ -115,7 +115,7 @@ class ObjectIOBase(IOBase):
 
 def memoizedmethod(method):
     """
-    Decorator that caches method result.
+    Decorator that caches method result. This function is thread safe.
 
     Args:
         method (function): Method
@@ -129,17 +129,20 @@ def memoizedmethod(method):
         It is the case of "ObjectIOBase" and all its subclasses.
     """
     method_name = method.__name__
+    lock = Lock()
 
     @wraps(method)
     def patched(self, *args, **kwargs):
         """Patched method"""
-        # Gets value from cache
-        try:
-            return self._cache[method_name]
+        with lock:
+            # Gets value from cache
+            try:
+                return self._cache[method_name]
 
-        # Evaluates and cache value
-        except KeyError:
-            result = self._cache[method_name] = method(self, *args, **kwargs)
-            return result
+            # Evaluates and cache value
+            except KeyError:
+                result = self._cache[method_name] = method(
+                    self, *args, **kwargs)
+                return result
 
     return patched
