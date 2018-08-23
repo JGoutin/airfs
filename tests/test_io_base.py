@@ -1,7 +1,5 @@
 # coding=utf-8
 """Test pycosio._core.io_base"""
-from threading import Lock
-
 import pytest
 
 
@@ -45,7 +43,6 @@ def test_memoizedmethod():
 
         def __init__(self):
             self._cache = {}
-            self._cache_lock = Lock()
 
         @memoizedmethod
         def to_memoize(self, arg):
