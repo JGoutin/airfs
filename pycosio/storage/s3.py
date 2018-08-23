@@ -229,6 +229,9 @@ class S3BufferedIO(_ObjectBufferedIOBase):
     Args:
         name (path-like object): URL or path to the file which will be opened.
         mode (str): The mode can be 'r', 'w' for reading (default) or writing
+        buffer_size (int): The size of buffer.
+        max_buffers (int): The maximum number of buffers to preload in read mode
+            or awaiting flush in write mode. 0 for no limit.
         max_workers (int): The maximum number of threads that can be used to
             execute the given calls.
         storage_parameters (dict): Boto3 Session keyword arguments.

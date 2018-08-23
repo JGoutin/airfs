@@ -105,6 +105,9 @@ class SwiftRawIO(_ObjectRawIOBase):
         name (path-like object): URL or path to the file which will be opened.
         mode (str): The mode can be 'r', 'w', 'a'
             for reading (default), writing or appending
+        buffer_size (int): The size of buffer.
+        max_buffers (int): The maximum number of buffers to preload in read mode
+            or awaiting flush in write mode. 0 for no limit.
         storage_parameters (dict): Swift connection keyword arguments.
             This is generally OpenStack credentials and configuration.
             (see "swiftclient.client.Connection" for more information)

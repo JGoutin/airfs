@@ -154,6 +154,9 @@ class HTTPBufferedIO(_ObjectBufferedIOBase):
     Args:
         name (path-like object): URL to the file which will be opened.
         mode (str): The mode can be 'r' for reading.
+        buffer_size (int): The size of buffer.
+        max_buffers (int): The maximum number of buffers to preload in read mode
+            or awaiting flush in write mode. 0 for no limit.
         max_workers (int): The maximum number of threads that can be used to
             execute the given calls.
     """
