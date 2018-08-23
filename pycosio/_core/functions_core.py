@@ -50,7 +50,7 @@ def format_and_is_storage(path):
 
 def equivalent_to(std_function):
     """
-    Decorate a cloud object compatible function
+    Decorates a cloud object compatible function
     to provides fall back to standard function if
     used on local files.
 

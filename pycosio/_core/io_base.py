@@ -115,16 +115,18 @@ class ObjectIOBase(IOBase):
 
 def memoizedmethod(method):
     """
-    Caches method result.
-
-    Target class needs as "_cache" attribute directory.
-    It is the case of "ObjectIOBase" and all its subclasses.
+    Decorator that caches method result.
 
     Args:
         method (function): Method
 
     Returns:
         function: Memoized method.
+
+    Notes:
+        Target method class needs as "_cache" attribute (dict).
+
+        It is the case of "ObjectIOBase" and all its subclasses.
     """
     method_name = method.__name__
 
