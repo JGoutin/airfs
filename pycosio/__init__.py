@@ -10,12 +10,18 @@ from pycosio._core.functions_os_path import getmtime, getsize, isfile, relpath
 from pycosio._core.functions_shutil import copy
 from pycosio._core.storage_manager import mount
 
-__all__ = [
-    # Standard functions
-    'open', 'copy', 'getmtime', 'getsize', 'relpath', 'isfile',
+__all__ = list(sorted((
+    # Standard library "io"
+    'open',
 
-    # Utilities
-    'mount']
+    # Standard library "os.path"
+    'getmtime', 'getsize', 'isfile', 'relpath',
+
+    # Standard library "shutil"
+    'copy',
+
+    # Pycosio
+    'mount',)))
 
 # Makes cleaner namespace
 for _name in __all__:
