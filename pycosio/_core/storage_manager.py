@@ -16,60 +16,6 @@ _BASE_CLASSES = {
     'system': SystemBase}
 
 
-def is_storage(url, storage=None):
-    """
-    Check if file is a local file or a storage file.
-
-    File is considered local if:
-        - URL is a local path.
-        - URL starts by "file://"
-        - a "storage" is provided.
-
-    Args:
-        url (str): file path or URL
-        storage (str): Storage name.
-
-    Returns:
-        bool: return True if file is local.
-    """
-    if storage:
-        return True
-    split_url = url.split('://', 1)
-    if len(split_url) == 2 and split_url[0].lower() != 'file':
-        return True
-    return False
-
-
-def _system_parameters(**kwargs):
-    """
-    Returns system keyword arguments removing Nones.
-
-    Args:
-        kwargs: system keyword arguments.
-
-    Returns:
-        dict: system keyword arguments.
-    """
-    return {key: value for key, value in kwargs.items()
-            if (value is not None or value == {})}
-
-
-def _compare_prefix(prefix):
-    """
-    Allow prefix comparison.
-
-    Args:
-        prefix (str or re.Pattern): Prefix.
-
-    Returns:
-        str: Comparable prefix string.
-    """
-    try:
-        return prefix.pattern
-    except AttributeError:
-        return prefix
-
-
 def get_instance(name, cls='system', storage=None, storage_parameters=None,
                  unsecure=None, *args, **kwargs):
     """
@@ -213,3 +159,33 @@ def mount(storage=None, name='', storage_parameters=None,
         MOUNTED.update(items)
 
     return storage_info
+
+
+def _system_parameters(**kwargs):
+    """
+    Returns system keyword arguments removing Nones.
+
+    Args:
+        kwargs: system keyword arguments.
+
+    Returns:
+        dict: system keyword arguments.
+    """
+    return {key: value for key, value in kwargs.items()
+            if (value is not None or value == {})}
+
+
+def _compare_prefix(prefix):
+    """
+    Allow prefix comparison.
+
+    Args:
+        prefix (str or re.Pattern): Prefix.
+
+    Returns:
+        str: Comparable prefix string.
+    """
+    try:
+        return prefix.pattern
+    except AttributeError:
+        return prefix

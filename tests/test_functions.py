@@ -1,13 +1,14 @@
 # coding=utf-8
-"""Test pycosio._core.std_functions"""
+"""Test pycosio._core.function_*"""
+
+from io import BytesIO
 
 import pytest
-from io import BytesIO
 
 
 def test_equivalent_to():
-    """Tests pycosio._core.std_functions._equivalent_to"""
-    from pycosio._core.std_functions import equivalent_to
+    """Tests pycosio._core.functions_core.equivalent_to"""
+    from pycosio._core.functions_core import equivalent_to
     from pycosio._core.exceptions import ObjectNotFoundError
     from sys import version_info
 
@@ -60,9 +61,9 @@ def test_equivalent_to():
 
 
 def test_equivalent_functions():
-    """Tests functions using pycosio._core.std_functions._equivalent_to"""
+    """Tests functions using pycosio._core.functions_core.equivalent_to"""
     from pycosio._core.storage_manager import MOUNTED
-    import pycosio._core.std_functions as std
+    import pycosio._core.functions_os_path as std
 
     # Mock system
 
@@ -105,8 +106,13 @@ def test_equivalent_functions():
 
 
 def test_cos_open(tmpdir):
-    """Tests  pycosio._core.std_functions.cos_open and copy"""
-    from pycosio._core.std_functions import cos_open, copy
+    """
+    Tests  pycosio._core.functions_io.cos_open and
+    pycosio._core.functions_shutil.copy
+    """
+
+    from pycosio import copy
+    from pycosio._core.functions_io import cos_open
     from pycosio._core.storage_manager import MOUNTED
     from io import TextIOWrapper
 
@@ -203,3 +209,16 @@ def test_cos_open(tmpdir):
     # Clean up
     finally:
         del MOUNTED[prefix]
+
+
+def test_is_storage():
+    """Tests pycosio._core.storage_manager.is_storage"""
+    from pycosio._core.functions_core import is_storage
+
+    # Remote paths
+    assert is_storage('', storage='storage')
+    assert is_storage('http://path')
+
+    # Local paths
+    assert not is_storage('path')
+    assert not is_storage('file://path')

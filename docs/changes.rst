@@ -27,7 +27,15 @@ Possibles futures features
 --------------------------
 
 * Equivalent functions of:
-    * ``os.listdir``, ``os.remove``, ``os.scandir``, ``os.stat``, ``os.walk``.
+    * ``os.listdir``, ``os.remove`` / ``os.unlink```,
+      ``os.rmdir``, ``os.removedirs``, ``os.scandir``, ``os.stat``, ``os.walk``,
+      ``os.rename``, ``os.renames``, ``os.replace``, ``shutil.move``,
+      ``os.chmod``, ``os.mkdir``, ``os.makedirs``, ``os.path.exists``,
+      ``os.path.isdir``, ``os.path.isabs``, ``os.path.ismount``,
+      ``os.path.splitdrive``, ``os.path.samefile``, ``shutil.copyfile``,
+      ``shutil.copytree``, ``shutil.rmtree``.
 * More cloud storage.
 * Extra ``max_buffers`` for swap on local disk in ``ObjectBufferedIOBase``.
 * Global computer resource managements for cloud object IO.
+* Improves ``copy`` between two path in a same storage if a special function
+  exists for this storage.

@@ -3,19 +3,6 @@
 import re
 
 
-def test_is_storage():
-    """Tests pycosio._core.storage_manager.is_storage"""
-    from pycosio._core.storage_manager import is_storage
-
-    # Remote paths
-    assert is_storage('', storage='storage')
-    assert is_storage('http://path')
-
-    # Local paths
-    assert not is_storage('path')
-    assert not is_storage('file://path')
-
-
 def test_mount():
     """Tests pycosio._core.storage_manager.mount and get_instance"""
     from pycosio._core.storage_manager import (

@@ -6,9 +6,8 @@ from os import SEEK_CUR, SEEK_END, SEEK_SET
 
 from pycosio._core.compat import file_exits_error
 from pycosio._core.exceptions import ObjectNotFoundError, handle_os_exceptions
-from pycosio._core.io_base import ObjectIOBase
+from pycosio._core.io_base import ObjectIOBase, memoizedmethod
 from pycosio._core.io_system import SystemBase
-from pycosio._core.utilities import memoizedmethod
 
 
 class ObjectRawIOBase(RawIOBase, ObjectIOBase):

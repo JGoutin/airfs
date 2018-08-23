@@ -1,5 +1,6 @@
 # coding=utf-8
 """Cloud storage abstract IO Base class"""
+from functools import wraps
 from io import IOBase, UnsupportedOperation
 from threading import Lock
 
@@ -110,3 +111,33 @@ class ObjectIOBase(IOBase):
             bool: Supports writing.
         """
         return self._writable
+
+
+def memoizedmethod(method):
+    """
+    Caches method result.
+
+    Target class needs as "_cache" attribute directory.
+    It is the case of "ObjectIOBase" and all its subclasses.
+
+    Args:
+        method (function): Method
+
+    Returns:
+        function: Memoized method.
+    """
+    method_name = method.__name__
+
+    @wraps(method)
+    def patched(self, *args, **kwargs):
+        """Patched method"""
+        # Gets value from cache
+        try:
+            return self._cache[method_name]
+
+        # Evaluates and cache value
+        except KeyError:
+            result = self._cache[method_name] = method(self, *args, **kwargs)
+            return result
+
+    return patched

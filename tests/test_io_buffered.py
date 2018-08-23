@@ -1,6 +1,5 @@
 # coding=utf-8
 """Test pycosio._core.io_buffered"""
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 import io
 import time
 
