@@ -20,9 +20,10 @@ class SystemBase(ABC):
             Generally, client configuration and credentials.
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
+        prefixes (tuple): Tuple of prefixes to force use.
     """
 
-    def __init__(self, storage_parameters=None, unsecure=False):
+    def __init__(self, storage_parameters=None, unsecure=False, prefixes=None):
         # Save storage parameters
         self._storage_parameters = storage_parameters or dict()
         self._unsecure = unsecure
@@ -31,7 +32,10 @@ class SystemBase(ABC):
         self._client = None
 
         # Initialize prefixes
-        self._prefixes = self._get_prefixes()
+        if prefixes:
+            self._prefixes = prefixes
+        else:
+            self._prefixes = self._get_prefixes()
 
     @property
     def client(self):
@@ -210,6 +214,16 @@ class SystemBase(ABC):
             tuple of str: URL prefixes
         """
         return self._prefixes
+
+    @prefixes.setter
+    def prefixes(self, prefixes):
+        """
+        Set URL prefixes for this storage.
+
+        Args:
+            prefixes (tuple of str): URL prefixes
+        """
+        self._prefixes = prefixes
 
     def relpath(self, path):
         """

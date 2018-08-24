@@ -72,7 +72,8 @@ def get_instance(name, cls='system', storage=None, storage_parameters=None,
         if same_parameters:
             return info['system_cached']
         else:
-            return info['system'](**system_parameters)
+            return info['system'](
+                prefixes=info['prefixes'], **system_parameters)
 
     # Returns other classes
     if same_parameters:
@@ -145,6 +146,8 @@ def mount(storage=None, name='', storage_parameters=None,
     if extra_url_prefix:
         prefixes = list(prefixes)
         prefixes.append(extra_url_prefix)
+        prefixes = tuple(prefixes)
+    storage_info['system_cached'].prefixes = storage_info['prefixes'] = prefixes
 
     # Mounts
     with _MOUNT_LOCK:
