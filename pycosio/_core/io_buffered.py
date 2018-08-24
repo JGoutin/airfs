@@ -235,8 +235,9 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
             buffer = bytearray(size)
         else:
             buffer = bytearray()
-        self.readinto(buffer)
-        return memoryview(buffer).tobytes()
+
+        read_size = self.readinto(buffer)
+        return memoryview(buffer)[:read_size].tobytes()
 
     def read1(self, size=-1):
         """
