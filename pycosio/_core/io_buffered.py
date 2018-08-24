@@ -1,5 +1,7 @@
 # coding=utf-8
 """Cloud storage abstract buffered IO class"""
+from __future__ import division  # Python 2:  Enable "type(int / int) == float"
+
 from abc import abstractmethod
 from io import BufferedIOBase, UnsupportedOperation
 from math import ceil
