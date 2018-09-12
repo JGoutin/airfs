@@ -41,7 +41,7 @@ PACKAGE_INFO = dict(
     license='Apache',
     python_requires='>=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*',
     install_requires=[
-        'setuptools', 'requests', 'futures; python_version == "2.7"'],
+        'requests', 'futures; python_version == "2.7"'],
     extras_require={
         # Storage specific requirements
         'oss': ['oss2'],
