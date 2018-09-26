@@ -1,7 +1,7 @@
 # coding=utf-8
 """Python Cloud Object Storage I/O"""
 
-__version__ = '1.0.0'
+__version__ = '1.1.0'
 
 # Adds names to public interface
 # Shadowing "open" built-in name is done to provides "pycosio.open" function
