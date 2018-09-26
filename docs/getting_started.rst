@@ -26,11 +26,11 @@ Example for installing Pycosio with all dependencies:
 
     pip install pycosio[all]
 
-Example for installing with support only for HTTP and OpenStack Swift:
+Example for installing with support only for S3 and OpenStack Swift:
 
 .. code-block:: bash
 
-    pip install pycosio[swift,http]
+    pip install pycosio[swift,s3]
 
 Standard Python equivalents functions
 -------------------------------------
