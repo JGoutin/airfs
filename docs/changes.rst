@@ -1,6 +1,19 @@
 Changelog
 =========
 
+1.1.0 (2018/10)
+---------------
+
+Backward incompatible change:
+
+* ``mount`` argument ``extra_url_prefix`` is renamed to more relevant and
+  clearer ``extra_root``.
+
+Improvements
+
+- Minimum packages versions are set in setup based on packages changelog or
+  date.
+
 1.0.0 (2018/08)
 ---------------
 
@@ -39,3 +52,6 @@ Possibles futures features
 * Global computer resource managements for cloud object IO.
 * Improves ``copy`` between two path in a same storage if a special function
   exists for this storage.
+* For buckets, add a checks based on root + bucket name to find the more
+  relevant mounted storage to use
+  (Example: User's storage or public one using same root)

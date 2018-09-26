@@ -16,7 +16,7 @@ def test_system_base():
     m_time = time.time()
     dummy_client_kwargs = {'arg1': 1, 'arg2': 2}
     client = 'client'
-    prefixes = re.compile('prefix2://'), 'prefix://', '://',
+    roots = re.compile('root2://'), 'root://', '://',
     storage_parameters = {'arg3': 3, 'arg4': 4}
     raise_not_exists_exception = False
 
@@ -32,9 +32,9 @@ def test_system_base():
             """Returns fake result"""
             return client
 
-        def _get_prefixes(self):
+        def _get_roots(self):
             """Returns fake result"""
-            return prefixes
+            return roots
 
         def _head(self, client_kwargs):
             """Checks arguments and returns fake result"""
@@ -49,9 +49,9 @@ def test_system_base():
     # Tests basic methods
     assert client == system.client
 
-    assert prefixes == system.prefixes
-    prefixes = 'prefixes',
-    assert client != system.prefixes
+    assert roots == system.roots
+    roots = 'roots',
+    assert client != system.roots
 
     assert storage_parameters == system.storage_parameters
 

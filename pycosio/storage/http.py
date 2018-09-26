@@ -62,12 +62,12 @@ class _HTTPSystem(_SystemBase):
         """
         return _requests.Session()
 
-    def _get_prefixes(self):
+    def _get_roots(self):
         """
-        Return URL prefixes for this storage.
+        Return URL roots for this storage.
 
         Returns:
-            tuple of str or re.Pattern: URL prefixes
+            tuple of str or re.Pattern: URL roots
         """
         return 'http://', 'https://'
 

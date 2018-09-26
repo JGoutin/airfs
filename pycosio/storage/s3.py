@@ -97,12 +97,12 @@ class _S3System(_SystemBase):
 
         return self._get_session().client("s3", **client_kwargs)
 
-    def _get_prefixes(self):
+    def _get_roots(self):
         """
-        Return URL prefixes for this storage.
+        Return URL roots for this storage.
 
         Returns:
-            tuple of str or re.Pattern: URL prefixes
+            tuple of str or re.Pattern: URL roots
         """
         region = self._get_session().region_name or '[\w-]+'
         return (

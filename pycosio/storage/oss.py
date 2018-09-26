@@ -80,12 +80,12 @@ class _OSSSystem(_SystemBase):
                 else _oss.Auth if self._storage_parameters
                 else _oss.AnonymousAuth)(**self._storage_parameters)
 
-    def _get_prefixes(self):
+    def _get_roots(self):
         """
-        Return URL prefixes for this storage.
+        Return URL roots for this storage.
 
         Returns:
-            tuple of str or re.Pattern: URL prefixes
+            tuple of str or re.Pattern: URL roots
         """
         return 'oss://', _re.compile(_re.sub(
             "(https?://)(oss-.+\.aliyuncs\.com)",

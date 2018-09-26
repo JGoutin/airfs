@@ -6,13 +6,13 @@ import re
 def test_mount():
     """Tests pycosio._core.storage_manager.mount and get_instance"""
     from pycosio._core.storage_manager import (
-        mount, MOUNTED, get_instance, _compare_prefix)
+        mount, MOUNTED, get_instance, _compare_root)
     from pycosio.storage.http import (
         HTTPRawIO, _HTTPSystem, HTTPBufferedIO)
     import requests
 
     # Get HTTP as storage to mount
-    prefixes = _HTTPSystem().prefixes
+    roots = _HTTPSystem().roots
     storage_parameters = {'arg1': 1, 'arg2': 2}
     storage_parameters_2 = {'arg1': 1, 'arg2': 3}
     expected_info = dict(
@@ -59,9 +59,9 @@ def test_mount():
                 None):
 
             # Unmount if already mounted
-            for prefix in prefixes:
+            for root in roots:
                 try:
-                    del MOUNTED[prefix]
+                    del MOUNTED[root]
                 except KeyError:
                     continue
 
@@ -80,54 +80,54 @@ def test_mount():
                              storage_parameters=storage_parameters)
 
             # Check registration
-            for prefix in prefixes:
+            for root in roots:
                 # Test infos
                 for key, value in expected_info.items():
-                    assert MOUNTED[prefix][key] == value
+                    assert MOUNTED[root][key] == value
 
                 # Tests cached system
                 assert isinstance(
-                    MOUNTED[prefix]['system_cached'], _HTTPSystem)
+                    MOUNTED[root]['system_cached'], _HTTPSystem)
 
                 # Tests get_instance cached system
                 assert get_instance(
-                    name=prefix) is MOUNTED[prefix]['system_cached']
+                    name=root) is MOUNTED[root]['system_cached']
 
                 assert get_instance(
                     storage_parameters=storage_parameters,
-                    name=prefix) is MOUNTED[prefix]['system_cached']
+                    name=root) is MOUNTED[root]['system_cached']
 
                 assert get_instance(
                     storage_parameters=storage_parameters_2,
-                    name=prefix) is not MOUNTED[prefix]['system_cached']
+                    name=root) is not MOUNTED[root]['system_cached']
 
                 # Test get_instance other classes with cached system
                 raw = get_instance(name=https, cls='raw')
                 assert isinstance(raw, HTTPRawIO)
-                assert raw._system is MOUNTED[prefix]['system_cached']
+                assert raw._system is MOUNTED[root]['system_cached']
 
                 buffered = get_instance(name=http, cls='buffered')
                 assert isinstance(buffered, HTTPBufferedIO)
-                assert buffered._raw._system is MOUNTED[prefix]['system_cached']
+                assert buffered._raw._system is MOUNTED[root]['system_cached']
 
             # Test mount order
             assert tuple(MOUNTED) == tuple(reversed(sorted(
-                MOUNTED, key=_compare_prefix)))
+                MOUNTED, key=_compare_root)))
 
             # Cleanup
             del MOUNTED['aaaa']
             del MOUNTED['zzzz']
-            for prefix in prefixes:
-                del MOUNTED[prefix]
+            for root in roots:
+                del MOUNTED[root]
 
-        # Tests extra prefix
+        # Tests extra root
         extra = 'extra_http://'
-        mount(storage='http', extra_url_prefix=extra,
+        mount(storage='http', extra_root=extra,
               storage_parameters=storage_parameters),
-        assert MOUNTED[extra] == MOUNTED[prefixes[0]]
+        assert MOUNTED[extra] == MOUNTED[roots[0]]
 
-        for prefix in prefixes:
-            del MOUNTED[prefix]
+        for root in roots:
+            del MOUNTED[root]
         del MOUNTED[extra]
 
     # Restore mocked functions

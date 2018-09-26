@@ -41,11 +41,11 @@ def get_instance(name, cls='system', storage=None, storage_parameters=None,
 
     # Gets storage information
     with _MOUNT_LOCK:
-        for prefix in MOUNTED:
-            if ((isinstance(prefix, Pattern) and prefix.match(name)) or
-                    (not isinstance(prefix, Pattern) and
-                     name.startswith(prefix))):
-                info = MOUNTED[prefix]
+        for root in MOUNTED:
+            if ((isinstance(root, Pattern) and root.match(name)) or
+                    (not isinstance(root, Pattern) and
+                     name.startswith(root))):
+                info = MOUNTED[root]
 
                 # Get stored storage parameters
                 stored_parameters = info.get('system_parameters') or dict()
@@ -73,7 +73,7 @@ def get_instance(name, cls='system', storage=None, storage_parameters=None,
             return info['system_cached']
         else:
             return info['system'](
-                prefixes=info['prefixes'], **system_parameters)
+                roots=info['roots'], **system_parameters)
 
     # Returns other classes
     if same_parameters:
@@ -86,7 +86,7 @@ def get_instance(name, cls='system', storage=None, storage_parameters=None,
 
 
 def mount(storage=None, name='', storage_parameters=None,
-          unsecure=None, extra_url_prefix=None):
+          unsecure=None, extra_root=None):
     """
     Mount a new storage.
 
@@ -99,11 +99,11 @@ def mount(storage=None, name='', storage_parameters=None,
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
             Default to False.
-        extra_url_prefix (str): Extra URL prefix that can be used in
-            replacement of root URL in path. This can be used to
+        extra_root (str): Extra root that can be used in
+            replacement of root in path. This can be used to
             provides support for shorter URLS.
-            Example: with root URL "https://www.mycloud.com/user"
-            and extra_url_prefix "mycloud://" it is possible to access object
+            Example: with root "https://www.mycloud.com/user"
+            and extra_root "mycloud://" it is possible to access object
             using "mycloud://container/object" instead of
             "https://www.mycloud.com/user/container/object".
 
@@ -139,25 +139,25 @@ def mount(storage=None, name='', storage_parameters=None,
     # Caches a system instance
     storage_info['system_cached'] = storage_info['system'](**system_parameters)
 
-    # Gets prefixes
-    prefixes = storage_info['system_cached'].prefixes
+    # Gets roots
+    roots = storage_info['system_cached'].roots
 
-    # Adds extra URL prefix
-    if extra_url_prefix:
-        prefixes = list(prefixes)
-        prefixes.append(extra_url_prefix)
-        prefixes = tuple(prefixes)
-    storage_info['system_cached'].prefixes = storage_info['prefixes'] = prefixes
+    # Adds extra root
+    if extra_root:
+        roots = list(roots)
+        roots.append(extra_root)
+        roots = tuple(roots)
+    storage_info['system_cached'].roots = storage_info['roots'] = roots
 
     # Mounts
     with _MOUNT_LOCK:
-        for prefix in prefixes:
-            MOUNTED[prefix] = storage_info
+        for root in roots:
+            MOUNTED[root] = storage_info
 
         # Reorder to have correct lookup
         items = OrderedDict(
             (key, MOUNTED[key]) for key in reversed(
-                sorted(MOUNTED, key=_compare_prefix)))
+                sorted(MOUNTED, key=_compare_root)))
         MOUNTED.clear()
         MOUNTED.update(items)
 
@@ -178,17 +178,17 @@ def _system_parameters(**kwargs):
             if (value is not None or value == {})}
 
 
-def _compare_prefix(prefix):
+def _compare_root(root):
     """
-    Allow prefix comparison.
+    Allow root comparison.
 
     Args:
-        prefix (str or re.Pattern): Prefix.
+        root (str or re.Pattern): Root.
 
     Returns:
-        str: Comparable prefix string.
+        str: Comparable root string.
     """
     try:
-        return prefix.pattern
+        return root.pattern
     except AttributeError:
-        return prefix
+        return root

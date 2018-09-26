@@ -75,12 +75,12 @@ class _SwiftSystem(_SystemBase):
 
         return _swift.client.Connection(**kwargs)
 
-    def _get_prefixes(self):
+    def _get_roots(self):
         """
-        Return URL prefixes for this storage.
+        Return URL roots for this storage.
 
         Returns:
-            tuple of str or re.Pattern: URL prefixes
+            tuple of str or re.Pattern: URL roots
         """
         return self.client.get_auth()[0],
 

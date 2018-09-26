@@ -67,8 +67,8 @@ def test_equivalent_functions():
 
     # Mock system
 
-    prefix = 'dummy://'
-    dummy_path = prefix + 'dir1/dir2/dir3'
+    root = 'dummy://'
+    dummy_path = root + 'dir1/dir2/dir3'
     result = 'result'
 
     class System:
@@ -81,7 +81,7 @@ def test_equivalent_functions():
             return path.split('://')[1]
 
     system = System()
-    MOUNTED[prefix] = dict(system_cached=system)
+    MOUNTED[root] = dict(system_cached=system)
 
     # Tests
     try:
@@ -102,7 +102,7 @@ def test_equivalent_functions():
 
     # Clean up
     finally:
-        del MOUNTED[prefix]
+        del MOUNTED[root]
 
 
 def test_cos_open(tmpdir):
@@ -116,8 +116,8 @@ def test_cos_open(tmpdir):
     from pycosio._core.storage_manager import MOUNTED
     from io import TextIOWrapper
 
-    prefix = 'dummy_read://'
-    cos_path = prefix + 'file.txt'
+    root = 'dummy_read://'
+    cos_path = root + 'file.txt'
     content = b'dummy_content'
 
     # Mock storage
@@ -133,7 +133,7 @@ def test_cos_open(tmpdir):
     class DummyBufferedIO(DummyIO):
         """Dummy buffered IO"""
 
-    MOUNTED[prefix] = dict(
+    MOUNTED[root] = dict(
         raw=DummyRawIO, buffered=DummyBufferedIO,
         system_cached=None, storage_parameters={})
 
@@ -208,7 +208,7 @@ def test_cos_open(tmpdir):
 
     # Clean up
     finally:
-        del MOUNTED[prefix]
+        del MOUNTED[root]
 
 
 def test_is_storage():

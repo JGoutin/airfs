@@ -20,10 +20,10 @@ class SystemBase(ABC):
             Generally, client configuration and credentials.
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
-        prefixes (tuple): Tuple of prefixes to force use.
+        roots (tuple): Tuple of roots to force use.
     """
 
-    def __init__(self, storage_parameters=None, unsecure=False, prefixes=None):
+    def __init__(self, storage_parameters=None, unsecure=False, roots=None):
         # Save storage parameters
         self._storage_parameters = storage_parameters or dict()
         self._unsecure = unsecure
@@ -31,11 +31,11 @@ class SystemBase(ABC):
         # Initialize client
         self._client = None
 
-        # Initialize prefixes
-        if prefixes:
-            self._prefixes = prefixes
+        # Initialize roots
+        if roots:
+            self._roots = roots
         else:
-            self._prefixes = self._get_prefixes()
+            self._roots = self._get_roots()
 
     @property
     def client(self):
@@ -106,12 +106,12 @@ class SystemBase(ABC):
                 continue
 
     @abstractmethod
-    def _get_prefixes(self):
+    def _get_roots(self):
         """
-        Return URL prefixes for this storage.
+        Return URL roots for this storage.
 
         Returns:
-            tuple of str or re.Pattern: URL prefixes
+            tuple of str or re.Pattern: URL roots
         """
 
     def getsize(self, path=None, client_kwargs=None, header=None):
@@ -206,24 +206,24 @@ class SystemBase(ABC):
         return self._head(client_kwargs)
 
     @property
-    def prefixes(self):
+    def roots(self):
         """
-        Return URL prefixes for this storage.
+        Return URL roots for this storage.
 
         Returns:
-            tuple of str: URL prefixes
+            tuple of str: URL roots
         """
-        return self._prefixes
+        return self._roots
 
-    @prefixes.setter
-    def prefixes(self, prefixes):
+    @roots.setter
+    def roots(self, roots):
         """
-        Set URL prefixes for this storage.
+        Set URL roots for this storage.
 
         Args:
-            prefixes (tuple of str): URL prefixes
+            roots (tuple of str): URL roots
         """
-        self._prefixes = prefixes
+        self._roots = roots
 
     def relpath(self, path):
         """
@@ -235,12 +235,12 @@ class SystemBase(ABC):
         Returns:
             str: relative path.
         """
-        for prefix in self.prefixes:
+        for root in self.roots:
             try:
-                if isinstance(prefix, Pattern):
-                    relative = prefix.split(path, maxsplit=1)[1]
+                if isinstance(root, Pattern):
+                    relative = root.split(path, maxsplit=1)[1]
                 else:
-                    relative = path.split(prefix, 1)[1]
+                    relative = path.split(root, 1)[1]
                 return relative.strip(r'\/')
             except IndexError:
                 continue
