@@ -41,12 +41,14 @@ PACKAGE_INFO = dict(
     license='Apache',
     python_requires='>=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*',
     install_requires=[
-        'requests', 'futures; python_version == "2.7"'],
+        'requests>=2.9.0',
+        # Python 2.7 compatibility
+        'futures>=3.1.1; python_version == "2.7"'],
     extras_require={
         # Storage specific requirements
-        'oss': ['oss2'],
-        's3': ['boto3'],
-        'swift': ['python-swiftclient[keystone]']},
+        'oss': ['oss2>=2.3.0'],
+        's3': ['boto3>=1.5.0'],
+        'swift': ['python-swiftclient[keystone]>=3.3.0']},
     setup_requires=['setuptools'],
     tests_require=['pytest'],
     packages=find_packages(exclude=['docs', 'tests']),
