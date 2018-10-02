@@ -243,6 +243,9 @@ def test_s3_buffered_io():
         with S3BufferedIO(path, mode='w', unsecure=True) as s3object:
             assert s3object._client.kwargs['use_ssl'] is False
 
+        # Tests read mode instantiation
+        S3BufferedIO(path, mode='r')
+
     # Restore mocked class
     finally:
         boto3.client = boto3_client

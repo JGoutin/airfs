@@ -108,6 +108,11 @@ def test_object_raw_base_io():
     assert object_io.read() == (size - 300) * BYTE
     assert object_io.tell() == size
 
+    # Tests: flush should do nothing
+    seek = object_io._seek
+    object_io.flush()
+    assert object_io._seek == seek
+
     # Test write in read mode
     with pytest.raises(io.UnsupportedOperation):
         object_io.write(BYTE)

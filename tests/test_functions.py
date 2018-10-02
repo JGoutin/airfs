@@ -194,6 +194,12 @@ def test_cos_open(tmpdir):
         assert local_dst.read_binary() == content
         local_dst.remove()
 
+        # copy: local file to stream
+        stream_dst = BytesIO()
+        copy(str(local_file), stream_dst)
+        stream_dst.seek(0)
+        assert stream_dst.read() == content
+
         # copy: storage file to local directory
         local_dir = tmpdir.mkdir('sub_dir')
         copy(cos_path, str(local_dir))

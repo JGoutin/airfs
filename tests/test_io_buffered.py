@@ -136,6 +136,13 @@ def test_object_buffered_base_io():
     assert object_io.read() == (size - 300) * BYTE
     assert not object_io._read_queue
 
+    # Tests: Read small parts
+    part = buffer_size // 10
+    object_io.seek(0)
+    for index in range(1, 15):
+        assert object_io.read(part) == part * BYTE
+        assert object_io._seek == part * index
+
     # Tests: Read, change seek
     object_io.seek(450)
     assert sorted(object_io._read_queue) == list(range(
@@ -144,6 +151,19 @@ def test_object_buffered_base_io():
     object_io.seek(700)
     assert sorted(object_io._read_queue) == list(range(
         700, 700 + buffer_size * 5, buffer_size))
+
+    # Tests: flush should do nothing
+    seek = object_io._seek
+    object_io.flush()
+    assert object_io._seek == seek
+
+    # Tests: Read buffer size (No copy mode)
+    object_io.seek(0)
+    assert object_io.read(buffer_size) == buffer_size * BYTE
+
+    object_io.seek(size - buffer_size // 2)
+    assert object_io.read(buffer_size) == BYTE * (buffer_size // 2)
+    object_io._seek = size
 
     # Tests: Read, EOF before theoretical EOF
     def read_range(*_, **__):

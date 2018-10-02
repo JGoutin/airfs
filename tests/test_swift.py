@@ -204,6 +204,9 @@ def test_swift_buffered_io():
         with SwiftBufferedIO(path, mode='w', unsecure=True) as swift_object:
             assert swift_object._client.kwargs['ssl_compression'] is False
 
+        # Tests read mode instantiation
+        SwiftBufferedIO(path, mode='r')
+
     # Restore mocked functions
     finally:
         swiftclient.client.Connection = swiftclient_client_connection

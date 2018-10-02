@@ -81,6 +81,7 @@ def get_instance(name, cls='system', storage=None, storage_parameters=None,
             system_parameters['storage_parameters'] = dict()
         system_parameters['storage_parameters'][
             'pycosio.system_cached'] = info['system_cached']
+
     kwargs.update(system_parameters)
     return info[cls](name=name, *args, **kwargs)
 
@@ -116,6 +117,9 @@ def mount(storage=None, name='', storage_parameters=None,
             storage = name.split('://', 1)[0].lower()
             # Alias HTTPS to HTTP
             storage = 'http' if storage == 'https' else storage
+        else:
+            raise ValueError(
+                'No storage specified and unable to infer it from file name.')
 
     # Saves get_storage_parameters
     system_parameters = _system_parameters(

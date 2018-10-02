@@ -82,7 +82,7 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
                 self._write_buffer = bytearray()
 
         # Configure read mode
-        elif self._readable:
+        else:
             # Get header and checks files exists
             with handle_os_exceptions():
                 self._head()

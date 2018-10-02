@@ -246,6 +246,9 @@ def test_oss_buffered_io():
             ossobject._buffer_size = 10
             ossobject.write(BYTE * 95)
 
+        # Tests read mode instantiation
+        OSSBufferedIO(path, mode='r', storage_parameters=storage_kwargs)
+
     # Restore mocked class
     finally:
         oss2.Auth = oss2_auth

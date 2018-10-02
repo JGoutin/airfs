@@ -82,7 +82,7 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
             self._write_futures = []
 
         # Initialize read mode
-        elif self._readable:
+        else:
             self._size = self._raw._size
             self._read_range = self.raw._read_range
             if max_buffers:
@@ -233,8 +233,36 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
         if not self._readable:
             raise UnsupportedOperation('read')
 
+        # Returns existing buffer with no copy
+        if size == self._buffer_size:
+            queue_index = self._seek
+
+            # Starts initial preloading on first call
+            if queue_index == 0:
+                self._preload_range()
+
+            # Get buffer from future
+            buffer = self._read_queue.pop(queue_index).result()
+
+            # Append another buffer preload at end of queue
+            buffer_size = self._buffer_size
+            index = queue_index + buffer_size * self._max_buffers
+            if index < self._size:
+                self._read_queue[index] = self._workers.submit(
+                    self._read_range, index, index + buffer_size)
+
+            # Update seek
+                self._seek += buffer_size
+            else:
+                self._seek = self._size
+
+            return buffer
+
+        # Uses a prealocated buffer
         if size != -1:
             buffer = bytearray(size)
+
+        # Uses a mutable buffer
         else:
             buffer = bytearray()
 
@@ -274,7 +302,6 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
 
             # Initializes queue
             queue = self._read_queue
-            previous_index = -1
             if seek == 0:
                 # Starts initial preloading on first call
                 self._preload_range()
@@ -302,22 +329,21 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
                 queue_index = seek - start
 
                 # Gets preloaded buffer
-                if previous_index != queue_index:
-                    try:
-                        buffer = queue[queue_index]
-                    except KeyError:
-                        # EOF
-                        break
+                try:
+                    buffer = queue[queue_index]
+                except KeyError:
+                    # EOF
+                    break
 
-                    # Get buffer from future
-                    try:
-                        queue[queue_index] = buffer = buffer.result()
+                # Get buffer from future
+                try:
+                    queue[queue_index] = buffer = buffer.result()
 
-                    # Already evaluated
-                    except AttributeError:
-                        pass
-                    buffer_view = memoryview(buffer)
-                    data_size = len(buffer)
+                # Already evaluated
+                except AttributeError:
+                    pass
+                buffer_view = memoryview(buffer)
+                data_size = len(buffer)
 
                 # Checks if end of file reached
                 if not data_size:

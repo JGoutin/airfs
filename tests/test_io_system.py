@@ -4,6 +4,8 @@ import time
 import re
 from wsgiref.handlers import format_date_time
 
+import pytest
+
 from tests.utilities import SIZE, check_head_methods
 
 
@@ -19,6 +21,8 @@ def test_system_base():
     roots = re.compile('root2://'), 'root://', '://',
     storage_parameters = {'arg3': 3, 'arg4': 4}
     raise_not_exists_exception = False
+    header = {'Content-Length': str(SIZE),
+              'Last-Modified': format_date_time(m_time)}
 
     class DummySystem(SystemBase):
         """Dummy System"""
@@ -41,8 +45,7 @@ def test_system_base():
             assert client_kwargs == dummy_client_kwargs
             if raise_not_exists_exception:
                 raise ObjectNotFoundError
-            return {'Content-Length': str(SIZE),
-                    'Last-Modified': format_date_time(m_time)}
+            return header
 
     system = DummySystem(storage_parameters=storage_parameters)
 
@@ -67,3 +70,10 @@ def test_system_base():
     raise_not_exists_exception = True
     assert not system.isfile('path')
     raise_not_exists_exception = False
+
+    # Test empty header
+    header = {}
+    with pytest.raises(TypeError):
+        system.getmtime('path')
+    with pytest.raises(TypeError):
+        system.getsize('path')

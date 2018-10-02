@@ -27,8 +27,7 @@ def copy(src, dst):
     if not src_is_storage and not dst_is_storage:
         return shutil_copy(src, dst)
 
-    # If destination si local directory, defines
-    # output file
+    # If destination si local directory, defines output file
     if not dst_is_storage:
         if isdir(dst):
             dst = join(dst, basename(src))

@@ -11,8 +11,11 @@ Backward incompatible change:
 
 Improvements
 
-- Minimum packages versions are set in setup based on packages changelog or
+* No buffer copy when using ``io.BufferedIOBase.read`` with exactly
+  buffer size. This may lead performance improvement.
+* Minimum packages versions are set in setup based on packages changelog or
   date.
+* Minor fixes.
 
 1.0.0 (2018/08)
 ---------------

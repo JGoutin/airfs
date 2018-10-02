@@ -104,6 +104,8 @@ class SystemBase(ABC):
                 return mktime(parsedate(header[key]))
             except KeyError:
                 continue
+        else:
+            raise TypeError('Modification time not available')
 
     @abstractmethod
     def _get_roots(self):
@@ -145,6 +147,8 @@ class SystemBase(ABC):
                 return int(header[key])
             except KeyError:
                 continue
+        else:
+            raise TypeError('Size not available')
 
     def isfile(self, path=None, client_kwargs=None):
         """

@@ -50,6 +50,7 @@ if _py[0] == 3 and _py[1] == 4:
 
     # "max_workers" as keyword argument for ThreadPoolExecutor
     class ThreadPoolExecutor(_futures.ThreadPoolExecutor):
+        """concurrent.futures.ThreadPoolExecutor"""
         def __init__(self, max_workers=None, **kwargs):
             """Initializes a new ThreadPoolExecutor instance.
 

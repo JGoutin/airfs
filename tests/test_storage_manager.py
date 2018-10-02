@@ -2,6 +2,8 @@
 """Test pycosio._core.storage_manager"""
 import re
 
+import pytest
+
 
 def test_mount():
     """Tests pycosio._core.storage_manager.mount and get_instance"""
@@ -110,6 +112,13 @@ def test_mount():
                 assert isinstance(buffered, HTTPBufferedIO)
                 assert buffered._raw._system is MOUNTED[root]['system_cached']
 
+                buffered = get_instance(
+                    name=http, cls='buffered',
+                    storage_parameters=storage_parameters_2)
+                assert isinstance(buffered, HTTPBufferedIO)
+                assert (buffered._raw._system is not
+                        MOUNTED[root]['system_cached'])
+
             # Test mount order
             assert tuple(MOUNTED) == tuple(reversed(sorted(
                 MOUNTED, key=_compare_root)))
@@ -129,6 +138,10 @@ def test_mount():
         for root in roots:
             del MOUNTED[root]
         del MOUNTED[extra]
+
+        # Tests not as arguments to define storage
+        with pytest.raises(ValueError):
+            mount(name='path')
 
     # Restore mocked functions
     finally:
