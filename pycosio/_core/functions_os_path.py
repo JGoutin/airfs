@@ -8,6 +8,22 @@ from pycosio._core.functions_core import equivalent_to, format_and_is_storage
 from pycosio._core.exceptions import handle_os_exceptions
 
 
+@equivalent_to(os.path.exists)
+def exists(path):
+    """
+    Return True if path refers to an existing path.
+
+    Equivalent to "os.path.exists".
+
+    Args:
+        path (path-like object): Path or URL.
+
+    Returns:
+        bool: True if path exists.
+    """
+    return get_instance(path).exists(path)
+
+
 @equivalent_to(os.path.getsize)
 def getsize(path):
     """
@@ -55,13 +71,29 @@ def isabs(path):
     Equivalent to "os.path.isabs".
 
     Args:
-        path (path-like object): File path or URL.
+        path (path-like object): Path or URL.
 
     Returns:
         bool: True if path is absolute.
     """
     # If detected as storage path, it is an absolute path.
     return True
+
+
+@equivalent_to(os.path.isdir)
+def isdir(path):
+    """
+    Return True if path is an existing directory.
+
+    Equivalent to "os.path.isdir".
+
+    Args:
+        path (path-like object): Path or URL.
+
+    Returns:
+        bool: True if directory exists.
+    """
+    return get_instance(path).isdir(path)
 
 
 @equivalent_to(os.path.isfile)
@@ -72,7 +104,7 @@ def isfile(path):
     Equivalent to "os.path.isfile".
 
     Args:
-        path (path-like object): File path or URL.
+        path (path-like object): Path or URL.
 
     Returns:
         bool: True if file exists.
@@ -88,7 +120,7 @@ def ismount(path):
     Equivalent to "os.path.ismount".
 
     Args:
-        path (path-like object): File path or URL.
+        path (path-like object): Path or URL.
 
     Returns:
         bool: True if path is a mount point.
@@ -105,10 +137,13 @@ def relpath(path, start=None):
     For storage objects, "path" and "start" are relative to
     storage root.
 
+    "/" are not stripped on storage objects path. The ending slash is required
+    on some storage to signify that target is a directory.
+
     Equivalent to "os.path.relpath".
 
     Args:
-        path (path-like object): File path or URL.
+        path (path-like object): Path or URL.
         start (path-like object): Relative from this optional directory.
             Default to "os.curdir" for local files.
 
@@ -130,8 +165,8 @@ def samefile(path1, path2):
     Equivalent to "os.path.samefile".
 
     Args:
-        path1 (path-like object): File path or URL.
-        path2 (path-like object): File path or URL.
+        path1 (path-like object): Path or URL.
+        path2 (path-like object): Path or URL.
 
     Returns:
         bool: True if same file or directory.
@@ -174,7 +209,7 @@ def splitdrive(path):
     Equivalent to "os.path.splitdrive".
 
     Args:
-        path (path-like object): File path or URL.
+        path (path-like object): Path or URL.
 
     Returns:
         tuple of str: drive, tail.

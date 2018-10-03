@@ -6,8 +6,8 @@ Changelog
 
 New standard library equivalent functions:
 
-* ``os.path.isabs``, ``os.path.ismount``, ``os.path.samefile``,
-  ``os.path.splitdrive``.
+* ``os.path.exists``, ``os.path.isabs``, ``os.path.isdir``, ``os.path.ismount``,
+  ``os.path.samefile``, ``os.path.splitdrive``.
 
 Backward incompatible change:
 
@@ -20,7 +20,11 @@ Improvements
   buffer size. This may lead performance improvement.
 * Minimum packages versions are set in setup based on packages changelog or
   date.
-* Minor fixes.
+
+Fixes:
+
+* ``isfile`` now correctly returns ``False`` when used on directory.
+* ``relpath`` now keeps ending ``/`` on cloud storage path (Directory marker).
 
 1.0.0 (2018/08)
 ---------------
@@ -51,9 +55,8 @@ Possibles futures features
     * ``os.listdir``, ``os.remove`` / ``os.unlink```,
       ``os.rmdir``, ``os.removedirs``, ``os.scandir``, ``os.stat``, ``os.walk``,
       ``os.rename``, ``os.renames``, ``os.replace``, ``shutil.move``,
-      ``os.chmod``, ``os.mkdir``, ``os.makedirs``, ``os.path.exists``,
-      ``os.path.isdir``, ``shutil.copyfile``, ``shutil.copytree``,
-      ``shutil.rmtree``.
+      ``os.chmod``, ``os.mkdir``, ``os.makedirs``, ``shutil.copyfile``,
+      ``shutil.copytree``, ``shutil.rmtree``.
 * More cloud storage.
 * Extra ``max_buffers`` for swap on local disk in ``ObjectBufferedIOBase``.
 * Global computer resource managements for cloud object IO.

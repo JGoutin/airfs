@@ -7,7 +7,8 @@ __version__ = '1.1.0'
 # Shadowing "open" built-in name is done to provides "pycosio.open" function
 from pycosio._core.functions_io import cos_open as open
 from pycosio._core.functions_os_path import (
-    getmtime, getsize, isabs, isfile, ismount, relpath, samefile, splitdrive)
+    exists, getmtime, getsize, isabs, isdir, isfile, ismount, relpath, samefile,
+    splitdrive)
 from pycosio._core.functions_shutil import copy
 from pycosio._core.storage_manager import mount
 
@@ -16,8 +17,8 @@ __all__ = list(sorted((
     'open',
 
     # Standard library "os.path"
-    'getmtime', 'getsize', 'isabs', 'isfile', 'ismount', 'relpath',
-    'samefile', 'splitdrive',
+    'exists', 'getmtime', 'getsize', 'isabs', 'isdir', 'isfile', 'ismount',
+    'relpath', 'samefile', 'splitdrive',
 
     # Standard library "shutil"
     'copy',

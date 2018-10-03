@@ -49,6 +49,23 @@ class SystemBase(ABC):
             self._client = self._get_client()
         return self._client
 
+    def exists(self, path=None, client_kwargs=None):
+        """
+        Return True if path refers to an existing path.
+
+        Args:
+            path (str): Path or URL.
+            client_kwargs (dict): Client arguments.
+
+        Returns:
+            bool: True if exists.
+        """
+        try:
+            self.head(path, client_kwargs)
+        except ObjectNotFoundError:
+            return False
+        return True
+
     @abstractmethod
     def _get_client(self):
         """
@@ -150,22 +167,35 @@ class SystemBase(ABC):
         else:
             raise TypeError('Size not available')
 
+    def isdir(self, path=None, client_kwargs=None):
+        """
+        Return True if path is an existing directory.
+
+        Args:
+            path (str): Path or URL.
+            client_kwargs (dict): Client arguments.
+
+        Returns:
+            bool: True if directory exists.
+        """
+        if path[-1] == '/':
+            return self.exists(path=path, client_kwargs=client_kwargs)
+        return False
+
     def isfile(self, path=None, client_kwargs=None):
         """
         Return True if path is an existing regular file.
 
         Args:
-            path (str): File path or URL.
+            path (str): Path or URL.
             client_kwargs (dict): Client arguments.
 
         Returns:
             bool: True if file exists.
         """
-        try:
-            self.head(path, client_kwargs)
-        except ObjectNotFoundError:
-            return False
-        return True
+        if path[-1] != '/':
+            return self.exists(path=path, client_kwargs=client_kwargs)
+        return False
 
     @property
     def storage_parameters(self):
@@ -196,7 +226,7 @@ class SystemBase(ABC):
         Returns object HTTP header.
 
         Args:
-            path (str): File path or URL.
+            path (str): Path or URL.
             client_kwargs (dict): Client arguments.
             header (dict): Object header.
 
@@ -245,7 +275,9 @@ class SystemBase(ABC):
                     relative = root.split(path, maxsplit=1)[1]
                 else:
                     relative = path.split(root, 1)[1]
-                return relative.strip(r'\/')
+                # Strip "/" only at path start. "/" is used to known if
+                # path is a directory on some cloud storage.
+                return relative.lstrip('/')
             except IndexError:
                 continue
         return path

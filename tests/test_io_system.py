@@ -65,11 +65,17 @@ def test_system_base():
     assert system.relpath('scheme://path') == 'path'
     assert system.relpath('path') == 'path'
 
-    # Tests isfile
-    assert system.isfile('path')
+    # Tests exists, isdir, isfile
+    assert system.exists('path')
     raise_not_exists_exception = True
-    assert not system.isfile('path')
+    assert not system.exists('path')
     raise_not_exists_exception = False
+
+    assert system.isfile('path')
+    assert not system.isfile('path/')
+
+    assert system.isdir('path/')
+    assert not system.isdir('path')
 
     # Test empty header
     header = {}
