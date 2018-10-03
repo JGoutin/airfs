@@ -2,6 +2,8 @@
 """Test pycosio._core.function_*"""
 
 from io import BytesIO
+from platform import platform
+from sys import version_info
 
 import pytest
 
@@ -126,7 +128,12 @@ def test_equivalent_functions():
         relative = old_relative
 
         # samefile
-        assert std.samefile(__file__, __file__)
+        if version_info[0] == 2 and platform().startswith('Windows'):
+            with pytest.raises(NotImplementedError):
+                std.samefile(__file__, __file__)
+        else:
+            assert std.samefile(__file__, __file__)
+
         assert std.samefile(dummy_path, dummy_path)
         assert not std.samefile(dummy_path, relative)
         assert not std.samefile(relative, dummy_path)

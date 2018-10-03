@@ -1,7 +1,16 @@
 # coding=utf-8
 """Cloud object compatibles standard library 'os.path' equivalent functions"""
 import os
-from os.path import relpath as os_path_relpath, samefile as os_path_samefile
+from os.path import relpath as os_path_relpath
+
+try:
+    from os.path import samefile as os_path_samefile
+except ImportError:
+    # Python 2 compatibility: Not available on Windows
+
+    def os_path_samefile(*_, **__):
+        raise NotImplementedError(
+            '"os.path.samefile" not available on windows with Python 2.')
 
 from pycosio._core.storage_manager import get_instance
 from pycosio._core.functions_core import equivalent_to, format_and_is_storage
