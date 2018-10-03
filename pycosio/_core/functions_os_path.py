@@ -180,7 +180,7 @@ def splitdrive(path):
         tuple of str: drive, tail.
     """
     relative = get_instance(path).relpath(path)
-    drive = path.rsplit(relative, maxsplit=1)[0]
+    drive = path.rsplit(relative, 1)[0]
     if drive and not drive[-2:] == '//':
         # Keep "/" tail side
         relative = '/' + relative
