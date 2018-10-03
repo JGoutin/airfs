@@ -4,6 +4,11 @@ Changelog
 1.1.0 (2018/10)
 ---------------
 
+New standard library equivalent functions:
+
+* ``os.path.isabs``, ``os.path.ismount``, ``os.path.samefile``,
+  ``os.path.splitdrive``.
+
 Backward incompatible change:
 
 * ``mount`` argument ``extra_url_prefix`` is renamed to more relevant and
@@ -47,9 +52,8 @@ Possibles futures features
       ``os.rmdir``, ``os.removedirs``, ``os.scandir``, ``os.stat``, ``os.walk``,
       ``os.rename``, ``os.renames``, ``os.replace``, ``shutil.move``,
       ``os.chmod``, ``os.mkdir``, ``os.makedirs``, ``os.path.exists``,
-      ``os.path.isdir``, ``os.path.isabs``, ``os.path.ismount``,
-      ``os.path.splitdrive``, ``os.path.samefile``, ``shutil.copyfile``,
-      ``shutil.copytree``, ``shutil.rmtree``.
+      ``os.path.isdir``, ``shutil.copyfile``, ``shutil.copytree``,
+      ``shutil.rmtree``.
 * More cloud storage.
 * Extra ``max_buffers`` for swap on local disk in ``ObjectBufferedIOBase``.
 * Global computer resource managements for cloud object IO.

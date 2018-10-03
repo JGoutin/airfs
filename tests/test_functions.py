@@ -68,7 +68,9 @@ def test_equivalent_functions():
     # Mock system
 
     root = 'dummy://'
-    dummy_path = root + 'dir1/dir2/dir3'
+    relative = 'dir1/dir2/dir3'
+    dummy_path = root + relative
+    excepted_path = dummy_path
     result = 'result'
 
     class System:
@@ -77,8 +79,9 @@ def test_equivalent_functions():
         @staticmethod
         def relpath(path):
             """Checks arguments and returns fake result"""
-            assert path == dummy_path
-            return path.split('://')[1]
+            if excepted_path:
+                assert path.startswith(excepted_path)
+            return path.split(root)[1].strip('/')
 
     system = System()
     MOUNTED[root] = dict(system_cached=system)
@@ -89,7 +92,7 @@ def test_equivalent_functions():
 
         def basic_function(path):
             """"Checks arguments and returns fake result"""
-            assert path == dummy_path
+            assert path == excepted_path
             return result
 
         for name in ('getsize', 'getmtime', 'isfile'):
@@ -97,8 +100,43 @@ def test_equivalent_functions():
             assert getattr(std, name)(dummy_path) == result
 
         # relpath
-        assert std.relpath(dummy_path) == 'dir1/dir2/dir3'
+        assert std.relpath(dummy_path) == relative
         assert std.relpath(dummy_path, start='dir1/') == 'dir2/dir3'
+
+        # ismount
+        assert std.ismount(dummy_path) is False
+        excepted_path = root
+        assert std.ismount(root) is True
+
+        # isabs
+        excepted_path = dummy_path
+        assert std.isabs(dummy_path) is True
+        excepted_path = relative
+        assert std.isabs(excepted_path) is False
+
+        # splitdrive
+        excepted_path = dummy_path
+        assert std.splitdrive(dummy_path) == (root, relative)
+        old_root = root
+        old_relative = relative
+        relative = 'dir2/dir3'
+        root += 'dir1'
+        assert std.splitdrive(dummy_path) == (root, '/' + relative)
+        root = old_root
+        relative = old_relative
+
+        # samefile
+        assert std.samefile(__file__, __file__)
+        assert std.samefile(dummy_path, dummy_path)
+        assert not std.samefile(dummy_path, relative)
+        assert not std.samefile(relative, dummy_path)
+        assert std.samefile(dummy_path, dummy_path + '/')
+        assert not std.samefile(dummy_path, dummy_path + '/dir4')
+
+        root2 = 'dummy2://'
+        MOUNTED[root2] = dict(system_cached=System())
+        excepted_path = ''
+        assert not std.samefile(root2 + relative, dummy_path)
 
     # Clean up
     finally:
