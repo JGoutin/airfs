@@ -56,7 +56,7 @@ Possibles futures features
       ``os.rmdir``, ``os.removedirs``, ``os.scandir``, ``os.stat``, ``os.walk``,
       ``os.rename``, ``os.renames``, ``os.replace``, ``shutil.move``,
       ``os.chmod``, ``shutil.copyfile``, ``shutil.copytree``, ``shutil.rmtree``.
-* ``mode`` is ``makedirs`` and ``mkdir``.
+* ``mode`` support in ``makedirs`` and ``mkdir``.
 * More cloud storage.
 * Extra ``max_buffers`` for swap on local disk in ``ObjectBufferedIOBase``.
 * Global computer resource managements for cloud object IO.
