@@ -29,9 +29,11 @@ def _handle_client_error():
 
     except _ClientError as exception:
         error = exception.response['Error']
-        if error['Code'] in ('403', '404'):
-            raise {'403': ObjectPermissionError,
-                   '404': ObjectNotFoundError}[error['Code']](error['Message'])
+        if error['Code'] in ('403', '404', 'AccessDenied'):
+            raise {
+                'AccessDenied': ObjectPermissionError,
+                '403': ObjectPermissionError,
+                '404': ObjectNotFoundError}[error['Code']](error['Message'])
         raise
 
 

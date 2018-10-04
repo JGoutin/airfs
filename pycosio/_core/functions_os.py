@@ -6,7 +6,6 @@ from os.path import dirname
 from pycosio._core.compat import makedirs as _os_makedirs
 from pycosio._core.storage_manager import get_instance
 from pycosio._core.functions_core import equivalent_to
-from pycosio._core.functions_os_path import isdir
 from pycosio._core.exceptions import ObjectExistsError, ObjectNotFoundError
 
 
@@ -33,17 +32,18 @@ def makedirs(name, mode=0o777, exist_ok=False):
             already exists.
     """
     # TODO: mode
+    system = get_instance(name)
 
     # Checks if directory not already exists
-    if not exist_ok and isdir(name):
+    if not exist_ok and system.isdir(system.ensure_dir_path(name)):
         raise ObjectExistsError("File exists: '%s'" % name)
 
     # Create directory
-    get_instance(name).make_dir(name)
+    system.make_dir(name)
 
 
 @equivalent_to(os.mkdir)
-def mkdir(name, mode=0o777):
+def mkdir(path, mode=0o777):
     """
     Create a directory named path with numeric mode mode.
 
@@ -52,7 +52,7 @@ def mkdir(name, mode=0o777):
     "mode" is currently not yet supported on cloud storage.
 
     Args:
-        name (path-like object): Path or URL.
+        path (path-like object): Path or URL.
         mode (int): The mode parameter is passed to os.mkdir();
             see the os.mkdir() description for how it is interpreted.
 
@@ -61,15 +61,20 @@ def mkdir(name, mode=0o777):
         FileNotFoundError: Parent directory not exists.
     """
     # TODO: mode
+    system = get_instance(path)
+    relative = system.relpath(path)
 
     # Checks if parent directory exists
-    parent = dirname(name)
-    if not isdir(parent):
-        raise ObjectNotFoundError("No such file or directory: '%s'" % parent)
+    parent_dir = dirname(relative.rstrip('/'))
+    if parent_dir:
+        parent = path.rsplit(relative, 1)[0] + parent_dir + '/'
+        if not system.isdir(parent):
+            raise ObjectNotFoundError(
+                "No such file or directory: '%s'" % parent)
 
     # Checks if directory not already exists
-    if not isdir:
-        raise ObjectExistsError("File exists: '%s'" % name)
+    if system.isdir(system.ensure_dir_path(path)):
+        raise ObjectExistsError("File exists: '%s'" % path)
 
     # Create directory
-    get_instance(name).make_dir(name)
+    system.make_dir(relative, relative=True)

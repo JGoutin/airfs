@@ -298,7 +298,8 @@ class SystemBase(ABC):
         a hostname, ...
 
         args:
-            path (str): Absolute path or URL.
+            path (str): path or URL.
+            relative (bool): Path is relative to current root.
 
         Returns:
             bool: True if locator.
@@ -306,7 +307,7 @@ class SystemBase(ABC):
         if not relative:
             path = self.relpath(path)
         # Bucket is the main directory
-        return '/' not in path.rstrip('/')
+        return path and '/' not in path.rstrip('/')
 
     def split_locator(self, path):
         """
@@ -326,17 +327,18 @@ class SystemBase(ABC):
             tail = ''
         return locator, tail
 
-    def make_dir(self, path):
+    def make_dir(self, path, relative=False):
         """
         Make a directory.
 
         Args:
             path (str): Path or URL.
+            relative (bool): Path is relative to current root.
         """
-        relative = self.relpath(path)
-        if relative[-1] != '/' and not self.is_locator(path):
-            relative += '/'
-        self._make_dir(self.get_client_kwargs(relative))
+        if not relative:
+            path = self.relpath(path)
+        self._make_dir(self.get_client_kwargs(self.ensure_dir_path(
+            path, relative=True)))
 
     @abstractmethod
     def _make_dir(self, client_kwargs):
@@ -346,3 +348,27 @@ class SystemBase(ABC):
         args:
             client_kwargs (dict): Client arguments.
         """
+
+    def ensure_dir_path(self, path, relative=False):
+        """
+        Ensure the path is a dir path.
+
+        Should end with '/' except for schemes and locators.
+
+        Args:
+            path (str): Path or URL.
+            relative (bool): Path is relative to current root.
+
+        Returns:
+            path: dir path
+        """
+        if not relative:
+            rel_path = self.relpath(path)
+        else:
+            rel_path = path
+
+        if self.is_locator(rel_path, relative=True):
+            path = path.rstrip('/')
+        elif rel_path and rel_path[-1] != '/':
+            path += '/'
+        return path

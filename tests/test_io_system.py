@@ -94,6 +94,15 @@ def test_system_base():
     assert system.isdir('root://locator')
     assert system.isdir('root://')
 
+    # Test ensure_dir_path
+    assert system.ensure_dir_path(
+        'root://locator/path') == 'root://locator/path/'
+    assert system.ensure_dir_path(
+        'root://locator/path/') == 'root://locator/path/'
+    assert system.ensure_dir_path('root://locator') == 'root://locator'
+    assert system.ensure_dir_path('root://locator/') == 'root://locator'
+    assert system.ensure_dir_path('root://') == 'root://'
+
     # Tests make dir
     system.make_dir('root://locator')
     system.make_dir('root://locator/path')
