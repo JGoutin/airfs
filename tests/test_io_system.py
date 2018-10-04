@@ -107,6 +107,9 @@ def test_system_base():
     system.make_dir('root://locator')
     system.make_dir('root://locator/path')
     system.make_dir('root://locator/path/')
+    system.make_dir('locator', relative=True)
+    system.make_dir('locator/path', relative=True)
+    system.make_dir('locator/path/', relative=True)
 
     # Test empty header
     header = {}

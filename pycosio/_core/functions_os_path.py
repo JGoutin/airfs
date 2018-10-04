@@ -102,7 +102,11 @@ def isdir(path):
     Returns:
         bool: True if directory exists.
     """
-    return get_instance(path).isdir(path)
+    system = get_instance(path)
+
+    # User may use directory path without trailing '/'
+    # like on standard file systems
+    return system.isdir(system.ensure_dir_path(path))
 
 
 @equivalent_to(os.path.isfile)

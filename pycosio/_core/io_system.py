@@ -367,8 +367,12 @@ class SystemBase(ABC):
         else:
             rel_path = path
 
+        # Locator
         if self.is_locator(rel_path, relative=True):
             path = path.rstrip('/')
-        elif rel_path and rel_path[-1] != '/':
-            path += '/'
+
+        # Directory
+        elif rel_path:
+            path = path.rstrip('/') + '/'
+        # else: root
         return path

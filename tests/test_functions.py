@@ -65,7 +65,9 @@ def test_equivalent_to():
 def test_equivalent_functions():
     """Tests functions using pycosio._core.functions_core.equivalent_to"""
     from pycosio._core.storage_manager import MOUNTED
-    import pycosio._core.functions_os_path as std
+    import pycosio._core.functions_os_path as std_os_path
+    import pycosio._core.functions_os as std_os
+    from pycosio._core.io_system import SystemBase
 
     # Mock system
 
@@ -74,8 +76,11 @@ def test_equivalent_functions():
     dummy_path = root + relative
     excepted_path = dummy_path
     result = 'result'
+    dirs_exists = set()
+    dir_created = []
+    check_ending_slash = True
 
-    class System:
+    class System(SystemBase):
         """dummy system"""
 
         @staticmethod
@@ -85,8 +90,34 @@ def test_equivalent_functions():
                 assert path.startswith(excepted_path)
             return path.split(root)[1].strip('/')
 
-    system = System()
-    MOUNTED[root] = dict(system_cached=system)
+        @staticmethod
+        def isdir(path=None, *_, **__):
+            """Checks arguments and returns fake result"""
+            if check_ending_slash:
+                assert path[-1] == '/'
+            return path in dirs_exists
+
+        @staticmethod
+        def _make_dir(*_, **__):
+            """Do nothing"""
+            dir_created.append(1)
+
+        @staticmethod
+        def _head(*_, **__):
+            """Do nothing"""
+
+        @staticmethod
+        def _get_roots(*_, **__):
+            """Do nothing"""
+            return root,
+
+        @staticmethod
+        def _get_client(*_, **__):
+            """Do nothing"""
+
+        @staticmethod
+        def get_client_kwargs(*_, **__):
+            """Do nothing"""
 
     # Tests
     try:
@@ -97,53 +128,93 @@ def test_equivalent_functions():
             assert path == excepted_path
             return result
 
-        for name in ('exists', 'getsize', 'getmtime', 'isdir', 'isfile'):
+        for name in ('exists', 'getsize', 'getmtime', 'isfile'):
+            system = System()
+            MOUNTED[root] = dict(system_cached=system)
             setattr(system, name, basic_function)
-            assert getattr(std, name)(dummy_path) == result
+            assert getattr(std_os_path, name)(dummy_path) == result
+
+        MOUNTED[root] = dict(system_cached=System())
 
         # relpath
-        assert std.relpath(dummy_path) == relative
-        assert std.relpath(dummy_path, start='dir1/') == 'dir2/dir3'
+        assert std_os_path.relpath(dummy_path) == relative
+        assert std_os_path.relpath(dummy_path, start='dir1/') == 'dir2/dir3'
 
         # ismount
-        assert std.ismount(dummy_path) is False
+        assert std_os_path.ismount(dummy_path) is False
         excepted_path = root
-        assert std.ismount(root) is True
+        assert std_os_path.ismount(root) is True
 
         # isabs
         excepted_path = dummy_path
-        assert std.isabs(dummy_path) is True
+        assert std_os_path.isabs(dummy_path) is True
         excepted_path = relative
-        assert std.isabs(excepted_path) is False
+        assert std_os_path.isabs(excepted_path) is False
 
         # splitdrive
         excepted_path = dummy_path
-        assert std.splitdrive(dummy_path) == (root, relative)
+        assert std_os_path.splitdrive(dummy_path) == (root, relative)
         old_root = root
         old_relative = relative
         relative = 'dir2/dir3'
         root += 'dir1'
-        assert std.splitdrive(dummy_path) == (root, '/' + relative)
+        assert std_os_path.splitdrive(dummy_path) == (root, '/' + relative)
         root = old_root
         relative = old_relative
 
         # samefile
         if version_info[0] == 2 and platform().startswith('Windows'):
             with pytest.raises(NotImplementedError):
-                std.samefile(__file__, __file__)
+                std_os_path.samefile(__file__, __file__)
         else:
-            assert std.samefile(__file__, __file__)
+            assert std_os_path.samefile(__file__, __file__)
 
-        assert std.samefile(dummy_path, dummy_path)
-        assert not std.samefile(dummy_path, relative)
-        assert not std.samefile(relative, dummy_path)
-        assert std.samefile(dummy_path, dummy_path + '/')
-        assert not std.samefile(dummy_path, dummy_path + '/dir4')
+        assert std_os_path.samefile(dummy_path, dummy_path)
+        assert not std_os_path.samefile(dummy_path, relative)
+        assert not std_os_path.samefile(relative, dummy_path)
+        assert std_os_path.samefile(dummy_path, dummy_path + '/')
+        assert not std_os_path.samefile(dummy_path, dummy_path + '/dir4')
 
         root2 = 'dummy2://'
         MOUNTED[root2] = dict(system_cached=System())
         excepted_path = ''
-        assert not std.samefile(root2 + relative, dummy_path)
+        assert not std_os_path.samefile(root2 + relative, dummy_path)
+
+        # isdir
+        dirs_exists.add('dummy://locator/dir1/')
+        assert std_os_path.isdir('dummy://locator/dir1/')
+        assert std_os_path.isdir('dummy://locator/dir1')
+
+        # makesdir
+        assert not dir_created
+        std_os.makedirs('dummy://locator/dir1', exist_ok=True)
+        assert dir_created
+
+        dir_created = []
+        with pytest.raises(OSError):
+            std_os.makedirs('dummy://locator/dir1', exist_ok=False)
+        assert not dir_created
+
+        # mkdir
+        dirs_exists.add('dummy://locator/')
+        dirs_exists.add('dummy://')
+
+        with pytest.raises(OSError):
+            std_os.mkdir('dummy://locator/dir_not_exists/dir1')
+        assert not dir_created
+
+        std_os.mkdir('dummy://locator/dir1/dir2')
+        assert dir_created
+
+        dir_created = []
+        check_ending_slash = False
+        with pytest.raises(OSError):
+            std_os.mkdir('dummy://locator/dir1')
+        assert not dir_created
+
+        dir_created = []
+        std_os.mkdir('dummy://locator2/')
+        assert dir_created
 
     # Clean up
     finally:
