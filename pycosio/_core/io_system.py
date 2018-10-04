@@ -178,7 +178,7 @@ class SystemBase(ABC):
         Returns:
             bool: True if directory exists.
         """
-        if path[-1] == '/':
+        if path[-1] == '/' or self.is_locator(path):
             return self.exists(path=path, client_kwargs=client_kwargs)
         return False
 
@@ -193,7 +193,7 @@ class SystemBase(ABC):
         Returns:
             bool: True if file exists.
         """
-        if path[-1] != '/':
+        if path[-1] != '/' and not self.is_locator(path):
             return self.exists(path=path, client_kwargs=client_kwargs)
         return False
 
@@ -218,8 +218,6 @@ class SystemBase(ABC):
         Returns:
             dict: HTTP header.
         """
-        # This is not an abstract method because this may not
-        # be used every time
 
     def head(self, path=None, client_kwargs=None, header=None):
         """
@@ -281,3 +279,37 @@ class SystemBase(ABC):
             except IndexError:
                 continue
         return path
+
+    def is_locator(self, path):
+        """
+        Returns True if path refer to a locator.
+
+        Depending the storage, locator may be a bucket or container name,
+        a hostname, ...
+
+        args:
+            path (str): Absolute path or URL.
+
+        Returns:
+            bool: True if locator.
+        """
+        # Bucket is the main directory
+        return '/' not in self.relpath(path).rstrip('/')
+
+    def split_locator(self, path):
+        """
+        Split the path into a pair (locator, path).
+
+        args:
+            path (str): Absolute path or URL.
+
+        Returns:
+            tuple of str: locator, path.
+        """
+        relative = self.relpath(path)
+        try:
+            locator, tail = relative.split('/', 1)
+        except ValueError:
+            locator = relative
+            tail = ''
+        return locator, tail

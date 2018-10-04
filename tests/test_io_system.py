@@ -71,11 +71,12 @@ def test_system_base():
     assert not system.exists('path')
     raise_not_exists_exception = False
 
-    assert system.isfile('path')
-    assert not system.isfile('path/')
+    assert system.isfile('locator/path')
+    assert not system.isfile('locator/path/')
 
-    assert system.isdir('path/')
-    assert not system.isdir('path')
+    assert system.isdir('locator/path/')
+    assert not system.isdir('locator/path')
+    assert system.isdir('locator')
 
     # Test empty header
     header = {}

@@ -66,8 +66,11 @@ class _S3System(_SystemBase):
         Returns:
             dict: client args
         """
-        bucket_name, key = self.relpath(path).split('/', 1)
-        return dict(Bucket=bucket_name, Key=key)
+        bucket_name, key = self.split_locator(path)
+        kwargs = dict(Bucket=bucket_name)
+        if key:
+            kwargs['Key'] = key
+        return kwargs
 
     def _get_session(self):
         """
@@ -145,7 +148,7 @@ class _S3System(_SystemBase):
 
     def _head(self, client_kwargs):
         """
-        Returns object HTTP header.
+        Returns object or bucket HTTP header.
 
         Args:
             client_kwargs (dict): Client arguments.
@@ -154,7 +157,12 @@ class _S3System(_SystemBase):
             dict: HTTP header.
         """
         with _handle_client_error():
-            return self.client.head_object(**client_kwargs)
+            # Object
+            if 'Key' in client_kwargs:
+                return self.client.head_object(**client_kwargs)
+
+            # Bucket
+            return self.client.head_bucket(**client_kwargs)
 
 
 class S3RawIO(_ObjectRawIOBase):

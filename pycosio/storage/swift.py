@@ -56,8 +56,11 @@ class _SwiftSystem(_SystemBase):
         Returns:
             dict: client args
         """
-        container, obj = self.relpath(path).split('/', 1)
-        return dict(container=container, obj=obj)
+        container, obj = self.split_locator(path)
+        kwargs = dict(container=container)
+        if obj:
+            kwargs['obj'] = obj
+        return kwargs
 
     def _get_client(self):
         """
@@ -95,7 +98,12 @@ class _SwiftSystem(_SystemBase):
             dict: HTTP header.
         """
         with _handle_client_exception():
-            return self.client.head_object(**client_kwargs)
+            # Object
+            if 'obj' in client_kwargs:
+                return self.client.head_object(**client_kwargs)
+
+            # Container
+            return self.client.head_container(**client_kwargs)
 
 
 class SwiftRawIO(_ObjectRawIOBase):

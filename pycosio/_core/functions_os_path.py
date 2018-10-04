@@ -209,7 +209,7 @@ def samefile(path1, path2):
 @equivalent_to(os.path.splitdrive)
 def splitdrive(path):
     """
-    Split the pathname path into a pair (drive, tail) where drive is either a
+    Split the path into a pair (drive, tail) where drive is either a
     mount point or the empty string. On systems which do not use drive
     specifications, drive will always be the empty string.
 

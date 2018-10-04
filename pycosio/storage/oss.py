@@ -66,8 +66,11 @@ class _OSSSystem(_SystemBase):
         Returns:
             dict: client args
         """
-        bucket_name, key = self.relpath(path).split('/', 1)
-        return dict(bucket_name=bucket_name, key=key)
+        bucket_name, key = self.split_locator(path)
+        kwargs = dict(bucket_name=bucket_name)
+        if key:
+            kwargs['key'] = key
+        return kwargs
 
     def _get_client(self):
         """
@@ -113,8 +116,15 @@ class _OSSSystem(_SystemBase):
             dict: HTTP header.
         """
         with _handle_oss_error():
-            return self._get_bucket(client_kwargs).head_object(
-                key=client_kwargs['key']).headers
+            bucket = self._get_bucket(client_kwargs)
+
+            # Object
+            if 'key' in client_kwargs:
+                return bucket.head_object(
+                    key=client_kwargs['key']).headers
+
+            # Bucket
+            return bucket.get_bucket_info().headers
 
 
 class OSSRawIO(_ObjectRawIOBase):
