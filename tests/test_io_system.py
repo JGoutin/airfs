@@ -80,22 +80,24 @@ def test_system_base():
     assert system.split_locator('scheme://locator/path') == ('locator', 'path')
 
     # Tests exists, isdir, isfile
-    assert system.exists('path')
+    assert system.exists('root://path')
     raise_not_exists_exception = True
-    assert not system.exists('path')
+    assert not system.exists('root://path')
     raise_not_exists_exception = False
 
-    assert system.isfile('locator/path')
-    assert not system.isfile('locator/path/')
+    assert system.isfile('root://locator/path')
+    assert not system.isfile('root://locator/path/')
+    assert not system.isfile('root://')
 
-    assert system.isdir('locator/path/')
-    assert not system.isdir('locator/path')
-    assert system.isdir('locator')
+    assert system.isdir('root://locator/path/')
+    assert not system.isdir('root://locator/path')
+    assert system.isdir('root://locator')
+    assert system.isdir('root://')
 
     # Tests make dir
-    system.make_dir('locator')
-    system.make_dir('locator/path')
-    system.make_dir('locator/path/')
+    system.make_dir('root://locator')
+    system.make_dir('root://locator/path')
+    system.make_dir('root://locator/path/')
 
     # Test empty header
     header = {}

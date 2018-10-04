@@ -6,6 +6,7 @@ __version__ = '1.1.0'
 # Adds names to public interface
 # Shadowing "open" built-in name is done to provides "pycosio.open" function
 from pycosio._core.functions_io import cos_open as open
+from pycosio._core.functions_os import makedirs, mkdir
 from pycosio._core.functions_os_path import (
     exists, getmtime, getsize, isabs, isdir, isfile, ismount, relpath, samefile,
     splitdrive)
@@ -15,6 +16,9 @@ from pycosio._core.storage_manager import mount
 __all__ = list(sorted((
     # Standard library "io"
     'open',
+
+    # Standard library "os"
+    'makedirs', 'mkdir',
 
     # Standard library "os.path"
     'exists', 'getmtime', 'getsize', 'isabs', 'isdir', 'isfile', 'ismount',

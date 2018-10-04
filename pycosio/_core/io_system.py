@@ -178,7 +178,12 @@ class SystemBase(ABC):
         Returns:
             bool: True if directory exists.
         """
-        if path[-1] == '/' or self.is_locator(path):
+        relative = self.relpath(path)
+        if not relative:
+            # Root always exists and is a directory
+            return True
+
+        if path[-1] == '/' or self.is_locator(relative, relative=True):
             return self.exists(path=path, client_kwargs=client_kwargs)
         return False
 
@@ -193,7 +198,12 @@ class SystemBase(ABC):
         Returns:
             bool: True if file exists.
         """
-        if path[-1] != '/' and not self.is_locator(path):
+        relative = self.relpath(path)
+        if not relative:
+            # Root always exists and is a directory
+            return False
+
+        if path[-1] != '/' and not self.is_locator(path, relative=True):
             return self.exists(path=path, client_kwargs=client_kwargs)
         return False
 
@@ -280,7 +290,7 @@ class SystemBase(ABC):
                 continue
         return path
 
-    def is_locator(self, path):
+    def is_locator(self, path, relative=False):
         """
         Returns True if path refer to a locator.
 
@@ -293,8 +303,10 @@ class SystemBase(ABC):
         Returns:
             bool: True if locator.
         """
+        if not relative:
+            path = self.relpath(path)
         # Bucket is the main directory
-        return '/' not in self.relpath(path).rstrip('/')
+        return '/' not in path.rstrip('/')
 
     def split_locator(self, path):
         """

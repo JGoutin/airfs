@@ -7,7 +7,7 @@ Changelog
 New standard library equivalent functions:
 
 * ``os.path.exists``, ``os.path.isabs``, ``os.path.isdir``, ``os.path.ismount``,
-  ``os.path.samefile``, ``os.path.splitdrive``.
+  ``os.path.samefile``, ``os.path.splitdrive``, ``os.makedirs``, ``os.mkdir``.
 
 Backward incompatible change:
 
@@ -55,8 +55,8 @@ Possibles futures features
     * ``os.listdir``, ``os.remove`` / ``os.unlink```,
       ``os.rmdir``, ``os.removedirs``, ``os.scandir``, ``os.stat``, ``os.walk``,
       ``os.rename``, ``os.renames``, ``os.replace``, ``shutil.move``,
-      ``os.chmod``, ``os.mkdir``, ``os.makedirs``, ``shutil.copyfile``,
-      ``shutil.copytree``, ``shutil.rmtree``.
+      ``os.chmod``, ``shutil.copyfile``, ``shutil.copytree``, ``shutil.rmtree``.
+* ``mode`` is ``makedirs`` and ``mkdir``.
 * More cloud storage.
 * Extra ``max_buffers`` for swap on local disk in ``ObjectBufferedIOBase``.
 * Global computer resource managements for cloud object IO.
