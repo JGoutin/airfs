@@ -105,6 +105,14 @@ def test_s3_raw_io():
             assert len(kwargs['Body']) == len(s3object._write_buffer)
             put_object_called.append(1)
 
+        @staticmethod
+        def head_bucket(**kwargs):
+            """Mock boto3 head_bucket
+            Check arguments and returns fake value"""
+            assert 'Key' not in kwargs
+            assert 'Bucket' in kwargs
+            return dict(Bucket=kwargs['Bucket'])
+
     class Session:
         """Dummy Session"""
         client = Client
@@ -131,6 +139,7 @@ def test_s3_raw_io():
 
         # Tests head
         check_head_methods(_S3System(), m_time, path=path)
+        assert _S3System().head(path='s3://' + bucket)['Bucket'] == bucket
 
         # Tests read
         check_raw_read_methods(s3object)

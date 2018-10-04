@@ -65,6 +65,13 @@ def test_system_base():
     assert system.relpath('scheme://path') == 'path'
     assert system.relpath('path') == 'path'
 
+    # Tests locator
+    assert system.is_locator('scheme://locator')
+    assert not system.is_locator('scheme://locator/path')
+
+    assert system.split_locator('scheme://locator') == ('locator', '')
+    assert system.split_locator('scheme://locator/path') == ('locator', 'path')
+
     # Tests exists, isdir, isfile
     assert system.exists('path')
     raise_not_exists_exception = True

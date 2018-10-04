@@ -105,6 +105,14 @@ def test_oss_raw_io():
             assert len(data) == len(ossobject._write_buffer)
             put_object_called.append(1)
 
+        @staticmethod
+        def get_bucket_info():
+            """Returns fake value"""
+            response = Response()
+            response.headers = dict(bucket_name=bucket)
+            return response
+
+
     oss2_auth = oss2.Auth
     oss2_stsauth = oss2.StsAuth
     oss2_anonymousauth = oss2.AnonymousAuth
@@ -128,6 +136,8 @@ def test_oss_raw_io():
         # Tests head
         check_head_methods(_OSSSystem(
             storage_parameters=storage_kwargs), m_time, path=path)
+        assert _OSSSystem(storage_parameters=storage_kwargs).head(
+            path='oss://' + bucket)['bucket_name'] == bucket
 
         # Tests read
         check_raw_read_methods(ossobject)

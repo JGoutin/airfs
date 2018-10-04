@@ -98,6 +98,14 @@ def test_swift_raw_io():
             assert contents
             put_object_called.append(1)
 
+        @staticmethod
+        def head_container(**kwargs):
+            """Check arguments and returns fake value"""
+            assert 'obj' not in kwargs
+            assert 'container' in kwargs
+            return dict(container=kwargs['container'])
+
+
     swiftclient_client_connection = swiftclient.client.Connection
     swiftclient.client.Connection = Connection
 
@@ -107,6 +115,8 @@ def test_swift_raw_io():
 
         # Tests head
         check_head_methods(_SwiftSystem(), m_time, path=path)
+        assert _SwiftSystem().head(
+            path=container_name)['container'] == container_name
 
         # Tests read
         check_raw_read_methods(swift_object)
