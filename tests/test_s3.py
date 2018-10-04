@@ -49,7 +49,9 @@ def test_s3_raw_io():
     client_args = dict(Bucket=bucket, Key=key_value)
     path = '%s/%s' % (bucket, key_value)
     url = 's3://' + path
+    bucket_url = 's3://' + bucket
     put_object_called = []
+    create_bucket_called = []
     m_time = time.time()
     s3object = None
     raises_exception = False
@@ -99,10 +101,13 @@ def test_s3_raw_io():
         def put_object(**kwargs):
             """Mock boto3 put_object
             Check arguments and returns fake value"""
-            for key, value in client_args.items():
-                assert key in kwargs
-                assert kwargs[key] == value
-            assert len(kwargs['Body']) == len(s3object._write_buffer)
+            if kwargs['Key'][-1] == '/':
+                assert kwargs['Body'] == b''
+            else:
+                for key, value in client_args.items():
+                    assert key in kwargs
+                    assert kwargs[key] == value
+                assert len(kwargs['Body']) == len(s3object._write_buffer)
             put_object_called.append(1)
 
         @staticmethod
@@ -112,6 +117,14 @@ def test_s3_raw_io():
             assert 'Key' not in kwargs
             assert 'Bucket' in kwargs
             return dict(Bucket=kwargs['Bucket'])
+
+        @staticmethod
+        def create_bucket(**kwargs):
+            """Mock boto3 create_bucket
+            Check arguments and returns fake value"""
+            assert 'Key' not in kwargs
+            assert 'Bucket' in kwargs
+            create_bucket_called.append(1)
 
     class Session:
         """Dummy Session"""
@@ -128,6 +141,19 @@ def test_s3_raw_io():
 
     # Tests
     try:
+        s3system = _S3System()
+
+        # Tests head
+        check_head_methods(s3system, m_time, path=path)
+        assert s3system.head(path=bucket_url)['Bucket'] == bucket
+
+        # Tests create directory
+        s3system.make_dir(bucket_url)
+        s3system.make_dir(url)
+        assert len(create_bucket_called) == 1
+        assert len(put_object_called) == 1
+        put_object_called = []
+
         # Tests path and URL handling
         s3object = S3RawIO(url)
         assert s3object._client_kwargs == client_args
@@ -136,10 +162,6 @@ def test_s3_raw_io():
         s3object = S3RawIO(path)
         assert s3object._client_kwargs == client_args
         assert s3object.name == path
-
-        # Tests head
-        check_head_methods(_S3System(), m_time, path=path)
-        assert _S3System().head(path='s3://' + bucket)['Bucket'] == bucket
 
         # Tests read
         check_raw_read_methods(s3object)
@@ -154,7 +176,7 @@ def test_s3_raw_io():
         assert not put_object_called
         s3object.write(50 * BYTE)
         s3object.flush()
-        assert put_object_called == [1]
+        assert len(put_object_called) == 1
 
     # Restore mocked class
     finally:

@@ -30,6 +30,7 @@ def test_system_base():
         def get_client_kwargs(self, path):
             """Checks arguments and returns fake result"""
             assert path
+            dummy_client_kwargs['path'] = path
             return dummy_client_kwargs
 
         def _get_client(self):
@@ -46,6 +47,12 @@ def test_system_base():
             if raise_not_exists_exception:
                 raise ObjectNotFoundError
             return header
+
+        def _make_dir(self, client_kwargs):
+            """Checks arguments"""
+            path = client_kwargs['path']
+            assert '/' not in path or path[-1] == '/'
+            assert client_kwargs == dummy_client_kwargs
 
     system = DummySystem(storage_parameters=storage_parameters)
 
@@ -84,6 +91,11 @@ def test_system_base():
     assert system.isdir('locator/path/')
     assert not system.isdir('locator/path')
     assert system.isdir('locator')
+
+    # Tests make dir
+    system.make_dir('locator')
+    system.make_dir('locator/path')
+    system.make_dir('locator/path/')
 
     # Test empty header
     header = {}

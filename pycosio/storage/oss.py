@@ -126,6 +126,24 @@ class _OSSSystem(_SystemBase):
             # Bucket
             return bucket.get_bucket_info().headers
 
+    def _make_dir(self, client_kwargs):
+        """
+        Make a directory.
+
+        args:
+            client_kwargs (dict): Client arguments.
+        """
+        with _handle_oss_error():
+            bucket = self._get_bucket(client_kwargs)
+
+            # Object
+            if 'key' in client_kwargs:
+                return bucket.put_object(
+                    key=client_kwargs['key'], data=b'')
+
+            # Bucket
+            return bucket.create_bucket()
+
 
 class OSSRawIO(_ObjectRawIOBase):
     """Binary OSS Object I/O

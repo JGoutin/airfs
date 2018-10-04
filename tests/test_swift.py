@@ -49,6 +49,7 @@ def test_swift_raw_io():
     path = '/'.join((container_name, object_name))
     raises_exception = False
     put_object_called = []
+    put_container_called = []
 
     # Mocks swiftclient
 
@@ -94,9 +95,18 @@ def test_swift_raw_io():
         def put_object(container, obj, contents, **_):
             """Check arguments and returns fake result"""
             assert container == container_name
-            assert obj == object_name
-            assert contents
+            assert obj.startswith(object_name)
+            if obj[-1] != '/':
+                assert contents
+            else:
+                assert contents == b''
             put_object_called.append(1)
+
+        @staticmethod
+        def put_container(container, **_):
+            """Check arguments and returns fake result"""
+            assert container == container_name
+            put_container_called.append(1)
 
         @staticmethod
         def head_container(**kwargs):
@@ -105,18 +115,25 @@ def test_swift_raw_io():
             assert 'container' in kwargs
             return dict(container=kwargs['container'])
 
-
     swiftclient_client_connection = swiftclient.client.Connection
     swiftclient.client.Connection = Connection
 
     # Tests
     try:
         swift_object = SwiftRawIO(path)
+        swift_system = _SwiftSystem()
 
         # Tests head
-        check_head_methods(_SwiftSystem(), m_time, path=path)
-        assert _SwiftSystem().head(
+        check_head_methods(swift_system, m_time, path=path)
+        assert swift_system.head(
             path=container_name)['container'] == container_name
+
+        # Tests create directory
+        swift_system.make_dir(container_name)
+        swift_system.make_dir(path)
+        assert len(put_container_called) == 1
+        assert len(put_object_called) == 1
+        put_object_called = []
 
         # Tests read
         check_raw_read_methods(swift_object)
@@ -133,7 +150,7 @@ def test_swift_raw_io():
         assert not put_object_called
         swift_object.write(50 * BYTE)
         swift_object.flush()
-        assert put_object_called == [1]
+        assert len(put_object_called) == 1
 
     # Restore mocked functions
     finally:

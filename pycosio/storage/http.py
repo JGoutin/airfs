@@ -85,6 +85,15 @@ class _HTTPSystem(_SystemBase):
             self.client.request(
                 'HEAD', timeout=self._TIMEOUT, **client_kwargs)).headers
 
+    def _make_dir(self, client_kwargs):
+        """
+        Make a directory.
+
+        args:
+            client_kwargs (dict): Client arguments.
+        """
+        raise NotImplementedError
+
 
 class HTTPRawIO(_ObjectRawIOBase):
     """Binary HTTP Object I/O

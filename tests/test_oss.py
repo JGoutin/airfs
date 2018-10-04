@@ -47,8 +47,10 @@ def test_oss_raw_io():
     client_args = dict(bucket_name=bucket, key=key_value)
     path = '%s/%s' % (bucket, key_value)
     url = 'oss://' + path
+    bucket_url = 'oss://' + bucket
     oss_endpoint = 'https://oss-nowhere.aliyuncs.com'
     put_object_called = []
+    create_bucket_called = []
     m_time = time.time()
     ossobject = None
     raises_exception = False
@@ -101,8 +103,11 @@ def test_oss_raw_io():
         @staticmethod
         def put_object(key=None, data=None, **_):
             """Check arguments and returns fake value"""
-            assert key == key_value
-            assert len(data) == len(ossobject._write_buffer)
+            assert key.startswith(key_value)
+            if key[-1] == '/':
+                assert data == b''
+            else:
+                assert len(data) == len(ossobject._write_buffer)
             put_object_called.append(1)
 
         @staticmethod
@@ -112,6 +117,10 @@ def test_oss_raw_io():
             response.headers = dict(bucket_name=bucket)
             return response
 
+        @staticmethod
+        def create_bucket():
+            """Returns fake value"""
+            create_bucket_called.append(1)
 
     oss2_auth = oss2.Auth
     oss2_stsauth = oss2.StsAuth
@@ -124,6 +133,20 @@ def test_oss_raw_io():
 
     # Tests
     try:
+
+        oss_system = _OSSSystem(storage_parameters=storage_kwargs)
+
+        # Tests head
+        check_head_methods(oss_system, m_time, path=path)
+        assert oss_system.head(path=bucket_url)['bucket_name'] == bucket
+
+        # Tests create directory
+        oss_system.make_dir(bucket_url)
+        oss_system.make_dir(url)
+        assert len(create_bucket_called) == 1
+        assert len(put_object_called) == 1
+        put_object_called = []
+
         # Tests path and URL handling
         ossobject = OSSRawIO(url, storage_parameters=storage_kwargs)
         assert ossobject._client_kwargs == client_args
@@ -132,12 +155,6 @@ def test_oss_raw_io():
         ossobject = OSSRawIO(path, storage_parameters=storage_kwargs)
         assert ossobject._client_kwargs == client_args
         assert ossobject.name == path
-
-        # Tests head
-        check_head_methods(_OSSSystem(
-            storage_parameters=storage_kwargs), m_time, path=path)
-        assert _OSSSystem(storage_parameters=storage_kwargs).head(
-            path='oss://' + bucket)['bucket_name'] == bucket
 
         # Tests read
         check_raw_read_methods(ossobject)

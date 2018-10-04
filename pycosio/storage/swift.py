@@ -105,6 +105,22 @@ class _SwiftSystem(_SystemBase):
             # Container
             return self.client.head_container(**client_kwargs)
 
+    def _make_dir(self, client_kwargs):
+        """
+        Make a directory.
+
+        args:
+            client_kwargs (dict): Client arguments.
+        """
+        with _handle_client_exception():
+            # Object
+            if 'obj' in client_kwargs:
+                return self.client.put_object(
+                    client_kwargs['container'], client_kwargs['obj'], b'')
+
+            # Container
+            return self.client.put_container(client_kwargs['container'])
+
 
 class SwiftRawIO(_ObjectRawIOBase):
     """Binary OpenStack Swift Object I/O

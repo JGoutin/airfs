@@ -116,6 +116,10 @@ def test_http_raw_io():
         http_object = HTTPRawIO('http://accelize.com')
         assert not http_object.seekable()
 
+        # Test not implemented features
+        with pytest.raises(NotImplementedError):
+            _HTTPSystem().make_dir('path')
+
     # Restore mocked functions
     finally:
         requests.Session = requests_session

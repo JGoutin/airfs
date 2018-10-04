@@ -164,6 +164,21 @@ class _S3System(_SystemBase):
             # Bucket
             return self.client.head_bucket(**client_kwargs)
 
+    def _make_dir(self, client_kwargs):
+        """
+        Make a directory.
+
+        args:
+            client_kwargs (dict): Client arguments.
+        """
+        with _handle_client_error():
+            # Object
+            if 'Key' in client_kwargs:
+                return self.client.put_object(Body=b'', **client_kwargs)
+
+            # Bucket
+            return self.client.create_bucket(Bucket=client_kwargs['Bucket'])
+
 
 class S3RawIO(_ObjectRawIOBase):
     """Binary S3 Object I/O

@@ -313,3 +313,24 @@ class SystemBase(ABC):
             locator = relative
             tail = ''
         return locator, tail
+
+    def make_dir(self, path):
+        """
+        Make a directory.
+
+        Args:
+            path (str): Path or URL.
+        """
+        relative = self.relpath(path)
+        if relative[-1] != '/' and not self.is_locator(path):
+            relative += '/'
+        self._make_dir(self.get_client_kwargs(relative))
+
+    @abstractmethod
+    def _make_dir(self, client_kwargs):
+        """
+        Make a directory.
+
+        args:
+            client_kwargs (dict): Client arguments.
+        """
