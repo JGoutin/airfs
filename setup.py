@@ -38,7 +38,7 @@ PACKAGE_INFO = dict(
     project_urls={
         'Documentation': 'https://pycosio.readthedocs.io',
         'Download': 'https://pypi.org/project/pycosio'},
-    license='Apache',
+    license='Apache License, Version 2.0',
     python_requires='>=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*',
     install_requires=[
         'requests>=2.9.0',
