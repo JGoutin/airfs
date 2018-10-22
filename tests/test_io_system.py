@@ -13,6 +13,7 @@ def test_system_base():
     """Tests pycosio._core.io_system.SystemBase"""
     from pycosio._core.io_system import SystemBase
     from pycosio._core.exceptions import ObjectNotFoundError
+    from io import UnsupportedOperation
 
     # Mocks subclass
     m_time = time.time()
@@ -117,3 +118,7 @@ def test_system_base():
         system.getmtime('path')
     with pytest.raises(TypeError):
         system.getsize('path')
+
+    # Test default unsupported
+    with pytest.raises(UnsupportedOperation):
+        system.copy('path1', 'path2')

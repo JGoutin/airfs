@@ -27,7 +27,7 @@ def _copy(src, dst, src_is_storage, dst_is_storage):
         if system is get_instance(dst):
 
             # Checks if same file
-            if system.relpath(src) != system.relpath(dst):
+            if system.relpath(src) == system.relpath(dst):
                 raise same_file_error(
                     "'%s' and '%s' are the same file" % (src, dst))
 

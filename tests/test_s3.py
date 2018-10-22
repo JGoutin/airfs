@@ -126,6 +126,14 @@ def test_s3_raw_io():
             assert 'Bucket' in kwargs
             create_bucket_called.append(1)
 
+        @staticmethod
+        def copy_object(CopySource=None, **kwargs):
+            """Mock boto3 create_bucket
+            Check arguments"""
+            for key in ('Key', 'Bucket'):
+                assert key in CopySource
+                assert key in kwargs
+
     class Session:
         """Dummy Session"""
         client = Client
@@ -153,6 +161,9 @@ def test_s3_raw_io():
         assert len(create_bucket_called) == 1
         assert len(put_object_called) == 1
         put_object_called = []
+
+        # Tests copy
+        s3system.copy(url, url)
 
         # Tests path and URL handling
         s3object = S3RawIO(url)

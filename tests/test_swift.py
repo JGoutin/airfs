@@ -115,6 +115,12 @@ def test_swift_raw_io():
             assert 'container' in kwargs
             return dict(container=kwargs['container'])
 
+        @staticmethod
+        def copy_object(**kwargs):
+            """Check arguments"""
+            for key in ('container', 'obj', 'destination'):
+                assert key in kwargs
+
     swiftclient_client_connection = swiftclient.client.Connection
     swiftclient.client.Connection = Connection
 
@@ -134,6 +140,9 @@ def test_swift_raw_io():
         assert len(put_container_called) == 1
         assert len(put_object_called) == 1
         put_object_called = []
+
+        # Tests copy
+        swift_system.copy(path, path)
 
         # Tests read
         check_raw_read_methods(swift_object)
