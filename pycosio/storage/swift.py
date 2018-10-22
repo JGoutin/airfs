@@ -137,6 +137,22 @@ class _SwiftSystem(_SystemBase):
             # Container
             return self.client.put_container(client_kwargs['container'])
 
+    def _remove(self, client_kwargs):
+        """
+        Remove an object.
+
+        args:
+            client_kwargs (dict): Client arguments.
+        """
+        with _handle_client_exception():
+            # Object
+            if 'obj' in client_kwargs:
+                return self.client.delete_object(
+                    client_kwargs['container'], client_kwargs['obj'])
+
+            # Container
+            return self.client.delete_container(client_kwargs['container'])
+
 
 class SwiftRawIO(_ObjectRawIOBase):
     """Binary OpenStack Swift Object I/O

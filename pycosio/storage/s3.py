@@ -197,6 +197,21 @@ class _S3System(_SystemBase):
             # Bucket
             return self.client.create_bucket(Bucket=client_kwargs['Bucket'])
 
+    def _remove(self, client_kwargs):
+        """
+        Remove an object.
+
+        args:
+            client_kwargs (dict): Client arguments.
+        """
+        with _handle_client_error():
+            # Object
+            if 'Key' in client_kwargs:
+                return self.client.delete_object(**client_kwargs)
+
+            # Bucket
+            return self.client.delete_bucket(Bucket=client_kwargs['Bucket'])
+
 
 class S3RawIO(_ObjectRawIOBase):
     """Binary S3 Object I/O

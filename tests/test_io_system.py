@@ -55,6 +55,10 @@ def test_system_base():
             assert '/' not in path or path[-1] == '/'
             assert client_kwargs == dummy_client_kwargs
 
+        def _remove(self, client_kwargs):
+            """Checks arguments"""
+            # TODO
+
     system = DummySystem(storage_parameters=storage_parameters)
 
     # Tests basic methods

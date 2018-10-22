@@ -103,6 +103,10 @@ def test_equivalent_functions():
             dir_created.append(1)
 
         @staticmethod
+        def _remove(*_, **__):
+            """Do nothing"""
+
+        @staticmethod
         def _head(*_, **__):
             """Do nothing"""
 
@@ -262,6 +266,10 @@ def test_cos_open(tmpdir):
 
         @staticmethod
         def _make_dir(*_, **__):
+            """Do nothing"""
+
+        @staticmethod
+        def _remove(*_, **__):
             """Do nothing"""
 
         @staticmethod

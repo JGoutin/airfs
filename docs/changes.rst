@@ -6,7 +6,7 @@ Changelog
 
 New standard library equivalent functions:
 
-* ``shutil.copyfile``
+* ``shutil.copyfile``, ``os.remove`` / ``os.unlink``, ``os.rmdir``
 
 Improvements
 
@@ -72,10 +72,9 @@ Possibles futures features
 --------------------------
 
 * Equivalent functions of:
-    * ``os.listdir``, ``os.remove`` / ``os.unlink```,
-      ``os.rmdir``, ``os.removedirs``, ``os.scandir``, ``os.stat``, ``os.walk``,
-      ``os.rename``, ``os.renames``, ``os.replace``, ``shutil.move``,
-      ``os.chmod``, ``shutil.copytree``, ``shutil.rmtree``.
+    * ``os.listdir``, ``os.removedirs``, ``os.scandir``,
+      ``os.stat``, ``os.walk``, ``os.rename``, ``os.renames``, ``os.replace``,
+      ``shutil.move``, ``os.chmod``, ``shutil.copytree``, ``shutil.rmtree``.
 * ``mode`` support in ``makedirs`` and ``mkdir``.
 * More cloud storage.
 * Extra ``max_buffers`` for swap on local disk in ``ObjectBufferedIOBase``.

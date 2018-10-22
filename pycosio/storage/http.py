@@ -94,6 +94,15 @@ class _HTTPSystem(_SystemBase):
         """
         raise _UnsupportedOperation('mkdir')
 
+    def _remove(self, client_kwargs):
+        """
+        Remove an object.
+
+        args:
+            client_kwargs (dict): Client arguments.
+        """
+        raise _UnsupportedOperation('remove')
+
 
 class HTTPRawIO(_ObjectRawIOBase):
     """Binary HTTP Object I/O

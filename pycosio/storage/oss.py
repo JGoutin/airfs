@@ -147,6 +147,23 @@ class _OSSSystem(_SystemBase):
             # Bucket
             return bucket.create_bucket()
 
+    def _remove(self, client_kwargs):
+        """
+        Remove an object.
+
+        args:
+            client_kwargs (dict): Client arguments.
+        """
+        with _handle_oss_error():
+            bucket = self._get_bucket(client_kwargs)
+
+            # Object
+            if 'key' in client_kwargs:
+                return bucket.delete_object(key=client_kwargs['key'])
+
+            # Bucket
+            return bucket.delete_bucket()
+
 
 class OSSRawIO(_ObjectRawIOBase):
     """Binary OSS Object I/O

@@ -360,6 +360,27 @@ class SystemBase(ABC):
             client_kwargs (dict): Client arguments.
         """
 
+    def remove(self, path, relative=False):
+        """
+        Remove an object.
+
+        Args:
+            path (str): Path or URL.
+            relative (bool): Path is relative to current root.
+        """
+        if not relative:
+            path = self.relpath(path)
+        self._remove(self.get_client_kwargs(path))
+
+    @abstractmethod
+    def _remove(self, client_kwargs):
+        """
+        Remove an object.
+
+        args:
+            client_kwargs (dict): Client arguments.
+        """
+
     def ensure_dir_path(self, path, relative=False):
         """
         Ensure the path is a dir path.

@@ -78,3 +78,50 @@ def mkdir(path, mode=0o777):
 
     # Create directory
     system.make_dir(relative, relative=True)
+
+
+@equivalent_to(os.remove)
+def remove(path, dir_fd=None):
+    """
+    Remove a file.
+
+    Equivalent to "os.remove" and "os.unlink".
+
+    Args:
+        path (path-like object): Path or URL.
+        dir_fd: directory descriptors;
+            see the os.remove() description for how it is interpreted.
+            Not support on cloud objects.
+    """
+    system = get_instance(path)
+
+    # Only support files
+    path = path.rstrip('/')
+    if system.is_locator(path):
+        raise OSError("'%s' is a directory" % path)
+
+    # Remove
+    system.remove(path)
+    # TODO: Checks if removed and raise exceptions
+
+
+# Unlink is alias of remove
+unlink = remove
+
+
+@equivalent_to(os.rmdir)
+def rmdir(path, dir_fd=None):
+    """
+    Remove a directory.
+
+    Equivalent to "os.rmdir".
+
+    Args:
+        path (path-like object): Path or URL.
+        dir_fd: directory descriptors;
+            see the os.rmdir() description for how it is interpreted.
+            Not support on cloud objects.
+    """
+    system = get_instance(path)
+    system.remove(system.ensure_dir_path(path))
+    # TODO: Checks if removed and raise exceptions
