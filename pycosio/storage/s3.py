@@ -14,6 +14,12 @@ from pycosio.io import (
     ObjectBufferedIOBase as _ObjectBufferedIOBase,
     SystemBase as _SystemBase)
 
+_ERROR_CODES = {
+    'AccessDenied': ObjectPermissionError,
+    'NoSuchKey': ObjectNotFoundError,
+    '403': ObjectPermissionError,
+    '404': ObjectNotFoundError}
+
 
 @_contextmanager
 def _handle_client_error():
@@ -29,11 +35,8 @@ def _handle_client_error():
 
     except _ClientError as exception:
         error = exception.response['Error']
-        if error['Code'] in ('403', '404', 'AccessDenied'):
-            raise {
-                'AccessDenied': ObjectPermissionError,
-                '403': ObjectPermissionError,
-                '404': ObjectNotFoundError}[error['Code']](error['Message'])
+        if error['Code'] in _ERROR_CODES:
+            raise _ERROR_CODES[error['Code']](error['Message'])
         raise
 
 
@@ -56,6 +59,19 @@ class _S3System(_SystemBase):
     def __init__(self, *args, **kwargs):
         self._session = None
         _SystemBase.__init__(self, *args, **kwargs)
+
+    def copy(self, src, dst):
+        """
+        Copy object of the same storage.
+
+        Args:
+            src (str): Path or URL.
+            dst (str): Path or URL.
+        """
+        copy_source = self.get_client_kwargs(src)
+        copy_destination = self.get_client_kwargs(dst)
+        with _handle_client_error():
+            self.client.copy_object(CopySource=copy_source, **copy_destination)
 
     def get_client_kwargs(self, path):
         """

@@ -50,6 +50,7 @@ def test_handle_http_errors():
 
 def test_http_raw_io():
     """Tests pycosio.http.HTTPRawIO and _HTTPSystem"""
+    from io import UnsupportedOperation
     from pycosio.storage.http import HTTPRawIO, _HTTPSystem
     import requests
 
@@ -117,7 +118,7 @@ def test_http_raw_io():
         assert not http_object.seekable()
 
         # Test not implemented features
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(UnsupportedOperation):
             _HTTPSystem().make_dir('path')
 
     # Restore mocked functions

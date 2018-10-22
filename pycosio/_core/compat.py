@@ -4,6 +4,7 @@ import abc as _abc
 import concurrent.futures as _futures
 import re as _re
 import os as _os
+import shutil as _shutil
 from sys import version_info as _py
 
 # Python 2 compatibility
@@ -54,12 +55,12 @@ if _py[0] == 2:
     file_not_found_error = OSError
     permission_error = OSError
     file_exits_error = OSError
+    same_file_error = OSError
 
 else:
     def to_timestamp(dt):
         """Return POSIX timestamp as float"""
         return dt.timestamp()
-
 
     fsdecode = _os.fsdecode
     makedirs = _os.makedirs
@@ -67,6 +68,7 @@ else:
     file_not_found_error = FileNotFoundError
     permission_error = PermissionError
     file_exits_error = FileExistsError
+    same_file_error = _shutil.SameFileError
 
 
 # Python 3.4 compatibility

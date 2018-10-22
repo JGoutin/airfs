@@ -1,9 +1,58 @@
 """Cloud object compatibles standard library 'shutil' equivalent functions"""
-from os.path import join, basename, isdir
-from shutil import copy as shutil_copy, copyfileobj
+from io import UnsupportedOperation
+from os.path import join, basename, dirname
+from shutil import copy as shutil_copy, copyfileobj, copyfile as shutil_copyfile
 
+from pycosio._core.compat import same_file_error
 from pycosio._core.functions_io import cos_open
+from pycosio._core.functions_os_path import isdir
 from pycosio._core.functions_core import format_and_is_storage
+from pycosio._core.exceptions import ObjectException
+from pycosio._core.storage_manager import get_instance
+
+
+def _copy(src, dst, src_is_storage, dst_is_storage):
+    """
+    Copies file from source to destination
+
+    Args:
+        src (str or file-like object): Source file.
+        dst (str or file-like object): Destination file.
+        src_is_storage (bool): Source is storage.
+        dst_is_storage (bool): Destination is storage.
+    """
+    # If both storage: Tries to perform same storage direct copy
+    if src_is_storage and dst_is_storage:
+        system = get_instance(src)
+        if system is get_instance(dst):
+
+            # Checks if same file
+            if system.relpath(src) != system.relpath(dst):
+                raise same_file_error(
+                    "'%s' and '%s' are the same file" % (src, dst))
+
+            # Tries to copy
+            try:
+                return system.copy(src, dst)
+            except (UnsupportedOperation, ObjectException):
+                pass
+
+    # At least one storage object: copies streams
+    with cos_open(src, 'rb') as fsrc:
+        with cos_open(dst, 'wb') as fdst:
+
+            # Get stream buffer size
+            for stream in (fdst, fsrc):
+                try:
+                    buffer_size = getattr(stream, '_buffer_size')
+                    break
+                except AttributeError:
+                    continue
+            else:
+                buffer_size = 16384
+
+            # Read and write
+            copyfileobj(fsrc, fdst, buffer_size)
 
 
 def copy(src, dst):
@@ -27,24 +76,45 @@ def copy(src, dst):
     if not src_is_storage and not dst_is_storage:
         return shutil_copy(src, dst)
 
-    # If destination si local directory, defines output file
-    if not dst_is_storage:
+    # Checks destination
+    if not hasattr(dst, 'read'):
+        # If destination is directory: defines output file
         if isdir(dst):
             dst = join(dst, basename(src))
 
-    # At least one storage object: copies streams
-    with cos_open(src, 'rb') as fsrc:
-        with cos_open(dst, 'wb') as fdst:
+        # Checks if destination dir exists
+        elif not isdir(dirname(dst)):
+            raise IOError("No such file or directory: '%s'" % dst)
 
-            # Get stream buffer size
-            for stream in (fdst, fsrc):
-                try:
-                    buffer_size = getattr(stream, '_buffer_size')
-                    break
-                except AttributeError:
-                    continue
-            else:
-                buffer_size = 16384
+    # Performs copy
+    _copy(src, dst, src_is_storage, dst_is_storage)
 
-            # Read and write
-            copyfileobj(fsrc, fdst, buffer_size)
+
+def copyfile(src, dst, follow_symlinks=True):
+    """
+    Copies a source file to a destination file.
+
+    Equivalent to "shutil.copyfile".
+
+    Source and destination can also be binary opened file-like objects.
+
+    Args:
+        src (path-like object or file-like object): Source file.
+        dst (path-like object or file-like object): Destination file.
+        follow_symlinks (bool): Follow symlinks. Not supported on
+            cloud storage objects.
+    """
+    # Handles path-like objects and checks if storage
+    src, src_is_storage = format_and_is_storage(src)
+    dst, dst_is_storage = format_and_is_storage(dst)
+
+    # Local files: Redirects to "shutil.copyfile"
+    if not src_is_storage and not dst_is_storage:
+        return shutil_copyfile(src, dst, follow_symlinks=follow_symlinks)
+
+    # Checks destination
+    if not hasattr(dst, 'read') and not isdir(dirname(dst)):
+        raise IOError("No such file or directory: '%s'" % dst)
+
+    # Performs copy
+    _copy(src, dst, src_is_storage, dst_is_storage)

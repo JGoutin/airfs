@@ -27,7 +27,7 @@ from pycosio._core.functions_os import makedirs, mkdir
 from pycosio._core.functions_os_path import (
     exists, getmtime, getsize, isabs, isdir, isfile, ismount, relpath, samefile,
     splitdrive)
-from pycosio._core.functions_shutil import copy
+from pycosio._core.functions_shutil import copy, copyfile
 from pycosio._core.storage_manager import mount
 
 __all__ = list(sorted((
@@ -42,7 +42,7 @@ __all__ = list(sorted((
     'relpath', 'samefile', 'splitdrive',
 
     # Standard library "shutil"
-    'copy',
+    'copy', 'copyfile',
 
     # Pycosio
     'mount',)))

@@ -13,6 +13,10 @@ from pycosio.io import (
     ObjectBufferedIOBase as _ObjectBufferedIOBase,
     SystemBase as _SystemBase)
 
+_ERROR_CODES = {
+    403: ObjectPermissionError,
+    404: ObjectNotFoundError}
+
 
 @_contextmanager
 def _handle_oss_error():
@@ -26,9 +30,8 @@ def _handle_oss_error():
         yield
 
     except _OssError as exception:
-        if exception.status in (403, 404):
-            raise {403: ObjectPermissionError, 404: ObjectNotFoundError}[
-                exception.status](exception.details)
+        if exception.status in _ERROR_CODES:
+            raise _ERROR_CODES[exception.status](exception.details)
         raise
 
 

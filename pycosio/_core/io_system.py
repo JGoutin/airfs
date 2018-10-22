@@ -2,6 +2,7 @@
 """Cloud storage abstract System"""
 from abc import abstractmethod
 from email.utils import parsedate
+from io import UnsupportedOperation
 from time import mktime
 
 from pycosio._core.compat import ABC, Pattern
@@ -48,6 +49,16 @@ class SystemBase(ABC):
         if self._client is None:
             self._client = self._get_client()
         return self._client
+
+    def copy(self, src, dst):
+        """
+        Copy object of the same storage.
+
+        Args:
+            src (str): Path or URL.
+            dst (str): Path or URL.
+        """
+        raise UnsupportedOperation
 
     def exists(self, path=None, client_kwargs=None):
         """

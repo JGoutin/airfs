@@ -1,6 +1,26 @@
 Changelog
 =========
 
+1.2.0 (2018/11)
+---------------
+
+New standard library equivalent functions:
+
+* ``shutil.copyfile``
+
+Improvements
+
+* Copy of objects from and to a same storage is performed directly without
+  passing data on the user machine if possible.
+
+Fixes:
+
+* ``copy`` destination can now be a storage directory and not only a local
+  directory.
+* ``copy`` now checks if destination parent directory exists and if files
+  are not same file and raise proper exceptions.
+* ``mkdir`` on HTTP storage now raises ``io.UnsupportedOperation``.
+
 1.1.0 (2018/10)
 ---------------
 
@@ -55,13 +75,11 @@ Possibles futures features
     * ``os.listdir``, ``os.remove`` / ``os.unlink```,
       ``os.rmdir``, ``os.removedirs``, ``os.scandir``, ``os.stat``, ``os.walk``,
       ``os.rename``, ``os.renames``, ``os.replace``, ``shutil.move``,
-      ``os.chmod``, ``shutil.copyfile``, ``shutil.copytree``, ``shutil.rmtree``.
+      ``os.chmod``, ``shutil.copytree``, ``shutil.rmtree``.
 * ``mode`` support in ``makedirs`` and ``mkdir``.
 * More cloud storage.
 * Extra ``max_buffers`` for swap on local disk in ``ObjectBufferedIOBase``.
 * Global computer resource managements for cloud object IO.
-* Improves ``copy`` between two path in a same storage if a special function
-  exists for this storage.
 * For buckets, add a checks based on root + bucket name to find the more
   relevant mounted storage to use
   (Example: User's storage or public one using same root)

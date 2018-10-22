@@ -92,7 +92,7 @@ class _HTTPSystem(_SystemBase):
         args:
             client_kwargs (dict): Client arguments.
         """
-        raise NotImplementedError
+        raise _UnsupportedOperation('mkdir')
 
 
 class HTTPRawIO(_ObjectRawIOBase):

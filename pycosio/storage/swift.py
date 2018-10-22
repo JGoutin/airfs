@@ -12,6 +12,10 @@ from pycosio.io import (
     ObjectBufferedIOBase as _ObjectBufferedIOBase,
     SystemBase as _SystemBase)
 
+_ERROR_CODES = {
+    403: ObjectPermissionError,
+    404: ObjectNotFoundError}
+
 
 @_contextmanager
 def _handle_client_exception():
@@ -26,9 +30,8 @@ def _handle_client_exception():
         yield
 
     except _ClientException as exception:
-        if exception.http_status in (403, 404):
-            raise {403: ObjectPermissionError,
-                   404: ObjectNotFoundError}[exception.http_status](
+        if exception.http_status in _ERROR_CODES:
+            raise _ERROR_CODES[exception.http_status](
                 exception.http_reason)
         raise
 
@@ -44,6 +47,19 @@ class _SwiftSystem(_SystemBase):
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
     """
+
+    def copy(self, src, dst):
+        """
+        Copy object of the same storage.
+
+        Args:
+            src (str): Path or URL.
+            dst (str): Path or URL.
+        """
+        container, obj = self.split_locator(src)
+        with _handle_client_exception():
+            self.client.copy_object(
+                container=container, obj=obj, destination=self.relpath(dst))
 
     def get_client_kwargs(self, path):
         """
