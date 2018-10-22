@@ -3,7 +3,7 @@
 import os
 from os.path import dirname
 
-from pycosio._core.compat import makedirs as _os_makedirs
+from pycosio._core.compat import makedirs as _os_makedirs, is_a_directory_error
 from pycosio._core.storage_manager import get_instance
 from pycosio._core.functions_core import equivalent_to
 from pycosio._core.exceptions import ObjectExistsError, ObjectNotFoundError
@@ -98,7 +98,7 @@ def remove(path, dir_fd=None):
     # Only support files
     path = path.rstrip('/')
     if system.is_locator(path):
-        raise OSError("'%s' is a directory" % path)
+        raise is_a_directory_error("Is a directory: '%s'" % path)
 
     # Remove
     system.remove(path)

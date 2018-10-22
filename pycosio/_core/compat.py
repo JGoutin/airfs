@@ -56,6 +56,7 @@ if _py[0] == 2:
     permission_error = OSError
     file_exits_error = OSError
     same_file_error = OSError
+    is_a_directory_error = OSError
 
 else:
     def to_timestamp(dt):
@@ -69,6 +70,7 @@ else:
     permission_error = PermissionError
     file_exits_error = FileExistsError
     same_file_error = _shutil.SameFileError
+    is_a_directory_error = IsADirectoryError
 
 
 # Python 3.4 compatibility
