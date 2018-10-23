@@ -122,6 +122,10 @@ def test_http_raw_io():
             _HTTPSystem().make_dir('path')
         with pytest.raises(UnsupportedOperation):
             _HTTPSystem().remove('path')
+        with pytest.raises(UnsupportedOperation):
+            _HTTPSystem()._list_locators()
+        with pytest.raises(UnsupportedOperation):
+            _HTTPSystem()._list_objects(dict(), '')
 
     # Restore mocked functions
     finally:

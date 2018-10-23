@@ -313,14 +313,6 @@ def test_cos_open(tmpdir):
             return path
 
         @staticmethod
-        def _make_dir(*_, **__):
-            """Do nothing"""
-
-        @staticmethod
-        def _remove(*_, **__):
-            """Do nothing"""
-
-        @staticmethod
         def _head(*_, **__):
             """Do nothing"""
 

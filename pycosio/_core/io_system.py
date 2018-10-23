@@ -351,7 +351,6 @@ class SystemBase(ABC):
         self._make_dir(self.get_client_kwargs(self.ensure_dir_path(
             path, relative=True)))
 
-    @abstractmethod
     def _make_dir(self, client_kwargs):
         """
         Make a directory.
@@ -359,6 +358,7 @@ class SystemBase(ABC):
         args:
             client_kwargs (dict): Client arguments.
         """
+        raise UnsupportedOperation('mkdir')
 
     def remove(self, path, relative=False):
         """
@@ -372,7 +372,6 @@ class SystemBase(ABC):
             path = self.relpath(path)
         self._remove(self.get_client_kwargs(path))
 
-    @abstractmethod
     def _remove(self, client_kwargs):
         """
         Remove an object.
@@ -380,6 +379,7 @@ class SystemBase(ABC):
         args:
             client_kwargs (dict): Client arguments.
         """
+        raise UnsupportedOperation('remove')
 
     def ensure_dir_path(self, path, relative=False):
         """
@@ -408,3 +408,99 @@ class SystemBase(ABC):
             path = path.rstrip('/') + '/'
         # else: root
         return path
+
+    def list_objects(self, path='', relative=False, first_level=False):
+        """
+        List objects.
+
+        Args:
+            path (str):
+            relative (bool): Path is relative to current root.
+            first_level (bool): It True, returns only first level objects.
+                Else, returns full tree.
+
+        Returns:
+            generator of tuple: object name str, object header dict
+        """
+        if not relative:
+            path = self.relpath(path)
+
+        # From root
+        if not path:
+            locators = self._list_locators()
+
+            # Yields locators
+            if first_level:
+                for locator in locators:
+                    yield locator
+                return
+
+            # Yields each locator objects
+            for locator, _ in locators:
+                locator = locator.rstrip('/')
+                for obj_path, header in self._list_objects(
+                        self.get_client_kwargs(locator), ''):
+                    yield '/'.join((locator, obj_path.lstrip('/'))), header
+            return
+
+        # From locator or sub directory
+        locator, path = self.split_locator(path)
+
+        if first_level:
+            seen = set()
+
+        for obj_path, header in self._list_objects(
+                self.get_client_kwargs(locator), path):
+
+            if path:
+                obj_path = obj_path.split(path, maxsplit=1)[1].lstrip('/')
+
+            # Skips parent directory
+            if not obj_path:
+                continue
+
+            # Yields first level locator objects only
+            if first_level:
+                # Directory
+                try:
+                    obj_path, _ = obj_path.strip('/').split('/', maxsplit=1)
+                    obj_path += '/'
+
+                    # Avoids to use the header of the object instead of the
+                    # non existing header of the directory that only exists
+                    # virtually in object path.
+                    header = dict()
+
+                # File
+                except ValueError:
+                    pass
+
+                if obj_path not in seen:
+                    yield obj_path, header
+                    seen.add(obj_path)
+
+            # Yields locator objects
+            else:
+                yield obj_path, header
+
+    def _list_locators(self):
+        """
+        Lists locators.
+
+        Returns:
+            generator of tuple: locator name str, locator header dict
+        """
+        raise UnsupportedOperation('listdir')
+
+    def _list_objects(self, client_kwargs, path):
+        """
+        Lists objects.
+
+        args:
+            client_kwargs (dict): Client arguments.
+            path (str): Path relative to current locator.
+
+        Returns:
+            generator of tuple: object name str, object header dict
+        """
+        raise UnsupportedOperation('listdir')

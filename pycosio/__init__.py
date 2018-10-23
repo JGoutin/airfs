@@ -23,7 +23,8 @@ __licence__ = "Apache 2.0"
 # Adds names to public interface
 # Shadowing "open" built-in name is done to provides "pycosio.open" function
 from pycosio._core.functions_io import cos_open as open
-from pycosio._core.functions_os import makedirs, mkdir, remove, unlink, rmdir
+from pycosio._core.functions_os import (
+    listdir, makedirs, mkdir, remove, unlink, rmdir)
 from pycosio._core.functions_os_path import (
     exists, getmtime, getsize, isabs, isdir, isfile, ismount, relpath, samefile,
     splitdrive)
@@ -35,7 +36,7 @@ __all__ = list(sorted((
     'open',
 
     # Standard library "os"
-    'makedirs', 'mkdir', 'remove', 'unlink', 'rmdir',
+    'listdir', 'makedirs', 'mkdir', 'remove', 'unlink', 'rmdir',
 
     # Standard library "os.path"
     'exists', 'getmtime', 'getsize', 'isabs', 'isdir', 'isfile', 'ismount',

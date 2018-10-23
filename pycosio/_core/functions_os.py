@@ -1,5 +1,6 @@
 # coding=utf-8
 """Cloud object compatibles standard library 'os.path' equivalent functions"""
+import os
 from os.path import dirname
 
 from pycosio._core.compat import (
@@ -8,6 +9,24 @@ from pycosio._core.compat import (
 from pycosio._core.storage_manager import get_instance
 from pycosio._core.functions_core import equivalent_to
 from pycosio._core.exceptions import ObjectExistsError, ObjectNotFoundError
+
+
+@equivalent_to(os.listdir)
+def listdir(path='.'):
+    """
+    Return a list containing the names of the entries in the directory given by
+    path.
+
+    Equivalent to "os.listdir".
+
+    Args:
+        path (path-like object): Path or URL.
+
+    Returns:
+        list of str: Entries names.
+    """
+    return [name.rstrip('/') for name, _ in
+            get_instance(path).list_objects(path, first_level=True)]
 
 
 @equivalent_to(os_makedirs)

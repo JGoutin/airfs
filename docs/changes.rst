@@ -6,7 +6,8 @@ Changelog
 
 New standard library equivalent functions:
 
-* ``shutil.copyfile``, ``os.remove`` / ``os.unlink``, ``os.rmdir``.
+* ``shutil.copyfile``, ``os.remove`` / ``os.unlink``, ``os.rmdir``,
+  ``os.listdir``.
 
 Improvements
 
@@ -73,7 +74,7 @@ Possibles futures features
 --------------------------
 
 * Equivalent functions of:
-    * ``os.listdir``, ``os.removedirs``, ``os.scandir``,
+    * ``os.removedirs``, ``os.scandir``,
       ``os.stat``, ``os.walk``, ``os.rename``, ``os.renames``, ``os.replace``,
       ``shutil.move``, ``os.chmod``, ``shutil.copytree``, ``shutil.rmtree``.
 * ``mode`` support in ``makedirs`` and ``mkdir``.

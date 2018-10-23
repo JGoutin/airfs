@@ -85,24 +85,6 @@ class _HTTPSystem(_SystemBase):
             self.client.request(
                 'HEAD', timeout=self._TIMEOUT, **client_kwargs)).headers
 
-    def _make_dir(self, client_kwargs):
-        """
-        Make a directory.
-
-        args:
-            client_kwargs (dict): Client arguments.
-        """
-        raise _UnsupportedOperation('mkdir')
-
-    def _remove(self, client_kwargs):
-        """
-        Remove an object.
-
-        args:
-            client_kwargs (dict): Client arguments.
-        """
-        raise _UnsupportedOperation('remove')
-
 
 class HTTPRawIO(_ObjectRawIOBase):
     """Binary HTTP Object I/O

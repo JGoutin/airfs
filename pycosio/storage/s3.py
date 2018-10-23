@@ -212,6 +212,46 @@ class _S3System(_SystemBase):
             # Bucket
             return self.client.delete_bucket(Bucket=client_kwargs['Bucket'])
 
+    def _list_locators(self):
+        """
+        Lists locators.
+
+        Returns:
+            generator of tuple: locator name str, locator header dict
+        """
+        with _handle_client_error():
+            response = self.client.list_buckets()
+
+        for bucket in response['Buckets']:
+            yield bucket.pop('Name'), bucket
+
+    def _list_objects(self, client_kwargs, path):
+        """
+        Lists objects.
+
+        args:
+            client_kwargs (dict): Client arguments.
+            path (str): Path relative to current locator.
+
+        Returns:
+            generator of tuple: object name str, object header dict
+        """
+        while True:
+            with _handle_client_error():
+                response = self.client.list_objects_v2(
+                    Prefix=path, **client_kwargs)
+
+            for obj in response['Contents']:
+                yield obj.pop('Key'), obj
+
+            # Handles results on more thant one page
+            try:
+                client_kwargs['ContinuationToken'] = response[
+                    'NextContinuationToken']
+            except KeyError:
+                # End of results
+                break
+
 
 class S3RawIO(_ObjectRawIOBase):
     """Binary S3 Object I/O
