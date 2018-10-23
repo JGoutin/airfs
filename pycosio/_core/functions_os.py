@@ -1,5 +1,5 @@
 # coding=utf-8
-"""Cloud object compatibles standard library 'os.path' equivalent functions"""
+"""Cloud object compatibles standard library 'os' equivalent functions"""
 import os
 from os.path import dirname
 
