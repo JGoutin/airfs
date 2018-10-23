@@ -20,6 +20,7 @@ Fixes:
 * ``copy`` now checks if destination parent directory exists and if files
   are not same file and raise proper exceptions.
 * ``mkdir`` on HTTP storage now raises ``io.UnsupportedOperation``.
+* ``mkdir``: missing ``dir_fd`` argument.
 
 1.1.0 (2018/10)
 ---------------

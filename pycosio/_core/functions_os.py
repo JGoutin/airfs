@@ -24,6 +24,7 @@ def makedirs(name, mode=0o777, exist_ok=False):
         name (path-like object): Path or URL.
         mode (int): The mode parameter is passed to os.mkdir();
             see the os.mkdir() description for how it is interpreted.
+            Not support on cloud objects.
         exist_ok (bool): Don't raises error if target directory already
             exists.
 
@@ -31,7 +32,6 @@ def makedirs(name, mode=0o777, exist_ok=False):
         FileExistsError: if exist_ok is False and if the target directory
             already exists.
     """
-    # TODO: mode
     system = get_instance(name)
 
     # Checks if directory not already exists
@@ -43,7 +43,7 @@ def makedirs(name, mode=0o777, exist_ok=False):
 
 
 @equivalent_to(os.mkdir)
-def mkdir(path, mode=0o777):
+def mkdir(path, mode=0o777, dir_fd=None):
     """
     Create a directory named path with numeric mode mode.
 
@@ -55,12 +55,15 @@ def mkdir(path, mode=0o777):
         path (path-like object): Path or URL.
         mode (int): The mode parameter is passed to os.mkdir();
             see the os.mkdir() description for how it is interpreted.
+            Not support on cloud objects.
+        dir_fd: directory descriptors;
+            see the os.remove() description for how it is interpreted.
+            Not support on cloud objects.
 
     Raises:
         FileExistsError : Directory already exists.
         FileNotFoundError: Parent directory not exists.
     """
-    # TODO: mode
     system = get_instance(path)
     relative = system.relpath(path)
 

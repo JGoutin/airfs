@@ -48,6 +48,18 @@ if _py[0] == 2:
             if not exist_ok or not _os.path.isdir(name):
                 raise
 
+    # Missing "follow_symlinks" in "copyfile"
+    def copyfile(src, dst, follow_symlinks=True):
+        """
+        Copies a source file to a destination file.
+
+        Args:
+            src (str): Source file.
+            dst (str): Destination file.
+            follow_symlinks (bool): Ignored.
+        """
+        _shutil.copyfile(src, dst)
+
     # Missing "abc.ABC"
     ABC = _abc.ABCMeta('ABC', (object,), {})
 
@@ -65,12 +77,24 @@ else:
 
     fsdecode = _os.fsdecode
     makedirs = _os.makedirs
+    copyfile = _shutil.copyfile
     ABC = _abc.ABC
     file_not_found_error = FileNotFoundError
     permission_error = PermissionError
     file_exits_error = FileExistsError
     same_file_error = _shutil.SameFileError
     is_a_directory_error = IsADirectoryError
+
+
+# Python 2 Windows compatibility
+try:
+    from os.path import samefile
+except ImportError:
+
+    def samefile(*_, **__):
+        """Checks if same files."""
+        raise NotImplementedError(
+            '"os.path.samefile" not available on Windows with Python 2.')
 
 
 # Python 3.4 compatibility

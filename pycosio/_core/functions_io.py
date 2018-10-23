@@ -56,6 +56,7 @@ def cos_open(file, mode='r', buffering=-1, encoding=None, errors=None,
 
     Raises:
         OSError: If the file cannot be opened.
+        FileExistsError: File open in 'x' mode already exists.
     """
     # Handles file-like objects:
     if hasattr(file, 'read'):

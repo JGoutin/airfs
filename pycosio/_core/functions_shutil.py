@@ -1,9 +1,9 @@
 """Cloud object compatibles standard library 'shutil' equivalent functions"""
 from io import UnsupportedOperation
 from os.path import join, basename, dirname
-from shutil import copy as shutil_copy, copyfileobj, copyfile as shutil_copyfile
+from shutil import copy as shutil_copy, copyfileobj
 
-from pycosio._core.compat import same_file_error
+from pycosio._core.compat import same_file_error, copyfile as shutil_copyfile
 from pycosio._core.functions_io import cos_open
 from pycosio._core.functions_os_path import isdir
 from pycosio._core.functions_core import format_and_is_storage
@@ -67,6 +67,9 @@ def copy(src, dst):
         src (path-like object or file-like object): Source file.
         dst (path-like object or file-like object):
             Destination file or directory.
+
+    Raises:
+         IOError: Destination directory not found.
     """
     # Handles path-like objects and checks if storage
     src, src_is_storage = format_and_is_storage(src)
@@ -103,6 +106,9 @@ def copyfile(src, dst, follow_symlinks=True):
         dst (path-like object or file-like object): Destination file.
         follow_symlinks (bool): Follow symlinks. Not supported on
             cloud storage objects.
+
+    Raises:
+         IOError: Destination directory not found.
     """
     # Handles path-like objects and checks if storage
     src, src_is_storage = format_and_is_storage(src)

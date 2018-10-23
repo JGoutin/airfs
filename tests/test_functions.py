@@ -400,10 +400,10 @@ def test_cos_open(tmpdir):
             cos_path.split('://')[1]).read_binary() == content
 
         # copy: destination directory not exits
-        with pytest.raises(OSError):
+        with pytest.raises(IOError):
             copy(cos_path, str(tmpdir.join('not_exist/file.txt')))
 
-        with pytest.raises(OSError):
+        with pytest.raises(IOError):
             copyfile(cos_path, str(tmpdir.join('not_exist/file.txt')))
 
         # copy: storage file to storage file
