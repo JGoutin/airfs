@@ -57,7 +57,7 @@ def test_system_base():
 
         def _remove(self, client_kwargs):
             """Checks arguments"""
-            # TODO
+            assert client_kwargs == dummy_client_kwargs
 
     system = DummySystem(storage_parameters=storage_parameters)
 
@@ -126,3 +126,11 @@ def test_system_base():
     # Test default unsupported
     with pytest.raises(UnsupportedOperation):
         system.copy('path1', 'path2')
+
+    # Tests remove
+    system.remove('root://locator')
+    system.remove('root://locator/path')
+    system.remove('root://locator/path/')
+    system.remove('locator', relative=True)
+    system.remove('locator/path', relative=True)
+    system.remove('locator/path/', relative=True)

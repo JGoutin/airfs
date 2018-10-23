@@ -6,12 +6,12 @@ Changelog
 
 New standard library equivalent functions:
 
-* ``shutil.copyfile``, ``os.remove`` / ``os.unlink``, ``os.rmdir``
+* ``shutil.copyfile``, ``os.remove`` / ``os.unlink``, ``os.rmdir``.
 
 Improvements
 
-* Copy of objects from and to a same storage is performed directly without
-  passing data on the user machine if possible.
+* Copy of objects from and to a same storage is performed directly on remote
+  server if possible.
 
 Fixes:
 

@@ -51,7 +51,9 @@ def test_s3_raw_io():
     url = 's3://' + path
     bucket_url = 's3://' + bucket
     put_object_called = []
+    delete_object_called = []
     create_bucket_called = []
+    delete_bucket_called = []
     m_time = time.time()
     s3object = None
     raises_exception = False
@@ -111,6 +113,15 @@ def test_s3_raw_io():
             put_object_called.append(1)
 
         @staticmethod
+        def delete_object(**kwargs):
+            """Mock boto3 delete_object
+            Check arguments and returns fake value"""
+            for key, value in client_args.items():
+                assert key in kwargs
+                assert kwargs[key] == value
+            delete_object_called.append(1)
+
+        @staticmethod
         def head_bucket(**kwargs):
             """Mock boto3 head_bucket
             Check arguments and returns fake value"""
@@ -133,6 +144,14 @@ def test_s3_raw_io():
             for key in ('Key', 'Bucket'):
                 assert key in CopySource
                 assert key in kwargs
+
+        @staticmethod
+        def delete_bucket(**kwargs):
+            """Mock boto3 delete_bucket
+            Check arguments and returns fake value"""
+            assert 'Key' not in kwargs
+            assert 'Bucket' in kwargs
+            delete_bucket_called.append(1)
 
     class Session:
         """Dummy Session"""
@@ -157,9 +176,16 @@ def test_s3_raw_io():
 
         # Tests create directory
         s3system.make_dir(bucket_url)
-        s3system.make_dir(url)
         assert len(create_bucket_called) == 1
+        s3system.make_dir(url)
         assert len(put_object_called) == 1
+        put_object_called = []
+
+        # Tests remove
+        s3system.remove(bucket_url)
+        assert len(delete_bucket_called) == 1
+        s3system.remove(url)
+        assert len(delete_object_called) == 1
         put_object_called = []
 
         # Tests copy

@@ -49,6 +49,7 @@ if _py[0] == 2:
                 raise
 
     # Missing "follow_symlinks" in "copyfile"
+
     def copyfile(src, dst, follow_symlinks=True):
         """
         Copies a source file to a destination file.
@@ -59,6 +60,39 @@ if _py[0] == 2:
             follow_symlinks (bool): Ignored.
         """
         _shutil.copyfile(src, dst)
+
+    # Missing "dir_fd" in "os" functions
+
+    def mkdir(path, mode=0o777, dir_fd=None):
+        """
+        Create a directory named path.
+
+        Args:
+            path (str): Path.
+            mode (int): Mode.
+            dir_fd: Ignored.
+        """
+        _os.mkdir(path, mode)
+
+    def remove(path, dir_fd=None):
+        """
+        Remove a file.
+
+        Args:
+            path (str): Path.
+            dir_fd: Ignored.
+        """
+        _os.remove(path)
+
+    def rmdir(path, dir_fd=None):
+        """
+        Remove a directory.
+
+        Args:
+            path (str): Path.
+            dir_fd: Ignored.
+        """
+        _os.rmdir(path)
 
     # Missing "abc.ABC"
     ABC = _abc.ABCMeta('ABC', (object,), {})
@@ -77,6 +111,9 @@ else:
 
     fsdecode = _os.fsdecode
     makedirs = _os.makedirs
+    mkdir = _os.mkdir
+    remove = _os.remove
+    rmdir = _os.rmdir
     copyfile = _shutil.copyfile
     ABC = _abc.ABC
     file_not_found_error = FileNotFoundError

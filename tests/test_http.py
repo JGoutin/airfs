@@ -120,6 +120,8 @@ def test_http_raw_io():
         # Test not implemented features
         with pytest.raises(UnsupportedOperation):
             _HTTPSystem().make_dir('path')
+        with pytest.raises(UnsupportedOperation):
+            _HTTPSystem().remove('path')
 
     # Restore mocked functions
     finally:

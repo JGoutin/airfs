@@ -1,15 +1,16 @@
 # coding=utf-8
 """Cloud object compatibles standard library 'os.path' equivalent functions"""
-import os
 from os.path import dirname
 
-from pycosio._core.compat import makedirs as _os_makedirs, is_a_directory_error
+from pycosio._core.compat import (
+    makedirs as os_makedirs, remove as os_remove, rmdir as os_rmdir,
+    is_a_directory_error, mkdir as os_mkdir)
 from pycosio._core.storage_manager import get_instance
 from pycosio._core.functions_core import equivalent_to
 from pycosio._core.exceptions import ObjectExistsError, ObjectNotFoundError
 
 
-@equivalent_to(_os_makedirs)
+@equivalent_to(os_makedirs)
 def makedirs(name, mode=0o777, exist_ok=False):
     """
     Super-mkdir; create a leaf directory and all intermediate ones.
@@ -17,8 +18,6 @@ def makedirs(name, mode=0o777, exist_ok=False):
     (not just the rightmost) will be created if it does not exist.
 
     Equivalent to "os.makedirs".
-
-    "mode" is currently not yet supported on cloud storage.
 
     Args:
         name (path-like object): Path or URL.
@@ -42,14 +41,12 @@ def makedirs(name, mode=0o777, exist_ok=False):
     system.make_dir(name)
 
 
-@equivalent_to(os.mkdir)
+@equivalent_to(os_mkdir)
 def mkdir(path, mode=0o777, dir_fd=None):
     """
     Create a directory named path with numeric mode mode.
 
     Equivalent to "os.mkdir".
-
-    "mode" is currently not yet supported on cloud storage.
 
     Args:
         path (path-like object): Path or URL.
@@ -83,7 +80,7 @@ def mkdir(path, mode=0o777, dir_fd=None):
     system.make_dir(relative, relative=True)
 
 
-@equivalent_to(os.remove)
+@equivalent_to(os_remove)
 def remove(path, dir_fd=None):
     """
     Remove a file.
@@ -99,20 +96,18 @@ def remove(path, dir_fd=None):
     system = get_instance(path)
 
     # Only support files
-    path = path.rstrip('/')
-    if system.is_locator(path):
+    if system.is_locator(path) or path[-1] == '/':
         raise is_a_directory_error("Is a directory: '%s'" % path)
 
     # Remove
     system.remove(path)
-    # TODO: Checks if removed and raise exceptions
 
 
-# Unlink is alias of remove
+# "os.unlink" is alias of "os.remove"
 unlink = remove
 
 
-@equivalent_to(os.rmdir)
+@equivalent_to(os_rmdir)
 def rmdir(path, dir_fd=None):
     """
     Remove a directory.
@@ -127,4 +122,3 @@ def rmdir(path, dir_fd=None):
     """
     system = get_instance(path)
     system.remove(system.ensure_dir_path(path))
-    # TODO: Checks if removed and raise exceptions

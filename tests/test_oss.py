@@ -50,7 +50,9 @@ def test_oss_raw_io():
     bucket_url = 'oss://' + bucket
     oss_endpoint = 'https://oss-nowhere.aliyuncs.com'
     put_object_called = []
+    delete_object_called = []
     create_bucket_called = []
+    delete_bucket_called = []
     m_time = time.time()
     ossobject = None
     raises_exception = False
@@ -111,6 +113,12 @@ def test_oss_raw_io():
             put_object_called.append(1)
 
         @staticmethod
+        def delete_object(key=None, **_):
+            """Check arguments and returns fake value"""
+            assert key.startswith(key_value)
+            delete_object_called.append(1)
+
+        @staticmethod
         def get_bucket_info():
             """Returns fake value"""
             response = Response()
@@ -121,6 +129,11 @@ def test_oss_raw_io():
         def create_bucket():
             """Returns fake value"""
             create_bucket_called.append(1)
+
+        @staticmethod
+        def delete_bucket():
+            """Returns fake value"""
+            delete_bucket_called.append(1)
 
     oss2_auth = oss2.Auth
     oss2_stsauth = oss2.StsAuth
@@ -142,9 +155,16 @@ def test_oss_raw_io():
 
         # Tests create directory
         oss_system.make_dir(bucket_url)
-        oss_system.make_dir(url)
         assert len(create_bucket_called) == 1
+        oss_system.make_dir(url)
         assert len(put_object_called) == 1
+        put_object_called = []
+
+        # Tests remove
+        oss_system.remove(bucket_url)
+        assert len(delete_bucket_called) == 1
+        oss_system.remove(url)
+        assert len(delete_object_called) == 1
         put_object_called = []
 
         # Tests path and URL handling

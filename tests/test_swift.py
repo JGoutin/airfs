@@ -49,7 +49,9 @@ def test_swift_raw_io():
     path = '/'.join((container_name, object_name))
     raises_exception = False
     put_object_called = []
+    delete_object_called = []
     put_container_called = []
+    delete_container_called = []
 
     # Mocks swiftclient
 
@@ -103,6 +105,13 @@ def test_swift_raw_io():
             put_object_called.append(1)
 
         @staticmethod
+        def delete_object(container, obj):
+            """Check arguments"""
+            assert container == container_name
+            assert obj.startswith(object_name)
+            delete_object_called.append(1)
+
+        @staticmethod
         def put_container(container, **_):
             """Check arguments and returns fake result"""
             assert container == container_name
@@ -114,6 +123,12 @@ def test_swift_raw_io():
             assert 'obj' not in kwargs
             assert 'container' in kwargs
             return dict(container=kwargs['container'])
+
+        @staticmethod
+        def delete_container(container, **_):
+            """Check arguments and returns fake result"""
+            assert container == container_name
+            delete_container_called.append(1)
 
         @staticmethod
         def copy_object(**kwargs):
@@ -136,9 +151,16 @@ def test_swift_raw_io():
 
         # Tests create directory
         swift_system.make_dir(container_name)
-        swift_system.make_dir(path)
         assert len(put_container_called) == 1
+        swift_system.make_dir(path)
         assert len(put_object_called) == 1
+        put_object_called = []
+
+        # Tests remove
+        swift_system.remove(container_name)
+        assert len(delete_container_called) == 1
+        swift_system.remove(path)
+        assert len(delete_object_called) == 1
         put_object_called = []
 
         # Tests copy

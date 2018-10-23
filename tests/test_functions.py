@@ -62,11 +62,11 @@ def test_equivalent_to():
         cos_function(storage_path, *dummy_args, **dummy_kwargs)
 
 
-def test_equivalent_functions():
+def test_equivalent_functions(tmpdir):
     """Tests functions using pycosio._core.functions_core.equivalent_to"""
+    import pycosio
     from pycosio._core.storage_manager import MOUNTED
     import pycosio._core.functions_os_path as std_os_path
-    import pycosio._core.functions_os as std_os
     from pycosio._core.io_system import SystemBase
 
     # Mock system
@@ -78,6 +78,7 @@ def test_equivalent_functions():
     result = 'result'
     dirs_exists = set()
     dir_created = []
+    removed = []
     check_ending_slash = True
 
     class System(SystemBase):
@@ -105,6 +106,7 @@ def test_equivalent_functions():
         @staticmethod
         def _remove(*_, **__):
             """Do nothing"""
+            removed.append(1)
 
         @staticmethod
         def _head(*_, **__):
@@ -191,34 +193,80 @@ def test_equivalent_functions():
 
         # makesdir
         assert not dir_created
-        std_os.makedirs('dummy://locator/dir1', exist_ok=True)
+        pycosio.makedirs('dummy://locator/dir1', exist_ok=True)
         assert dir_created
 
         dir_created = []
         with pytest.raises(OSError):
-            std_os.makedirs('dummy://locator/dir1', exist_ok=False)
+            pycosio.makedirs('dummy://locator/dir1', exist_ok=False)
         assert not dir_created
+
+        directory = tmpdir.join('directory')
+        assert not directory.check()
+        pycosio.makedirs(str(directory))
+        assert directory.check()
+        with pytest.raises(OSError):
+            pycosio.makedirs(str(directory), exist_ok=False)
+        pycosio.makedirs(str(directory), exist_ok=True)
+        directory.remove()
 
         # mkdir
         dirs_exists.add('dummy://locator/')
         dirs_exists.add('dummy://')
 
         with pytest.raises(OSError):
-            std_os.mkdir('dummy://locator/dir_not_exists/dir1')
+            pycosio.mkdir('dummy://locator/dir_not_exists/dir1')
         assert not dir_created
 
-        std_os.mkdir('dummy://locator/dir1/dir2')
+        pycosio.mkdir('dummy://locator/dir1/dir2')
         assert dir_created
 
         dir_created = []
         check_ending_slash = False
         with pytest.raises(OSError):
-            std_os.mkdir('dummy://locator/dir1')
+            pycosio.mkdir('dummy://locator/dir1')
         assert not dir_created
 
         dir_created = []
-        std_os.mkdir('dummy://locator2/')
+        pycosio.mkdir('dummy://locator2/')
         assert dir_created
+
+        directory = tmpdir.join('directory')
+        assert not directory.check()
+        pycosio.mkdir(str(directory))
+        assert directory.check()
+        directory.remove()
+
+        # remove/unlink
+        assert pycosio.remove is pycosio.unlink
+
+        removed = []
+        pycosio.remove('dummy://locator/file')
+        assert removed
+
+        with pytest.raises(OSError):
+            pycosio.remove('dummy://locator')
+
+        with pytest.raises(OSError):
+            pycosio.remove('dummy://locator/dir/')
+
+        with pytest.raises(OSError):
+            pycosio.remove('dummy://')
+
+        file = tmpdir.ensure('file')
+        assert file.check()
+        pycosio.remove(str(file))
+        assert not file.check()
+
+        # rmdir
+        removed = []
+        pycosio.rmdir('dummy://locator/dir')
+        assert removed
+
+        directory = tmpdir.mkdir('directory')
+        assert directory.check()
+        pycosio.rmdir(str(directory))
+        assert not directory.check()
 
     # Clean up
     finally:
