@@ -3,6 +3,7 @@
 [![codecov](https://codecov.io/gh/Accelize/pycosio/branch/master/graph/badge.svg)](https://codecov.io/gh/Accelize/pycosio)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/0c9fc64f5fe94defac90140d769e1de3)](https://www.codacy.com/app/Accelize/pycosio?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Accelize/pycosio&amp;utm_campaign=Badge_Grade)
 [![Documentation Status](https://readthedocs.org/projects/pycosio/badge/?version=latest)](https://pycosio.readthedocs.io/en/latest/?badge=latest)
+[![PyPI](https://img.shields.io/pypi/v/pycosio.svg)](https://pypi.org/project/pycosio)
 
 Pycosio (Python Cloud Object Storage I/O)
 =========================================
