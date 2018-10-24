@@ -569,9 +569,9 @@ class SystemBase(ABC):
         # File mode (Is directory or file)
         if ((not path or path[-1] == '/' or self.is_locator(path)) and not
                 stat['st_size']):
-            stat[key] = S_IFDIR
+            stat['st_mode'] = S_IFDIR
         else:
-            stat[key] = S_IFREG
+            stat['st_mode'] = S_IFREG
 
         # Add storage specific keys
         for key, value in tuple(header.items()):

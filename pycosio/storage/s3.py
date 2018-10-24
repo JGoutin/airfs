@@ -206,7 +206,9 @@ class _S3System(_SystemBase):
             else:
                 header = self.client.head_bucket(**client_kwargs)
 
-        header.pop('ResponseMetadata', None)
+        # Clean up HTTP request information
+        for key in ('AcceptRanges', 'ResponseMetadata'):
+            header.pop(key, None)
         return header
 
     def _make_dir(self, client_kwargs):
