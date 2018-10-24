@@ -230,10 +230,12 @@ class SystemBase(ABC):
 
         if path[-1] == '/' or self.is_locator(relative, relative=True):
             exists = self.exists(path=path, client_kwargs=client_kwargs)
+            if exists:
+                return True
 
             # Some directories only exists virtually in object path and don't
             # have headers.
-            if not exists and virtual_dir:
+            elif virtual_dir:
                 try:
                     next(self.list_objects(relative, relative=True))
                     return True
