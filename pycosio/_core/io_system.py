@@ -284,7 +284,7 @@ class SystemBase(ABC):
         Returns:
             dict: HTTP header.
         """
-        if header:
+        if header is not None:
             return header
         elif client_kwargs is None:
             client_kwargs = self.get_client_kwargs(path)

@@ -220,7 +220,7 @@ class DirEntry:
         self._path = '/'.join((scandir_path.rstrip('/'), name))
 
     def __str__(self):
-        return "<DirEntry '%s'>" % self._name
+        return "<DirEntry '%s'>" % self.name
 
     __repr__ = __str__
 
@@ -236,6 +236,7 @@ class DirEntry:
         return self._system.get_client_kwargs(self._path)
 
     @property
+    @memoizedmethod
     def name(self):
         """
         The entry’s base filename, relative to the scandir() path argument.
@@ -243,9 +244,10 @@ class DirEntry:
         Returns:
             str: name.
         """
-        return self._name
+        return self._name.rstrip('/')
 
     @property
+    @memoizedmethod
     def path(self):
         """
         The entry’s full path name:
@@ -257,7 +259,7 @@ class DirEntry:
         Returns:
             str: name.
         """
-        return self._path
+        return self._path.rstrip('/')
 
     @memoizedmethod
     def inode(self):
