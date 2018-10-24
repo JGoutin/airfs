@@ -574,7 +574,7 @@ class SystemBase(ABC):
             stat[key] = S_IFREG
 
         # Add storage specific keys
-        for key, value in tuple(stat.items()):
+        for key, value in tuple(header.items()):
             stat['st_' + key.lower().replace('-', '_')] = value
 
         # Convert to "os.stat_result" like object
