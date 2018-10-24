@@ -578,4 +578,4 @@ class SystemBase(ABC):
             stat['st_' + key.lower().replace('-', '_')] = value
 
         # Convert to "os.stat_result" like object
-        return namedtuple('os.stat_result', *list(stat))(**stat)
+        return namedtuple('os.stat_result', tuple(stat))(**stat)

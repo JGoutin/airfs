@@ -50,6 +50,15 @@ if _py[0] == 2:
 
     # Missing "follow_symlinks" in "copyfile"
 
+    def _check_follow_symlinks(follow_symlinks):
+        """Checks follow_symlinks value
+
+        Args:
+            follow_symlinks: Must be True.
+        """
+        if follow_symlinks is not True:
+            raise SyntaxError('"follow_symlinks" not supported on Python 2')
+
     def copyfile(src, dst, follow_symlinks=True):
         """
         Copies a source file to a destination file.
@@ -59,11 +68,21 @@ if _py[0] == 2:
             dst (str): Destination file.
             follow_symlinks (bool): Ignored.
         """
+        _check_follow_symlinks(follow_symlinks)
         _shutil.copyfile(src, dst)
 
     # Missing "dir_fd" in "os" functions
 
-    def mkdir(path, mode=0o777, *, dir_fd=None):
+    def _check_dir_fd(dir_fd):
+        """Checks dir_fd value
+
+        Args:
+            dir_fd: Must be None.
+        """
+        if dir_fd is not None:
+            raise SyntaxError('"dir_fd" not supported on Python 2')
+
+    def mkdir(path, mode=0o777, dir_fd=None):
         """
         Create a directory named path.
 
@@ -72,9 +91,10 @@ if _py[0] == 2:
             mode (int): Mode.
             dir_fd: Ignored.
         """
+        _check_dir_fd(dir_fd)
         _os.mkdir(path, mode)
 
-    def remove(path, *, dir_fd=None):
+    def remove(path, dir_fd=None):
         """
         Remove a file.
 
@@ -82,9 +102,10 @@ if _py[0] == 2:
             path (str): Path.
             dir_fd: Ignored.
         """
+        _check_dir_fd(dir_fd)
         _os.remove(path)
 
-    def rmdir(path, *, dir_fd=None):
+    def rmdir(path, dir_fd=None):
         """
         Remove a directory.
 
@@ -92,9 +113,10 @@ if _py[0] == 2:
             path (str): Path.
             dir_fd: Ignored.
         """
+        _check_dir_fd(dir_fd)
         _os.rmdir(path)
 
-    def stat(path, *, dir_fd=None, follow_symlinks=True):
+    def stat(path, dir_fd=None, follow_symlinks=True):
         """
         Get the status of a file.
 
@@ -103,9 +125,11 @@ if _py[0] == 2:
             dir_fd: Ignored.
             follow_symlinks: Ignored
         """
+        _check_dir_fd(dir_fd)
+        _check_follow_symlinks(follow_symlinks)
         _os.stat(path)
 
-    def lstat(path, *, dir_fd=None):
+    def lstat(path, dir_fd=None):
         """
         Get the status of a file.
 
@@ -113,6 +137,7 @@ if _py[0] == 2:
             path (str): Path.
             dir_fd: Ignored.
         """
+        _check_dir_fd(dir_fd)
         _os.lstat(path)
 
     # Missing "abc.ABC"

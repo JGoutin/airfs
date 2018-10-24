@@ -61,7 +61,7 @@ def makedirs(name, mode=0o777, exist_ok=False):
 
 
 @equivalent_to(os_mkdir)
-def mkdir(path, mode=0o777, *, dir_fd=None):
+def mkdir(path, mode=0o777, dir_fd=None):
     """
     Create a directory named path with numeric mode mode.
 
@@ -100,7 +100,7 @@ def mkdir(path, mode=0o777, *, dir_fd=None):
 
 
 @equivalent_to(os_remove)
-def remove(path, *, dir_fd=None):
+def remove(path, dir_fd=None):
     """
     Remove a file.
 
@@ -127,7 +127,7 @@ unlink = remove
 
 
 @equivalent_to(os_rmdir)
-def rmdir(path, *, dir_fd=None):
+def rmdir(path, dir_fd=None):
     """
     Remove a directory.
 
@@ -144,7 +144,7 @@ def rmdir(path, *, dir_fd=None):
 
 
 @equivalent_to(os_lstat)
-def lstat(path, *, dir_fd=None):
+def lstat(path, dir_fd=None):
     """
     Get the status of a file or a file descriptor.
     Perform the equivalent of a "lstat()" system call on the given path.
@@ -167,7 +167,7 @@ def lstat(path, *, dir_fd=None):
 
 
 @equivalent_to(os_stat)
-def stat(path, *, dir_fd=None, follow_symlinks=True):
+def stat(path, dir_fd=None, follow_symlinks=True):
     """
     Get the status of a file or a file descriptor.
     Perform the equivalent of a "stat()" system call on the given path.
