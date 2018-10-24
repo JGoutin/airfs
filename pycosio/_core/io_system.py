@@ -8,7 +8,7 @@ from stat import S_IFDIR, S_IFREG
 from time import mktime
 
 from pycosio._core.compat import ABC, Pattern
-from pycosio._core.exceptions import ObjectNotFoundError
+from pycosio._core.exceptions import ObjectNotFoundError, ObjectPermissionError
 
 
 class SystemBase(ABC):
@@ -486,12 +486,22 @@ class SystemBase(ABC):
                 return
 
             # Yields each locator objects
-            for locator, _ in locators:
-                locator = locator.rstrip('/')
-                for obj_path, header in self._list_objects(
-                        self.get_client_kwargs(locator), '',
-                        max_request_entries):
-                    yield '/'.join((locator, obj_path.lstrip('/'))), header
+            for loc_path, loc_header in locators:
+
+                # Yields locator itself
+                loc_path = loc_path.rstrip('/')
+                yield loc_path, loc_header
+
+                # Yields locator content is read access to it
+                try:
+                    for obj_path, obj_header in self._list_objects(
+                            self.get_client_kwargs(loc_path), '',
+                            max_request_entries):
+                        yield ('/'.join((loc_path, obj_path.lstrip('/'))),
+                               obj_header)
+
+                except ObjectPermissionError:
+                    continue
             return
 
         # From locator or sub directory

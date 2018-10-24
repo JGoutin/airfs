@@ -282,7 +282,7 @@ class _S3System(_SystemBase):
             except KeyError:
                 raise ObjectNotFoundError('Not found: %s' % path)
 
-            # Handles results on more thant one page
+            # Handles results on more than one page
             try:
                 client_kwargs['ContinuationToken'] = response[
                     'NextContinuationToken']
