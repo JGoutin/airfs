@@ -6,14 +6,16 @@ Changelog
 
 New standard library equivalent functions:
 
-* ``shutil.copyfile``, ``os.remove`` / ``os.unlink``, ``os.rmdir``,
-  ``os.listdir``, ``os.path.getctime``, ``os.stat``, ``os.lstat``,
-  ``os.scandir``.
+* ``os.listdir``, ``os.lstat``, ``os.remove``, ``os.rmdir``, ``os.scandir``,
+  ``os.stat``, ``os.unlink``, ``os.path.getctime``, ``shutil.copyfile``.
 
 Improvements
 
 * Copy of objects from and to a same storage is performed directly on remote
   server if possible.
+* Pycosio now raises ``io.UnsupportedOperation`` if an operation is not
+  compatible with the current storage, this appy to all newly created function
+  and following existing functions: ``getsize``,  ``getmtime``, ``mkdir``.
 
 Fixes:
 
@@ -21,12 +23,9 @@ Fixes:
   directory.
 * ``copy`` now checks if destination parent directory exists and if files
   are not same file and raise proper exceptions.
-* ``mkdir`` on HTTP storage now raises ``io.UnsupportedOperation``.
 * ``mkdir``: missing ``dir_fd`` argument.
-* ``getsize`` and ``getmtime`` now raises ``io.UnsupportedOperation`` if
-  information not available.
 * ``isdir`` now correctly handle "virtual" directories (Directory that don't
-  exist as proper object, but exists in another object path)
+  exist as proper object, but exists in another object path).
 
 1.1.0 (2018/10)
 ---------------

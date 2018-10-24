@@ -237,9 +237,11 @@ class SystemBase(ABC):
             # have headers.
             elif virtual_dir:
                 try:
-                    next(self.list_objects(relative, relative=True))
+                    next(self.list_objects(relative, relative=True,
+                                           max_request_entries=1))
                     return True
-                except (StopIteration, ObjectNotFoundError):
+                except (StopIteration, ObjectNotFoundError,
+                        UnsupportedOperation):
                     return False
         return False
 
@@ -454,7 +456,8 @@ class SystemBase(ABC):
         # else: root
         return path
 
-    def list_objects(self, path='', relative=False, first_level=False):
+    def list_objects(self, path='', relative=False, first_level=False,
+                     max_request_entries=None):
         """
         List objects.
 
@@ -463,6 +466,8 @@ class SystemBase(ABC):
             relative (bool): Path is relative to current root.
             first_level (bool): It True, returns only first level objects.
                 Else, returns full tree.
+            max_request_entries (int): If specified, maximum entries returned
+                by request.
 
         Returns:
             generator of tuple: object name str, object header dict
@@ -484,7 +489,8 @@ class SystemBase(ABC):
             for locator, _ in locators:
                 locator = locator.rstrip('/')
                 for obj_path, header in self._list_objects(
-                        self.get_client_kwargs(locator), ''):
+                        self.get_client_kwargs(locator), '',
+                        max_request_entries):
                     yield '/'.join((locator, obj_path.lstrip('/'))), header
             return
 
@@ -495,7 +501,7 @@ class SystemBase(ABC):
             seen = set()
 
         for obj_path, header in self._list_objects(
-                self.get_client_kwargs(locator), path):
+                self.get_client_kwargs(locator), path, max_request_entries):
 
             if path:
                 obj_path = obj_path.split(path, maxsplit=1)[1].lstrip('/')
@@ -537,13 +543,15 @@ class SystemBase(ABC):
         """
         raise UnsupportedOperation('listdir')
 
-    def _list_objects(self, client_kwargs, path):
+    def _list_objects(self, client_kwargs, path, max_request_entries):
         """
         Lists objects.
 
         args:
             client_kwargs (dict): Client arguments.
             path (str): Path relative to current locator.
+            max_request_entries (int): If specified, maximum entries returned
+                by request.
 
         Returns:
             generator of tuple: object name str, object header dict

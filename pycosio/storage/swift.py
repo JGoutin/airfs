@@ -153,28 +153,6 @@ class _SwiftSystem(_SystemBase):
             # Container
             return self.client.delete_container(client_kwargs['container'])
 
-    def _list_locators(self):
-        """
-        Lists locators.
-
-        Returns:
-            generator of tuple: locator name str, locator header dict
-        """
-        # TODO:
-
-    def _list_objects(self, client_kwargs, path):
-        """
-        Lists objects.
-
-        args:
-            client_kwargs (dict): Client arguments.
-            path (str): Path relative to current locator.
-
-        Returns:
-            generator of tuple: object name str, object header dict
-        """
-        # TODO:
-
 
 class SwiftRawIO(_ObjectRawIOBase):
     """Binary OpenStack Swift Object I/O

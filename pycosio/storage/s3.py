@@ -254,17 +254,23 @@ class _S3System(_SystemBase):
         for bucket in response['Buckets']:
             yield bucket.pop('Name'), bucket
 
-    def _list_objects(self, client_kwargs, path):
+    def _list_objects(self, client_kwargs, path, max_request_entries):
         """
         Lists objects.
 
         args:
             client_kwargs (dict): Client arguments.
             path (str): Path relative to current locator.
+            max_request_entries (int): If specified, maximum entries returned
+                by request.
 
         Returns:
             generator of tuple: object name str, object header dict
         """
+        client_kwargs = client_kwargs.copy()
+        if max_request_entries:
+            client_kwargs['MaxKeys'] = max_request_entries
+
         while True:
             with _handle_client_error():
                 response = self.client.list_objects_v2(
