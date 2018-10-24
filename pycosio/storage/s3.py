@@ -2,6 +2,7 @@
 """Amazon Web Services S3"""
 
 from contextlib import contextmanager as _contextmanager
+from io import UnsupportedOperation as _UnsupportedOperation
 import re as _re
 
 import boto3 as _boto3
@@ -139,6 +140,22 @@ class _S3System(_SystemBase):
                 _re.compile('http://s3-%s\.amazonaws\.com' % region))
 
     @staticmethod
+    def _getctime_from_header(header):
+        """
+        Return the time from header
+
+        Args:
+            header (dict): Object header.
+
+        Returns:
+            float: The number of seconds since the epoch
+        """
+        try:
+            return _to_timestamp(header.pop('CreationDate'))
+        except KeyError:
+            raise _UnsupportedOperation('getctime')
+
+    @staticmethod
     def _getmtime_from_header(header):
         """
         Return the time from header
@@ -149,7 +166,10 @@ class _S3System(_SystemBase):
         Returns:
             float: The number of seconds since the epoch
         """
-        return _to_timestamp(header['LastModified'])
+        try:
+            return _to_timestamp(header.pop('LastModified'))
+        except KeyError:
+            raise _UnsupportedOperation('getmtime')
 
     @staticmethod
     def _getsize_from_header(header):

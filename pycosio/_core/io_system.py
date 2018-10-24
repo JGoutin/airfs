@@ -1,8 +1,10 @@
 # coding=utf-8
 """Cloud storage abstract System"""
 from abc import abstractmethod
+from collections import OrderedDict, namedtuple
 from email.utils import parsedate
 from io import UnsupportedOperation
+from stat import S_IFDIR, S_IFREG
 from time import mktime
 
 from pycosio._core.compat import ABC, Pattern
@@ -99,6 +101,36 @@ class SystemBase(ABC):
             dict: client args
         """
 
+    def getctime(self, path=None, client_kwargs=None, header=None):
+        """
+        Return the creation time of path.
+
+        Args:
+            path (str): File path or URL.
+            client_kwargs (dict): Client arguments.
+            header (dict): Object header.
+
+        Returns:
+            float: The number of seconds since the epoch
+                (see the time module).
+        """
+        return self._getmtime_from_header(
+            self.head(path, client_kwargs, header))
+
+    @staticmethod
+    def _getctime_from_header(header):
+        """
+        Return the time from header
+
+        Args:
+            header (dict): Object header.
+
+        Returns:
+            float: The number of seconds since the epoch
+        """
+        # Not exists in standard HTTP header
+        raise UnsupportedOperation('getctime')
+
     def getmtime(self, path=None, client_kwargs=None, header=None):
         """
         Return the time of last access of path.
@@ -129,11 +161,11 @@ class SystemBase(ABC):
         # By default, assumes that information are in a standard HTTP header
         for key in ('Last-Modified', 'last-modified'):
             try:
-                return mktime(parsedate(header[key]))
+                return mktime(parsedate(header.pop(key)))
             except KeyError:
                 continue
         else:
-            raise TypeError('Modification time not available')
+            raise UnsupportedOperation('getmtime')
 
     @abstractmethod
     def _get_roots(self):
@@ -172,11 +204,11 @@ class SystemBase(ABC):
         # By default, assumes that information are in a standard HTTP header
         for key in ('Content-Length', 'content-length'):
             try:
-                return int(header[key])
+                return int(header.pop(key))
             except KeyError:
                 continue
         else:
-            raise TypeError('Size not available')
+            raise UnsupportedOperation('getsize')
 
     def isdir(self, path=None, client_kwargs=None):
         """
@@ -504,3 +536,46 @@ class SystemBase(ABC):
             generator of tuple: object name str, object header dict
         """
         raise UnsupportedOperation('listdir')
+
+    def stat(self, path=None, client_kwargs=None, header=None):
+        """
+        Get the status of an object.
+
+        Args:
+            path (str): File path or URL.
+            client_kwargs (dict): Client arguments.
+            header (dict): Object header.
+
+        Returns:
+            os.stat_result: Stat result object
+        """
+        # Should contain at least the strict minimum of os.stat_result
+        stat = OrderedDict((
+            ("st_mode", 0), ("st_ino", 0), ("st_dev", 0), ("st_nlink", 0),
+            ("st_uid", 0), ("st_gid", 0), ("st_size", 0), ("st_atime", 0),
+            ("st_mtime", 0), ("st_ctime", 0)))
+
+        # Populate standard os.stat_result values with object header content
+        header = self.head(path, client_kwargs, header)
+        for key, method in (
+                ('st_size', self._getsize_from_header),
+                ('st_ctime', self._getctime_from_header),
+                ('st_mtime', self._getmtime_from_header),):
+            try:
+                stat[key] = int(method(header))
+            except UnsupportedOperation:
+                continue
+
+        # File mode (Is directory or file)
+        if ((not path or path[-1] == '/' or self.is_locator(path)) and not
+                stat['st_size']):
+            stat[key] = S_IFDIR
+        else:
+            stat[key] = S_IFREG
+
+        # Add storage specific keys
+        for key, value in stat.items():
+            stat['st_' + key.lower().replace('-', '_')] = value
+
+        # Convert to "os.stat_result" like object
+        return namedtuple('os.stat_result', *list(stat))(**stat)

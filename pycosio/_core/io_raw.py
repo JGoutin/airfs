@@ -140,7 +140,7 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         Returns:
             int: Size in bytes.
         """
-        return self._system.getsize(header=self._head())
+        return self._system.getsize(header=self._head().copy())
 
     @memoizedmethod
     def _head(self):

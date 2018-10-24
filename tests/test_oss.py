@@ -58,13 +58,17 @@ def test_oss_raw_io():
     raises_exception = False
     error_kwargs = dict(headers={}, body=None, details={})
     storage_kwargs = dict(endpoint=oss_endpoint, auth='auth')
+    headers = {'Content-Length': SIZE,
+               'Last-Modified': format_date_time(m_time)}
 
     # Mocks oss2
 
     class Response:
         """Dummy head_object response"""
-        headers = {'Content-Length': SIZE,
-                   'Last-Modified': format_date_time(m_time)}
+
+        def __init__(self):
+            """Returns fake result"""
+            self.headers = headers.copy()
 
     class Auth:
         """Dummy OSS Auth"""

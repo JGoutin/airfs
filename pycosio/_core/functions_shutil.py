@@ -104,8 +104,8 @@ def copyfile(src, dst, follow_symlinks=True):
     Args:
         src (path-like object or file-like object): Source file.
         dst (path-like object or file-like object): Destination file.
-        follow_symlinks (bool): Follow symlinks. Not supported on
-            cloud storage objects.
+        follow_symlinks (bool): Follow symlinks.
+            Not supported on cloud storage objects.
 
     Raises:
          IOError: Destination directory not found.

@@ -40,8 +40,30 @@ def getsize(path):
 
     Raises:
          OSError: if the file does not exist or is inaccessible.
+         io.UnsupportedOperation: Information not available for this path.
     """
     return get_instance(path).getsize(path)
+
+
+@equivalent_to(os.path.getctime)
+def getctime(path):
+    """
+    Return the creation time of path.
+
+    Equivalent to "os.path.getctime".
+
+    Args:
+        path (path-like object): File path or URL.
+
+    Returns:
+        float: The number of seconds since the epoch
+            (see the time module).
+
+    Raises:
+         OSError: if the file does not exist or is inaccessible.
+         io.UnsupportedOperation: Information not available for this path.
+    """
+    return get_instance(path).getctime(path)
 
 
 @equivalent_to(os.path.getmtime)
@@ -60,6 +82,7 @@ def getmtime(path):
 
     Raises:
          OSError: if the file does not exist or is inaccessible.
+         io.UnsupportedOperation: Information not available for this path.
     """
     return get_instance(path).getmtime(path)
 

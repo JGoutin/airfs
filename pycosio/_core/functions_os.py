@@ -5,7 +5,7 @@ from os.path import dirname
 
 from pycosio._core.compat import (
     makedirs as os_makedirs, remove as os_remove, rmdir as os_rmdir,
-    is_a_directory_error, mkdir as os_mkdir)
+    is_a_directory_error, mkdir as os_mkdir, stat as os_stat, lstat as os_lstat)
 from pycosio._core.storage_manager import get_instance
 from pycosio._core.functions_core import equivalent_to
 from pycosio._core.exceptions import ObjectExistsError, ObjectNotFoundError
@@ -42,7 +42,7 @@ def makedirs(name, mode=0o777, exist_ok=False):
         name (path-like object): Path or URL.
         mode (int): The mode parameter is passed to os.mkdir();
             see the os.mkdir() description for how it is interpreted.
-            Not support on cloud objects.
+            Not supported on cloud storage objects.
         exist_ok (bool): Don't raises error if target directory already
             exists.
 
@@ -61,7 +61,7 @@ def makedirs(name, mode=0o777, exist_ok=False):
 
 
 @equivalent_to(os_mkdir)
-def mkdir(path, mode=0o777, dir_fd=None):
+def mkdir(path, mode=0o777, *, dir_fd=None):
     """
     Create a directory named path with numeric mode mode.
 
@@ -71,10 +71,10 @@ def mkdir(path, mode=0o777, dir_fd=None):
         path (path-like object): Path or URL.
         mode (int): The mode parameter is passed to os.mkdir();
             see the os.mkdir() description for how it is interpreted.
-            Not support on cloud objects.
+            Not supported on cloud storage objects.
         dir_fd: directory descriptors;
             see the os.remove() description for how it is interpreted.
-            Not support on cloud objects.
+            Not supported on cloud storage objects.
 
     Raises:
         FileExistsError : Directory already exists.
@@ -100,7 +100,7 @@ def mkdir(path, mode=0o777, dir_fd=None):
 
 
 @equivalent_to(os_remove)
-def remove(path, dir_fd=None):
+def remove(path, *, dir_fd=None):
     """
     Remove a file.
 
@@ -110,7 +110,7 @@ def remove(path, dir_fd=None):
         path (path-like object): Path or URL.
         dir_fd: directory descriptors;
             see the os.remove() description for how it is interpreted.
-            Not support on cloud objects.
+            Not supported on cloud storage objects.
     """
     system = get_instance(path)
 
@@ -127,7 +127,7 @@ unlink = remove
 
 
 @equivalent_to(os_rmdir)
-def rmdir(path, dir_fd=None):
+def rmdir(path, *, dir_fd=None):
     """
     Remove a directory.
 
@@ -137,7 +137,55 @@ def rmdir(path, dir_fd=None):
         path (path-like object): Path or URL.
         dir_fd: directory descriptors;
             see the os.rmdir() description for how it is interpreted.
-            Not support on cloud objects.
+            Not supported on cloud storage objects.
     """
     system = get_instance(path)
     system.remove(system.ensure_dir_path(path))
+
+
+@equivalent_to(os_lstat)
+def lstat(path, *, dir_fd=None):
+    """
+    Get the status of a file or a file descriptor.
+    Perform the equivalent of a "lstat()" system call on the given path.
+
+    Equivalent to "os.lstat".
+
+    On cloud object, may return extra storage specific attributes in
+    "os.stat_result".
+
+    Args:
+        path (path-like object): Path or URL.
+        dir_fd: directory descriptors;
+            see the os.rmdir() description for how it is interpreted.
+            Not supported on cloud storage objects.
+
+    Returns:
+        os.stat_result: stat result.
+    """
+    return get_instance(path).stat(path)
+
+
+@equivalent_to(os_stat)
+def stat(path, *, dir_fd=None, follow_symlinks=True):
+    """
+    Get the status of a file or a file descriptor.
+    Perform the equivalent of a "stat()" system call on the given path.
+
+    Equivalent to "os.stat".
+
+    On cloud object, may return extra storage specific attributes in
+    "os.stat_result".
+
+    Args:
+        path (path-like object): Path or URL.
+        dir_fd: directory descriptors;
+            see the os.rmdir() description for how it is interpreted.
+            Not supported on cloud storage objects.
+        follow_symlinks (bool): Follow symlinks.
+            Not supported on cloud storage objects.
+
+    Returns:
+        os.stat_result: stat result.
+    """
+    return get_instance(path).stat(path)

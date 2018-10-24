@@ -16,7 +16,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-__version__ = '1.1.0'
+__version__ = '1.2.0'
 __copyright__ = "Copyright 2018 Accelize"
 __licence__ = "Apache 2.0"
 
@@ -24,10 +24,10 @@ __licence__ = "Apache 2.0"
 # Shadowing "open" built-in name is done to provides "pycosio.open" function
 from pycosio._core.functions_io import cos_open as open
 from pycosio._core.functions_os import (
-    listdir, makedirs, mkdir, remove, unlink, rmdir)
+    listdir, lstat, makedirs, mkdir, remove, rmdir, stat, unlink)
 from pycosio._core.functions_os_path import (
-    exists, getmtime, getsize, isabs, isdir, isfile, ismount, relpath, samefile,
-    splitdrive)
+    exists, getctime, getmtime, getsize, isabs, isdir, isfile, ismount, relpath,
+    samefile, splitdrive)
 from pycosio._core.functions_shutil import copy, copyfile
 from pycosio._core.storage_manager import mount
 
@@ -36,11 +36,12 @@ __all__ = list(sorted((
     'open',
 
     # Standard library "os"
-    'listdir', 'makedirs', 'mkdir', 'remove', 'unlink', 'rmdir',
+    'listdir', 'lstat', 'makedirs', 'mkdir', 'remove', 'rmdir', 'stat',
+    'unlink',
 
     # Standard library "os.path"
-    'exists', 'getmtime', 'getsize', 'isabs', 'isdir', 'isfile', 'ismount',
-    'relpath', 'samefile', 'splitdrive',
+    'exists', 'getctime', 'getmtime', 'getsize', 'isabs', 'isdir', 'isfile',
+    'ismount', 'relpath', 'samefile', 'splitdrive',
 
     # Standard library "shutil"
     'copy', 'copyfile',

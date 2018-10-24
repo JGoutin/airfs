@@ -118,9 +118,9 @@ def test_system_base():
 
     # Test empty header
     header = {}
-    with pytest.raises(TypeError):
+    with pytest.raises(UnsupportedOperation):
         system.getmtime('path')
-    with pytest.raises(TypeError):
+    with pytest.raises(UnsupportedOperation):
         system.getsize('path')
 
     # Test default unsupported

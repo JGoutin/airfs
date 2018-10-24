@@ -7,7 +7,7 @@ Changelog
 New standard library equivalent functions:
 
 * ``shutil.copyfile``, ``os.remove`` / ``os.unlink``, ``os.rmdir``,
-  ``os.listdir``.
+  ``os.listdir``, ``os.path.getctime``, ``os.stat``, ``os.lstat``.
 
 Improvements
 
@@ -22,6 +22,8 @@ Fixes:
   are not same file and raise proper exceptions.
 * ``mkdir`` on HTTP storage now raises ``io.UnsupportedOperation``.
 * ``mkdir``: missing ``dir_fd`` argument.
+* ``getsize`` and ``getmtime`` now raises ``io.UnsupportedOperation`` if
+  information not available.
 
 1.1.0 (2018/10)
 ---------------
@@ -75,7 +77,7 @@ Possibles futures features
 
 * Equivalent functions of:
     * ``os.removedirs``, ``os.scandir``,
-      ``os.stat``, ``os.walk``, ``os.rename``, ``os.renames``, ``os.replace``,
+      ``os.walk``, ``os.rename``, ``os.renames``, ``os.replace``,
       ``shutil.move``, ``os.chmod``, ``shutil.copytree``, ``shutil.rmtree``.
 * ``mode`` support in ``makedirs`` and ``mkdir``.
 * More cloud storage.
