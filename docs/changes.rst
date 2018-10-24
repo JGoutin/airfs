@@ -25,6 +25,8 @@ Fixes:
 * ``mkdir``: missing ``dir_fd`` argument.
 * ``getsize`` and ``getmtime`` now raises ``io.UnsupportedOperation`` if
   information not available.
+* ``isdir`` now correctly handle "virtual" directories (Directory that don't
+  exist as proper object, but exists in another object path)
 
 1.1.0 (2018/10)
 ---------------

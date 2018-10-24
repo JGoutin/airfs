@@ -2,7 +2,7 @@
 """Cloud object compatibles standard library 'os' equivalent functions"""
 import os
 from os.path import dirname
-from stat import S_ISLNK
+from stat import S_ISLNK, S_IFDIR
 
 from pycosio._core.compat import (
     makedirs as os_makedirs, remove as os_remove, rmdir as os_rmdir,
@@ -289,8 +289,13 @@ class DirEntry:
         Returns:
             bool: True if directory exists.
         """
-        return self._system.isdir(
-            path=self._path, client_kwargs=self._client_kwargs)
+        return (self._system.isdir(
+            path=self._path, client_kwargs=self._client_kwargs,
+            virtual_dir=False) or
+
+            # Some directories only exists virtually in object path and don't
+            # have headers.
+            bool(S_IFDIR(self.stat().st_mode)))
 
     @memoizedmethod
     def is_file(self, follow_symlinks=True):

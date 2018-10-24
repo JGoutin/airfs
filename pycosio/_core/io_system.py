@@ -210,13 +210,15 @@ class SystemBase(ABC):
         else:
             raise UnsupportedOperation('getsize')
 
-    def isdir(self, path=None, client_kwargs=None):
+    def isdir(self, path=None, client_kwargs=None, virtual_dir=True):
         """
         Return True if path is an existing directory.
 
         Args:
             path (str): Path or URL.
             client_kwargs (dict): Client arguments.
+            virtual_dir (bool): If True, checks if directory exists virtually
+                if an object path if not exists as a specific object.
 
         Returns:
             bool: True if directory exists.
@@ -227,7 +229,16 @@ class SystemBase(ABC):
             return True
 
         if path[-1] == '/' or self.is_locator(relative, relative=True):
-            return self.exists(path=path, client_kwargs=client_kwargs)
+            exists = self.exists(path=path, client_kwargs=client_kwargs)
+
+            # Some directories only exists virtually in object path and don't
+            # have headers.
+            if not exists and virtual_dir:
+                try:
+                    next(self.list_objects(relative, relative=True))
+                    return True
+                except StopIteration:
+                    return False
         return False
 
     def isfile(self, path=None, client_kwargs=None):
