@@ -183,9 +183,9 @@ class _S3System(_SystemBase):
             int: Size in bytes.
         """
         try:
-            return header['ContentLength']
+            return header.pop('ContentLength')
         except KeyError:
-            raise _UnsupportedOperation('getmtime')
+            raise _UnsupportedOperation('getsize')
 
     def _head(self, client_kwargs):
         """
@@ -200,10 +200,14 @@ class _S3System(_SystemBase):
         with _handle_client_error():
             # Object
             if 'Key' in client_kwargs:
-                return self.client.head_object(**client_kwargs)
+                header = self.client.head_object(**client_kwargs)
 
             # Bucket
-            return self.client.head_bucket(**client_kwargs)
+            else:
+                header = self.client.head_bucket(**client_kwargs)
+
+        header.pop('ResponseMetadata', None)
+        return header
 
     def _make_dir(self, client_kwargs):
         """
