@@ -270,8 +270,11 @@ class _S3System(_SystemBase):
                 response = self.client.list_objects_v2(
                     Prefix=path, **client_kwargs)
 
-            for obj in response['Contents']:
-                yield obj.pop('Key'), obj
+            try:
+                for obj in response['Contents']:
+                    yield obj.pop('Key'), obj
+            except KeyError:
+                raise ObjectNotFoundError('Not found: %s' % path)
 
             # Handles results on more thant one page
             try:

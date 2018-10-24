@@ -239,7 +239,7 @@ class SystemBase(ABC):
                 try:
                     next(self.list_objects(relative, relative=True))
                     return True
-                except StopIteration:
+                except (StopIteration, ObjectNotFoundError):
                     return False
         return False
 
