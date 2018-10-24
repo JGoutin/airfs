@@ -3,7 +3,8 @@ from io import UnsupportedOperation
 from os.path import join, basename, dirname
 from shutil import copy as shutil_copy, copyfileobj
 
-from pycosio._core.compat import same_file_error, copyfile as shutil_copyfile
+from pycosio._core.compat import (
+    same_file_error, copyfile as shutil_copyfile, COPY_BUFSIZE)
 from pycosio._core.functions_io import cos_open
 from pycosio._core.functions_os_path import isdir
 from pycosio._core.functions_core import format_and_is_storage
@@ -49,7 +50,7 @@ def _copy(src, dst, src_is_storage, dst_is_storage):
                 except AttributeError:
                     continue
             else:
-                buffer_size = 16384
+                buffer_size = COPY_BUFSIZE
 
             # Read and write
             copyfileobj(fsrc, fdst, buffer_size)

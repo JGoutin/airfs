@@ -212,8 +212,16 @@ except ImportError:
 
 # Python < 3.7 compatibility
 if _py[0] < 3 or (_py[0] == 3 and _py[1] < 7):
-    # Missing re.Pattern
+    # Missing "re.Pattern"
     Pattern = type(_re.compile(''))
 
 else:
     Pattern = _re.Pattern
+
+# Python < 3.8 compatibility
+if _py[0] < 3 or (_py[0] == 3 and _py[1] < 8):
+    # "shutil.COPY_BUFSIZE" backport
+    COPY_BUFSIZE = 1024 * 1024 if _os.name == 'nt' else 16 * 1024
+
+else:
+    COPY_BUFSIZE = _shutil.COPY_BUFSIZE
