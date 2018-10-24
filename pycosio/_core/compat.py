@@ -181,7 +181,6 @@ except ImportError:
         raise NotImplementedError(
             '"os.path.samefile" not available on Windows with Python 2.')
 
-
 # Python 3.4 compatibility
 if _py[0] == 3 and _py[1] == 4:
 
@@ -204,8 +203,15 @@ if _py[0] == 3 and _py[1] == 4:
 else:
     ThreadPoolExecutor = _futures.ThreadPoolExecutor
 
-# Python <= 3.6 compatibility
-if _py[0] < 3 or (_py[0] == 3 and _py[1] <= 6):
+# Python < 3.5 compatibility
+try:
+    from os import scandir, walk
+except ImportError:
+    # Use "scandir" backport
+    from scandir import scandir, walk
+
+# Python < 3.7 compatibility
+if _py[0] < 3 or (_py[0] == 3 and _py[1] < 7):
     # Missing re.Pattern
     Pattern = type(_re.compile(''))
 

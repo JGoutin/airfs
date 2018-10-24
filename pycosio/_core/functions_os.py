@@ -2,13 +2,16 @@
 """Cloud object compatibles standard library 'os' equivalent functions"""
 import os
 from os.path import dirname
+from stat import S_ISLNK
 
 from pycosio._core.compat import (
     makedirs as os_makedirs, remove as os_remove, rmdir as os_rmdir,
-    is_a_directory_error, mkdir as os_mkdir, stat as os_stat, lstat as os_lstat)
+    is_a_directory_error, mkdir as os_mkdir, stat as os_stat, lstat as os_lstat,
+    scandir as os_scandir)
 from pycosio._core.storage_manager import get_instance
 from pycosio._core.functions_core import equivalent_to
 from pycosio._core.exceptions import ObjectExistsError, ObjectNotFoundError
+from pycosio._core.io_base import memoizedmethod
 
 
 @equivalent_to(os.listdir)
@@ -189,3 +192,174 @@ def stat(path, dir_fd=None, follow_symlinks=True):
         os.stat_result: stat result.
     """
     return get_instance(path).stat(path)
+
+
+class DirEntry:
+    """
+    Object yielded by scandir() to expose the file path and other file
+    attributes of a directory entry.
+
+    Equivalent to "os.DirEntry".
+    """
+
+    def __init__(self, scandir_path, system, name, header):
+        """
+        Should only be instantiated by "scandir".
+
+        Args:
+            scandir_path (str): scandir path argument.
+            system (pycosio._core.io_system.SystemBase subclass):
+                Storage system.
+            name (str): Name of the object relative to "scandir_path".
+            header (dict): Object header
+        """
+        self._cache = dict()
+        self._system = system
+        self._name = name
+        self._header = header
+        self._path = '/'.join((scandir_path.rstrip('/'), name))
+
+    def __str__(self):
+        return "<DirEntry '%s'>" % self._name
+
+    __repr__ = __str__
+
+    @property
+    @memoizedmethod
+    def _client_kwargs(self):
+        """
+        Get base keyword arguments for client
+
+        Returns:
+            dict: keyword arguments
+        """
+        return self._system.get_client_kwargs(self._path)
+
+    @property
+    def name(self):
+        """
+        The entry’s base filename, relative to the scandir() path argument.
+
+        Returns:
+            str: name.
+        """
+        return self._name
+
+    @property
+    def path(self):
+        """
+        The entry’s full path name:
+        equivalent to os.path.join(scandir_path, entry.name)
+        where scandir_path is the scandir() path argument.
+
+        The path is only absolute if the scandir() path argument was absolute.
+
+        Returns:
+            str: name.
+        """
+        return self._path
+
+    @memoizedmethod
+    def inode(self):
+        """
+        Return the inode number of the entry.
+
+        The result is cached on the os.DirEntry object.
+
+        Returns:
+            int: inode.
+        """
+        return self.stat().st_ino
+
+    @memoizedmethod
+    def is_dir(self, follow_symlinks=True):
+        """
+        Return True if this entry is a directory or a symbolic link pointing to
+        a directory; return False if the entry is or points to any other kind
+        of file, or if it doesn’t exist anymore.
+
+        The result is cached on the os.DirEntry object.
+
+        Args:
+            follow_symlinks (bool): Follow symlinks.
+                Not supported on cloud storage objects.
+
+        Returns:
+            bool: True if directory exists.
+        """
+        return self._system.isdir(
+            path=self._path, client_kwargs=self._client_kwargs)
+
+    @memoizedmethod
+    def is_file(self, follow_symlinks=True):
+        """
+        Return True if this entry is a file or a symbolic link pointing to a
+        file; return False if the entry is or points to a directory or other
+        non-file entry, or if it doesn’t exist anymore.
+
+        The result is cached on the os.DirEntry object.
+
+        Args:
+            follow_symlinks (bool): Follow symlinks.
+                Not supported on cloud storage objects.
+
+        Returns:
+            bool: True if directory exists.
+        """
+        return self._system.isfile(
+            path=self._path, client_kwargs=self._client_kwargs)
+
+    @memoizedmethod
+    def is_symlink(self):
+        """
+        Return True if this entry is a symbolic link
+
+        The result is cached on the os.DirEntry object.
+
+        Returns:
+            bool: True if symbolic link.
+        """
+        return bool(S_ISLNK(self.stat().st_mode))
+
+    @memoizedmethod
+    def stat(self, follow_symlinks=True):
+        """
+        Return a stat_result object for this entry.
+
+        The result is cached on the os.DirEntry object.
+
+        Args:
+            follow_symlinks (bool): Follow symlinks.
+                Not supported on cloud storage objects.
+
+        Returns:
+            os.stat_result: Stat result object
+        """
+        return self._system.stat(
+            path=self._path, client_kwargs=self._client_kwargs,
+            header=self._header)
+
+
+DirEntry.__module__ = 'pycosio'
+
+
+@equivalent_to(os_scandir)
+def scandir(path='.'):
+    """
+    Return an iterator of os.DirEntry objects corresponding to the entries in
+    the directory given by path. The entries are yielded in arbitrary order,
+    and the special entries '.' and '..' are not included.
+
+    Equivalent to "os.scandir".
+
+    Args:
+        path (path-like object): Path or URL.
+
+    Returns:
+        Generator of os.DirEntry: Entries information.
+    """
+    system = get_instance(path)
+
+    for name, header in system.list_objects(path, first_level=True):
+        yield DirEntry(
+            scandir_path=path, system=system, name=name, header=header)
