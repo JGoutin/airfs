@@ -125,7 +125,7 @@ def test_http_raw_io():
         with pytest.raises(UnsupportedOperation):
             _HTTPSystem()._list_locators()
         with pytest.raises(UnsupportedOperation):
-            _HTTPSystem()._list_objects(dict(), '')
+            _HTTPSystem()._list_objects(dict(), '', None)
 
     # Restore mocked functions
     finally:
