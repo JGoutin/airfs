@@ -578,4 +578,7 @@ class SystemBase(ABC):
             stat['st_' + key.lower().replace('-', '_')] = value
 
         # Convert to "os.stat_result" like object
-        return namedtuple('os.stat_result', tuple(stat))(**stat)
+        stat_result = namedtuple('stat_result', tuple(stat))
+        stat_result.__name__ = 'os.stat_result'
+        stat_result.__module__ = 'pycosio'
+        return stat_result(**stat)
