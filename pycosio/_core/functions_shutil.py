@@ -43,7 +43,7 @@ def _copy(src, dst, src_is_storage, dst_is_storage):
         with cos_open(dst, 'wb') as fdst:
 
             # Get stream buffer size
-            for stream in (fdst, fsrc):
+            for stream in (fsrc, fdst):
                 try:
                     buffer_size = getattr(stream, '_buffer_size')
                     break
