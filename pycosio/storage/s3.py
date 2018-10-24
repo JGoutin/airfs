@@ -182,7 +182,10 @@ class _S3System(_SystemBase):
         Returns:
             int: Size in bytes.
         """
-        return header['ContentLength']
+        try:
+            return header['ContentLength']
+        except KeyError:
+            raise _UnsupportedOperation('getmtime')
 
     def _head(self, client_kwargs):
         """
