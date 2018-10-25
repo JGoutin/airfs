@@ -17,7 +17,7 @@ def test_handle_oss_error():
     from pycosio._core.exceptions import (
         ObjectNotFoundError, ObjectPermissionError)
 
-    kwargs = dict(headers={}, body=None, details={})
+    kwargs = dict(headers={}, body=None, details={'Message': ''})
 
     # Any error
     with pytest.raises(OssError):

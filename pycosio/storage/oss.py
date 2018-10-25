@@ -31,7 +31,7 @@ def _handle_oss_error():
 
     except _OssError as exception:
         if exception.status in _ERROR_CODES:
-            raise _ERROR_CODES[exception.status](exception.details)
+            raise _ERROR_CODES[exception.status](exception.details['Message'])
         raise
 
 
@@ -45,6 +45,8 @@ class _OSSSystem(_SystemBase):
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
     """
+    _CTIME_KEYS = ('Creation-Date', 'creation_date')
+    _MTIME_KEYS = ('Last-Modified', 'last_modified')
 
     def __init__(self, storage_parameters=None, *args, **kwargs):
         try:
@@ -163,6 +165,72 @@ class _OSSSystem(_SystemBase):
 
             # Bucket
             return bucket.delete_bucket()
+
+    def _list_locators(self):
+        """
+        Lists locators.
+
+        Returns:
+            generator of tuple: locator name str, locator header dict
+        """
+        with _handle_oss_error():
+            response = _oss.Service(
+                self.client, endpoint=self._endpoint).list_buckets()
+
+        for bucket in response.buckets:
+            header = {
+                attr: getattr(bucket, attr) for attr in dir(bucket)
+                if not attr.startswith('_') and attr != 'name'}
+            yield bucket.name, header
+
+    def _list_objects(self, client_kwargs, path, max_request_entries):
+        """
+        Lists objects.
+
+        args:
+            client_kwargs (dict): Client arguments.
+            path (str): Path relative to current locator.
+            max_request_entries (int): If specified, maximum entries returned
+                by request.
+
+        Returns:
+            generator of tuple: object name str, object header dict
+        """
+        kwargs = dict()
+        if max_request_entries:
+            kwargs['max_keys'] = max_request_entries
+
+        bucket = self._get_bucket(client_kwargs)
+
+        while True:
+            with _handle_oss_error():
+                response = bucket.list_objects(prefix=path, **kwargs)
+
+            if not response.object_list:
+                # Must check if parent exits for empty directories
+                if path and '/' in path.strip('/'):
+                    with _handle_oss_error():
+                        parent_list = bucket.list_objects(
+                            prefix=path.strip('/').rsplit('/')[0],
+                            **kwargs).object_list
+                else:
+                    parent_list = None
+                if not parent_list:
+                    raise ObjectNotFoundError('Not found: %s' % path)
+
+            for obj in response.object_list:
+                header = {
+                    attr: getattr(obj, attr) for attr in dir(obj)
+                    if not attr.startswith('_')
+                    and attr not in ('key', 'is_prefix')}
+                yield obj.key, header
+
+            # Handles results on more than one page
+            if response.next_marker:
+                client_kwargs['marker'] = response.next_marker
+            else:
+                # End of results
+                break
 
 
 class OSSRawIO(_ObjectRawIOBase):

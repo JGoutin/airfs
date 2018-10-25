@@ -180,11 +180,16 @@ class SystemBase(ABC):
         """
         for key in keys:
             try:
-                return to_timestamp(parse(header.pop(key)))
+                date_value = header.pop(key)
             except KeyError:
                 continue
-        else:
-            raise UnsupportedOperation(name)
+            try:
+                # String to convert
+                return to_timestamp(parse(date_value))
+            except TypeError:
+                # Already number
+                return float(date_value)
+        raise UnsupportedOperation(name)
 
     @abstractmethod
     def _get_roots(self):

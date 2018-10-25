@@ -101,6 +101,10 @@ def test_system_base():
     with pytest.raises(UnsupportedOperation):
         system.getctime('path')
 
+    header['Last-Modified'] = m_time
+    assert system.getmtime('path') == m_time
+    header['Last-Modified'] = format_date_time(m_time)
+
     # Tests relpath
     assert system.relpath('scheme://path') == 'path'
     assert system.relpath('path') == 'path'

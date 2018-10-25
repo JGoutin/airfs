@@ -37,5 +37,4 @@ def handle_os_exceptions():
         raise {ObjectNotFoundError: file_not_found_error,
                ObjectPermissionError: permission_error,
                ObjectExistsError: file_exits_error
-               }.get(
-                    type(exception), OSError)(exception.args[0])
+               }.get(type(exception), OSError)(exception.args[0])
