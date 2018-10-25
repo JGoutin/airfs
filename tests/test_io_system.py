@@ -1,5 +1,6 @@
 # coding=utf-8
 """Test pycosio._core.io_system"""
+from itertools import product
 import time
 import re
 from wsgiref.handlers import format_date_time
@@ -12,7 +13,8 @@ from tests.utilities import SIZE, check_head_methods
 def test_system_base():
     """Tests pycosio._core.io_system.SystemBase"""
     from pycosio._core.io_system import SystemBase
-    from pycosio._core.exceptions import ObjectNotFoundError
+    from pycosio._core.exceptions import (
+        ObjectNotFoundError, ObjectPermissionError)
     from io import UnsupportedOperation
     from stat import S_ISDIR, S_ISREG
 
@@ -26,6 +28,9 @@ def test_system_base():
     header = {'Content-Length': str(SIZE),
               'Last-Modified': format_date_time(m_time),
               'ETag': '123456'}
+    locators = ('locator', 'locator_no_access')
+    objects = ('dir1/object1', 'dir1/object2', 'dir1/object3',
+               'dir1/dir2/object4', 'dir1/dir2/object5', 'dir1')
 
     class DummySystem(SystemBase):
         """Dummy System"""
@@ -43,6 +48,24 @@ def test_system_base():
         def _get_roots(self):
             """Returns fake result"""
             return roots
+
+        def _list_objects(self, client_kwargs, *_, **__):
+            """Checks arguments and returns fake result"""
+            assert client_kwargs == dummy_client_kwargs
+
+            path = client_kwargs['path'].strip('/')
+            if path == 'locator_no_access':
+                raise ObjectPermissionError
+            elif path in ('locator', 'locator/dir1'):
+                for obj in objects:
+                    yield obj, header.copy()
+            else:
+                raise StopIteration
+
+        def _list_locators(self):
+            """Returns fake result"""
+            for locator in locators:
+                yield locator, header.copy()
 
         def _head(self, client_kwargs):
             """Checks arguments and returns fake result"""
@@ -104,6 +127,12 @@ def test_system_base():
     assert system.isdir('root://locator')
     assert system.isdir('root://')
 
+    raise_not_exists_exception = True
+    assert not system.isdir('root://locator/path/')
+    assert system.isdir('root://locator/dir1/')
+    assert not system.isdir('root://locator/dir1/', virtual_dir=False)
+    raise_not_exists_exception = False
+
     # Test ensure_dir_path
     assert system.ensure_dir_path(
         'root://locator/path') == 'root://locator/path/'
@@ -159,4 +188,26 @@ def test_system_base():
     assert stat_result.st_atime == 0
     assert stat_result.st_mtime == pytest.approx(m_time, 1)
     assert stat_result.st_ctime == 0
-    assert stat_result.st_etag == '123456'
+    assert stat_result.st_etag == header['ETag']
+
+    # Tests list_objects
+    assert list(system.list_objects(path='root://', first_level=True)) == [
+        (locator, header) for locator in locators]
+
+    excepted = (
+        [(locators[0], header)] +
+        [('/'.join((locators[0], obj)), header) for obj in objects] +
+        [(locators[1], header)])
+    assert list(system.list_objects(path='root://')) == excepted
+
+    assert list(system.list_objects(path='root://locator')) == [
+        (obj, header) for obj in objects]
+
+    assert list(system.list_objects(path='locator', relative=True)) == [
+        (obj, header) for obj in objects]
+
+    excepted = (
+        [(obj, header) for obj in ('object1', 'object2', 'object3')] +
+        [('dir2/', dict())])
+    assert list(system.list_objects(
+        path='root://locator/dir1', first_level=True)) == excepted

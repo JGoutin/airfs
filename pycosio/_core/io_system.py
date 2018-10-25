@@ -514,7 +514,10 @@ class SystemBase(ABC):
                 self.get_client_kwargs(locator), path, max_request_entries):
 
             if path:
-                obj_path = obj_path.split(path, maxsplit=1)[1].lstrip('/')
+                try:
+                    obj_path = obj_path.split(path, maxsplit=1)[1].lstrip('/')
+                except IndexError:
+                    continue
 
             # Skips parent directory
             if not obj_path:
