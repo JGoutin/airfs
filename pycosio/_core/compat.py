@@ -57,7 +57,7 @@ if _py[0] == 2:
             follow_symlinks: Must be True.
         """
         if follow_symlinks is not True:
-            raise SyntaxError('"follow_symlinks" not supported on Python 2')
+            raise TypeError('"follow_symlinks" not supported on Python 2')
 
     def copyfile(src, dst, follow_symlinks=True):
         """
@@ -80,7 +80,7 @@ if _py[0] == 2:
             dir_fd: Must be None.
         """
         if dir_fd is not None:
-            raise SyntaxError('"dir_fd" not supported on Python 2')
+            raise TypeError('"dir_fd" not supported on Python 2')
 
     def mkdir(path, mode=0o777, dir_fd=None):
         """
@@ -127,7 +127,7 @@ if _py[0] == 2:
         """
         _check_dir_fd(dir_fd)
         _check_follow_symlinks(follow_symlinks)
-        _os.stat(path)
+        return _os.stat(path)
 
     def lstat(path, dir_fd=None):
         """
@@ -138,7 +138,7 @@ if _py[0] == 2:
             dir_fd: Ignored.
         """
         _check_dir_fd(dir_fd)
-        _os.lstat(path)
+        return _os.lstat(path)
 
     # Missing "abc.ABC"
     ABC = _abc.ABCMeta('ABC', (object,), {})

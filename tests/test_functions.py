@@ -67,6 +67,7 @@ def test_equivalent_functions(tmpdir):
     import pycosio
     from pycosio._core.storage_manager import MOUNTED
     import pycosio._core.functions_os_path as std_os_path
+    import pycosio._core.functions_os as std_os
     from pycosio._core.io_system import SystemBase
 
     # Mock system
@@ -80,6 +81,12 @@ def test_equivalent_functions(tmpdir):
     dir_created = []
     removed = []
     check_ending_slash = True
+    first_level_objects_list = [
+        ('isfile1', {}),
+        ('isfile2', {}),
+        ('isdir1', {}),
+        ('isdir2', {})]
+    objects_list = []
 
     class System(SystemBase):
         """dummy system"""
@@ -96,7 +103,19 @@ def test_equivalent_functions(tmpdir):
             """Checks arguments and returns fake result"""
             if check_ending_slash:
                 assert path[-1] == '/'
-            return path in dirs_exists
+            return path in dirs_exists or 'isdir' in path
+
+        @staticmethod
+        def isfile(path=None, *_, **__):
+            """Checks arguments and returns fake result"""
+            return 'isfile' in path
+
+        @staticmethod
+        def list_objects(path='', first_level=False, **__):
+            """Checks arguments and returns fake result"""
+            for obj in (
+                    first_level_objects_list if first_level else objects_list):
+                yield obj
 
         @staticmethod
         def _make_dir(*_, **__):
@@ -128,17 +147,26 @@ def test_equivalent_functions(tmpdir):
     # Tests
     try:
         # Functions that only call "get_instance(path).function(path)
+        # Only checks that function call system method correctly
+        # Method itself tested with system tests
 
         def basic_function(path):
             """"Checks arguments and returns fake result"""
             assert path == excepted_path
             return result
 
-        for name in ('exists', 'getsize', 'getmtime', 'isfile'):
-            system = System()
-            MOUNTED[root] = dict(system_cached=system)
-            setattr(system, name, basic_function)
-            assert getattr(std_os_path, name)(dummy_path) == result
+        aliases = {'lstat': 'stat'}
+
+        for std_lib, names in (
+                (std_os_path,
+                 ('exists', 'getsize', 'getctime', 'getmtime', 'isfile')),
+                (std_os, ('stat', 'lstat'))):
+
+            for name in names:
+                system = System()
+                MOUNTED[root] = dict(system_cached=system)
+                setattr(system, aliases.get(name, name), basic_function)
+                assert getattr(std_lib, name)(dummy_path) == result
 
         MOUNTED[root] = dict(system_cached=System())
 
@@ -237,6 +265,10 @@ def test_equivalent_functions(tmpdir):
         assert directory.check()
         directory.remove()
 
+        if version_info[0] == 2:
+            with pytest.raises(TypeError):
+                pycosio.mkdir(str(directory), dir_fd=1)
+
         # remove/unlink
         assert pycosio.remove is pycosio.unlink
 
@@ -267,6 +299,27 @@ def test_equivalent_functions(tmpdir):
         assert directory.check()
         pycosio.rmdir(str(directory))
         assert not directory.check()
+
+        # listdir
+        assert pycosio.listdir('dummy://locator/dir') == [
+            name for name, _ in first_level_objects_list]
+
+        # scandir
+        parent = 'dummy://locator/dir'
+        for index, dir_entry in enumerate(pycosio.scandir(parent)):
+            name = first_level_objects_list[index][0]
+            assert dir_entry.name == name
+            assert dir_entry.path == '/'.join((parent, name))
+            assert dir_entry.inode() == 0
+            assert dir_entry.is_dir() == ('isdir' in name)
+            assert dir_entry.is_file() == ('isfile' in name)
+            assert not dir_entry.is_symlink()
+            assert dir_entry.stat().st_size == 0
+            assert name in str(dir_entry)
+
+        # stat
+        assert pycosio.stat(str(tmpdir))
+        assert pycosio.lstat(str(tmpdir))
 
     # Clean up
     finally:
@@ -470,6 +523,10 @@ def test_cos_open(tmpdir):
         # copy: same file
         with pytest.raises(same_file_error):
             copy(cos_path, cos_path)
+
+        if version_info[0] == 2:
+            with pytest.raises(TypeError):
+                copyfile(str(local_file), str(local_dst), follow_symlinks=False)
 
     # Clean up
     finally:
