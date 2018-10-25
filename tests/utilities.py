@@ -46,7 +46,7 @@ def parse_range(header):
     return content
 
 
-def check_head_methods(system, m_time, path=None):
+def check_head_methods(system, m_time, c_time=None, path=None):
     """
     Tests head methods.
 
@@ -56,6 +56,8 @@ def check_head_methods(system, m_time, path=None):
     """
     path = path or 'directory/file'
     assert system.getmtime(path) == pytest.approx(m_time, 1)
+    if c_time:
+        assert system.getctime(path) == pytest.approx(c_time, 1)
     assert system.getsize(path) == SIZE
 
 

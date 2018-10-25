@@ -14,6 +14,7 @@ def test_system_base():
     from pycosio._core.io_system import SystemBase
     from pycosio._core.exceptions import ObjectNotFoundError
     from io import UnsupportedOperation
+    from stat import S_ISDIR, S_ISREG
 
     # Mocks subclass
     m_time = time.time()
@@ -23,7 +24,8 @@ def test_system_base():
     storage_parameters = {'arg3': 3, 'arg4': 4}
     raise_not_exists_exception = False
     header = {'Content-Length': str(SIZE),
-              'Last-Modified': format_date_time(m_time)}
+              'Last-Modified': format_date_time(m_time),
+              'ETag': '123456'}
 
     class DummySystem(SystemBase):
         """Dummy System"""
@@ -47,7 +49,7 @@ def test_system_base():
             assert client_kwargs == dummy_client_kwargs
             if raise_not_exists_exception:
                 raise ObjectNotFoundError
-            return header
+            return header.copy()
 
         def _make_dir(self, client_kwargs):
             """Checks arguments"""
@@ -72,6 +74,9 @@ def test_system_base():
 
     # Tests head
     check_head_methods(system, m_time)
+
+    with pytest.raises(UnsupportedOperation):
+        system.getctime('path')
 
     # Tests relpath
     assert system.relpath('scheme://path') == 'path'
@@ -117,11 +122,13 @@ def test_system_base():
     system.make_dir('locator/path/', relative=True)
 
     # Test empty header
+    header_old = header
     header = {}
     with pytest.raises(UnsupportedOperation):
         system.getmtime('path')
     with pytest.raises(UnsupportedOperation):
         system.getsize('path')
+    header = header_old
 
     # Test default unsupported
     with pytest.raises(UnsupportedOperation):
@@ -134,3 +141,22 @@ def test_system_base():
     system.remove('locator', relative=True)
     system.remove('locator/path', relative=True)
     system.remove('locator/path/', relative=True)
+
+    # Tests stat
+    header['Content-Length'] = '0'
+    stat_result = system.stat('root://locator/path/')
+    assert S_ISDIR(stat_result.st_mode)
+
+    header['Content-Length'] = str(SIZE)
+    stat_result = system.stat('root://locator/path')
+    assert S_ISREG(stat_result.st_mode)
+    assert stat_result.st_ino == 0
+    assert stat_result.st_dev == 0
+    assert stat_result.st_nlink == 0
+    assert stat_result.st_uid == 0
+    assert stat_result.st_gid == 0
+    assert stat_result.st_size == SIZE
+    assert stat_result.st_atime == 0
+    assert stat_result.st_mtime == pytest.approx(m_time, 1)
+    assert stat_result.st_ctime == 0
+    assert stat_result.st_etag == '123456'

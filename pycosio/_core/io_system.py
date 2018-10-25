@@ -114,7 +114,7 @@ class SystemBase(ABC):
             float: The number of seconds since the epoch
                 (see the time module).
         """
-        return self._getmtime_from_header(
+        return self._getctime_from_header(
             self.head(path, client_kwargs, header))
 
     @staticmethod
@@ -606,7 +606,7 @@ class SystemBase(ABC):
 
         # Add storage specific keys
         for key, value in tuple(header.items()):
-            stat['st_' + key.lower().replace('-', '_')] = value
+            stat['st_' + key.replace('-', '').lower()] = value
 
         # Convert to "os.stat_result" like object
         stat_result = namedtuple('stat_result', tuple(stat))
