@@ -94,7 +94,7 @@ class _OSSSystem(_SystemBase):
             tuple of str or re.Pattern: URL roots
         """
         return 'oss://', _re.compile(_re.sub(
-            "(https?://)(oss-.+\.aliyuncs\.com)",
+            r"(https?://)(oss-.+\.aliyuncs\.com)",
             r"\1[\\w-]+.\2", self._endpoint.rstrip('/'),
             count=1).replace('.', r'\.'))
 

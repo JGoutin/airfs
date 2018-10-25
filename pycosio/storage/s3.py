@@ -126,18 +126,18 @@ class _S3System(_SystemBase):
         Returns:
             tuple of str or re.Pattern: URL roots
         """
-        region = self._get_session().region_name or '[\w-]+'
+        region = self._get_session().region_name or r'[\w-]+'
         return (
                 # "s3" URL scheme
                 's3://',
 
                 # Virtual-hosted–style URL
-                _re.compile('http://[\w.-]+\.s3\.amazonaws\.com'),
-                _re.compile('http://[\w.-]+\.s3-%s\.amazonaws\.com' % region),
+                _re.compile(r'http://[\w.-]+\.s3\.amazonaws\.com'),
+                _re.compile(r'http://[\w.-]+\.s3-%s\.amazonaws\.com' % region),
 
                 # Path-hosted–style URL
-                _re.compile('http://s3\.amazonaws\.com'),
-                _re.compile('http://s3-%s\.amazonaws\.com' % region))
+                _re.compile(r'http://s3\.amazonaws\.com'),
+                _re.compile(r'http://s3-%s\.amazonaws\.com' % region))
 
     @staticmethod
     def _getctime_from_header(header):
