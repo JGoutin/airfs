@@ -41,7 +41,7 @@ PACKAGE_INFO = dict(
     license='Apache License, Version 2.0',
     python_requires='>=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*',
     install_requires=[
-        'requests>=2.9.0',
+        'requests>=2.9.0', 'python-dateutil>=2.6.0'
 
         # Python 2.7/3.4 compatibility
         'futures>=3.1.1; python_version == "2.7"',

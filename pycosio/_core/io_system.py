@@ -2,12 +2,13 @@
 """Cloud storage abstract System"""
 from abc import abstractmethod
 from collections import OrderedDict, namedtuple
-from email.utils import parsedate
 from io import UnsupportedOperation
+from re import compile
 from stat import S_IFDIR, S_IFREG
-from time import mktime
 
-from pycosio._core.compat import ABC, Pattern
+from dateutil.parser import parse
+
+from pycosio._core.compat import ABC, Pattern, to_timestamp
 from pycosio._core.exceptions import ObjectNotFoundError, ObjectPermissionError
 
 
@@ -25,6 +26,13 @@ class SystemBase(ABC):
             transfer performance. But makes connection unsecure.
         roots (tuple): Tuple of roots to force use.
     """
+    # By default, assumes that information are in a standard HTTP header
+    _SIZE_KEYS = ('Content-Length',)
+    _CTIME_KEYS = ()
+    _MTIME_KEYS = ('Last-Modified',)
+
+    # Caches compiled regular expression
+    _CHAR_FILTER = compile(r'[^a-z0-9]*')
 
     def __init__(self, storage_parameters=None, unsecure=False, roots=None):
         # Save storage parameters
@@ -117,8 +125,7 @@ class SystemBase(ABC):
         return self._getctime_from_header(
             self.head(path, client_kwargs, header))
 
-    @staticmethod
-    def _getctime_from_header(header):
+    def _getctime_from_header(self, header):
         """
         Return the time from header
 
@@ -128,8 +135,7 @@ class SystemBase(ABC):
         Returns:
             float: The number of seconds since the epoch
         """
-        # Not exists in standard HTTP header
-        raise UnsupportedOperation('getctime')
+        return self._get_time(header, self._CTIME_KEYS, 'getctime')
 
     def getmtime(self, path=None, client_kwargs=None, header=None):
         """
@@ -147,8 +153,7 @@ class SystemBase(ABC):
         return self._getmtime_from_header(
             self.head(path, client_kwargs, header))
 
-    @staticmethod
-    def _getmtime_from_header(header):
+    def _getmtime_from_header(self, header):
         """
         Return the time from header
 
@@ -158,14 +163,28 @@ class SystemBase(ABC):
         Returns:
             float: The number of seconds since the epoch
         """
-        # By default, assumes that information are in a standard HTTP header
-        for key in ('Last-Modified', 'last-modified'):
+        return self._get_time(header, self._MTIME_KEYS, 'getmtime')
+
+    @staticmethod
+    def _get_time(header, keys, name):
+        """
+        Get time from header
+
+        Args:
+            header (dict): Object header.
+            keys (tuple of str): Header keys.
+            name (str): Method name.
+
+        Returns:
+            float: The number of seconds since the epoch
+        """
+        for key in keys:
             try:
-                return mktime(parsedate(header.pop(key)))
+                return to_timestamp(parse(header.pop(key)))
             except KeyError:
                 continue
         else:
-            raise UnsupportedOperation('getmtime')
+            raise UnsupportedOperation(name)
 
     @abstractmethod
     def _get_roots(self):
@@ -190,8 +209,7 @@ class SystemBase(ABC):
         """
         return self._getsize_from_header(self.head(path, client_kwargs, header))
 
-    @staticmethod
-    def _getsize_from_header(header):
+    def _getsize_from_header(self, header):
         """
         Return the size from header
 
@@ -202,7 +220,7 @@ class SystemBase(ABC):
             int: Size in bytes.
         """
         # By default, assumes that information are in a standard HTTP header
-        for key in ('Content-Length', 'content-length'):
+        for key in self._SIZE_KEYS:
             try:
                 return int(header.pop(key))
             except KeyError:
@@ -515,7 +533,7 @@ class SystemBase(ABC):
 
             if path:
                 try:
-                    obj_path = obj_path.split(path, maxsplit=1)[1].lstrip('/')
+                    obj_path = obj_path.split(path, 1)[1].lstrip('/')
                 except IndexError:
                     continue
 
@@ -527,7 +545,7 @@ class SystemBase(ABC):
             if first_level:
                 # Directory
                 try:
-                    obj_path, _ = obj_path.strip('/').split('/', maxsplit=1)
+                    obj_path, _ = obj_path.strip('/').split('/', 1)
                     obj_path += '/'
 
                     # Avoids to use the header of the object instead of the
@@ -608,8 +626,9 @@ class SystemBase(ABC):
             stat['st_mode'] = S_IFREG
 
         # Add storage specific keys
+        sub = self._CHAR_FILTER.sub
         for key, value in tuple(header.items()):
-            stat['st_' + key.replace('-', '').lower()] = value
+            stat['st_' + sub('', key.lower())] = value
 
         # Convert to "os.stat_result" like object
         stat_result = namedtuple('stat_result', tuple(stat))

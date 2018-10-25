@@ -155,8 +155,7 @@ class _S3System(_SystemBase):
         except KeyError:
             raise _UnsupportedOperation('getctime')
 
-    @staticmethod
-    def _getmtime_from_header(header):
+    def _getmtime_from_header(self, header):
         """
         Return the time from header
 
@@ -171,8 +170,7 @@ class _S3System(_SystemBase):
         except KeyError:
             raise _UnsupportedOperation('getmtime')
 
-    @staticmethod
-    def _getsize_from_header(header):
+    def _getsize_from_header(self, header):
         """
         Return the size from header
 

@@ -47,6 +47,8 @@ class _SwiftSystem(_SystemBase):
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
     """
+    _SIZE_KEYS = ('content-length', 'content_length', 'bytes')
+    _MTIME_KEYS = ('last-modified', 'last_modified')
 
     def copy(self, src, dst):
         """
@@ -152,6 +154,45 @@ class _SwiftSystem(_SystemBase):
 
             # Container
             return self.client.delete_container(client_kwargs['container'])
+
+    def _list_locators(self):
+        """
+        Lists locators.
+
+        Returns:
+            generator of tuple: locator name str, locator header dict
+        """
+        with _handle_client_exception():
+            response = self.client.get_account()
+
+        for container in response[1]:
+            yield container.pop('name'), container
+
+    def _list_objects(self, client_kwargs, path, max_request_entries):
+        """
+        Lists objects.
+
+        args:
+            client_kwargs (dict): Client arguments.
+            path (str): Path relative to current locator.
+            max_request_entries (int): If specified, maximum entries returned
+                by request.
+
+        Returns:
+            generator of tuple: object name str, object header dict
+        """
+        kwargs = dict(prefix=path)
+        if max_request_entries:
+            kwargs['limit'] = max_request_entries
+        else:
+            kwargs['full_listing'] = True
+
+        with _handle_client_exception():
+            response = self.client.get_container(
+                client_kwargs['container'], **kwargs)
+
+        for obj in response[1]:
+            yield obj.pop('name'), obj
 
 
 class SwiftRawIO(_ObjectRawIOBase):

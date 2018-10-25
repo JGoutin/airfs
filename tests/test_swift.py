@@ -52,6 +52,7 @@ def test_swift_raw_io():
     delete_object_called = []
     put_container_called = []
     delete_container_called = []
+    max_request_entries = None
 
     # Mocks swiftclient
 
@@ -136,6 +137,21 @@ def test_swift_raw_io():
             for key in ('container', 'obj', 'destination'):
                 assert key in kwargs
 
+        @staticmethod
+        def get_container(container, **kwargs):
+            """Check arguments and returns fake result"""
+            assert container == container_name
+            if max_request_entries:
+                assert 'limit' in kwargs
+            else:
+                assert 'full_listing' in kwargs
+            return {}, [{'name': object_name, 'content-length': '100'}]
+
+        @staticmethod
+        def get_account():
+            """Check arguments and returns fake result"""
+            return {}, [{'name': container_name, 'content-length': '100'}]
+
     swiftclient_client_connection = swiftclient.client.Connection
     swiftclient.client.Connection = Connection
 
@@ -162,6 +178,20 @@ def test_swift_raw_io():
         swift_system.remove(path)
         assert len(delete_object_called) == 1
         put_object_called = []
+
+        # Tests _list_locators
+        assert list(swift_system._list_locators()) == [
+            (container_name, {'content-length': '100'})]
+
+        # Tests _list_objects
+        assert list(swift_system._list_objects(
+            dict(container=container_name), '', max_request_entries)) == [
+                (object_name, {'content-length': '100'})]
+
+        max_request_entries = 10
+        assert list(swift_system._list_objects(
+            dict(container=container_name), '', max_request_entries)) == [
+                (object_name, {'content-length': '100'})]
 
         # Tests copy
         swift_system.copy(path, path)
