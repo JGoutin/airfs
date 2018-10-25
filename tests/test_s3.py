@@ -39,7 +39,8 @@ def test_handle_client_error():
 
 def test_s3_raw_io():
     """Tests pycosio.s3.S3RawIO"""
-    from pycosio.storage.s3 import S3RawIO, _S3System
+    from io import UnsupportedOperation
+    from pycosio.storage.s3 import S3RawIO, _S3System, ObjectNotFoundError
     from botocore.exceptions import ClientError
     import boto3
 
@@ -57,6 +58,10 @@ def test_s3_raw_io():
     m_time = time.time()
     s3object = None
     raises_exception = False
+    no_head = False
+    no_objects = False
+    continuation_token = []
+    max_request_entries = None
 
     # Mocks boto3 client
 
@@ -95,9 +100,10 @@ def test_s3_raw_io():
             """Mock boto3 head_object
             Check arguments and returns fake value"""
             assert kwargs == client_args
-            return dict(
+            return dict() if no_head else dict(
                 ContentLength=SIZE,
-                LastModified=datetime.fromtimestamp(m_time))
+                LastModified=datetime.fromtimestamp(m_time),
+                CreationDate=datetime.fromtimestamp(m_time))
 
         @staticmethod
         def put_object(**kwargs):
@@ -153,6 +159,31 @@ def test_s3_raw_io():
             assert 'Bucket' in kwargs
             delete_bucket_called.append(1)
 
+        @staticmethod
+        def list_objects_v2(**kwargs):
+            """Mock boto3 list_objects_v2
+            Check arguments and returns fake value"""
+            assert 'Bucket' in kwargs
+            assert 'Prefix' in kwargs
+            if max_request_entries:
+                assert 'MaxKeys' in kwargs
+
+            if no_objects:
+                return dict()
+
+            response = {'Contents': [{'Key': key_value, 'ContentLength': SIZE}]}
+            if not continuation_token:
+                response['NextContinuationToken'] = 'token'
+                continuation_token.append(1)
+
+            return response
+
+        @staticmethod
+        def list_buckets():
+            """Mock boto3 list_buckets
+            Check arguments and returns fake value"""
+            return {'Buckets': [{'Name': bucket, 'ContentLength': SIZE}]}
+
     class Session:
         """Dummy Session"""
         client = Client
@@ -171,8 +202,17 @@ def test_s3_raw_io():
         s3system = _S3System()
 
         # Tests head
-        check_head_methods(s3system, m_time, path=path)
+        check_head_methods(s3system, m_time, c_time=m_time, path=path)
         assert s3system.head(path=bucket_url)['Bucket'] == bucket
+
+        no_head = True
+        with pytest.raises(UnsupportedOperation):
+            s3system.getctime('path')
+        with pytest.raises(UnsupportedOperation):
+            s3system.getmtime('path')
+        with pytest.raises(UnsupportedOperation):
+            s3system.getsize('path')
+        no_head = False
 
         # Tests create directory
         s3system.make_dir(bucket_url)
@@ -190,6 +230,25 @@ def test_s3_raw_io():
 
         # Tests copy
         s3system.copy(url, url)
+
+        # Tests _list_locators
+        assert list(s3system._list_locators()) == [
+            (bucket, dict(ContentLength=SIZE))]
+
+        # Tests _list_objects
+        assert list(s3system._list_objects(
+            client_args, '', max_request_entries)) == [
+                (key_value, dict(ContentLength=SIZE))] * 2
+
+        max_request_entries = 10
+        assert list(s3system._list_objects(
+            client_args, '', max_request_entries)) == [
+                   (key_value, dict(ContentLength=SIZE))]
+
+        no_objects = True
+        with pytest.raises(ObjectNotFoundError):
+            assert list(s3system._list_objects(
+                client_args, '', max_request_entries))
 
         # Tests path and URL handling
         s3object = S3RawIO(url)
