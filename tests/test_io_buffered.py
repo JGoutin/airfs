@@ -114,6 +114,9 @@ def test_object_buffered_base_io():
     object_io = DummyBufferedIO(name)
     assert object_io.read() == size * BYTE
 
+    # Tests: Read when already at end
+    assert object_io.read() == b''
+
     # Tests: Read, max buffer
     object_io = DummyBufferedIO(name)
     assert object_io._max_buffers == size // buffer_size

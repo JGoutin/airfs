@@ -233,6 +233,10 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
         if not self._readable:
             raise UnsupportedOperation('read')
 
+        # Checks if EOF
+        if self._seek == self._size:
+            return b''
+
         # Returns existing buffer with no copy
         if size == self._buffer_size:
             queue_index = self._seek

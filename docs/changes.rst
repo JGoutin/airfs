@@ -20,6 +20,8 @@ Improvements
 
 Fixes:
 
+* ``io.BufferedIOBase.read`` now returns empty bytes instead of raising
+  exception when trying to read if seek already at end of file.
 * ``copy`` destination can now be a storage directory and not only a local
   directory.
 * ``copy`` now checks if destination parent directory exists and if files
