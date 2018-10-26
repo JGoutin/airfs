@@ -512,7 +512,7 @@ class SystemBase(ABC):
             for loc_path, loc_header in locators:
 
                 # Yields locator itself
-                loc_path = loc_path.rstrip('/')
+                loc_path = loc_path.strip('/')
                 yield loc_path, loc_header
 
                 # Yields locator content is read access to it
@@ -524,6 +524,7 @@ class SystemBase(ABC):
                                obj_header)
 
                 except ObjectPermissionError:
+                    # No read access to locator
                     continue
             return
 
@@ -538,9 +539,11 @@ class SystemBase(ABC):
 
             if path:
                 try:
-                    obj_path = obj_path.split(path, 1)[1].lstrip('/')
+                    obj_path = obj_path.split(path, 1)[1]
                 except IndexError:
+                    # Not sub path of path
                     continue
+            obj_path = obj_path.lstrip('/')
 
             # Skips parent directory
             if not obj_path:

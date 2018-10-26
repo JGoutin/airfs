@@ -82,9 +82,10 @@ Possibles futures features
 
 * Equivalent functions of:
     * ``os.removedirs``, ``os.walk``, ``os.rename``, ``os.renames``,
-      ``os.replace``, ``shutil.move``, ``os.chmod``, ``shutil.copytree``,
-      ``shutil.rmtree``, ``pathlib.Path``.
-* ``mode`` support in ``makedirs`` and ``mkdir``.
+      ``os.replace``, ``shutil.move``, ``os.chmod``, ``os.access``,
+      ``os.readlink``, ``os.symlink``, ``shutil.copytree``, ``shutil.rmtree``,
+      ``pathlib.Path``.
+* ACL/``mode`` support in ``makedirs``, ``mkdir``, ``stat``, ``lstat``.
 * More cloud storage.
 * Extra ``max_buffers`` for swap on local disk in ``ObjectBufferedIOBase``.
 * Global computer resource managements for cloud object IO.

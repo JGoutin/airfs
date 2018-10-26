@@ -11,7 +11,8 @@ from pycosio._core.compat import (
 from pycosio._core.storage_manager import get_instance
 from pycosio._core.functions_core import equivalent_to, is_storage
 from pycosio._core.exceptions import (
-    ObjectExistsError, ObjectNotFoundError, handle_os_exceptions)
+    ObjectExistsError, ObjectNotFoundError, handle_os_exceptions,
+    ObjectPermissionError)
 from pycosio._core.io_base import memoizedmethod
 
 
@@ -219,7 +220,9 @@ class DirEntry:
         self._system = system
         self._name = name
         self._header = header
-        self._path = '/'.join((scandir_path.rstrip('/'), name))
+        self._path = ''.join((
+            scandir_path if scandir_path[-1] == '/' else (scandir_path + '/'),
+            name))
         self._bytes_path = bytes_path
 
     @memoizedmethod
@@ -299,13 +302,19 @@ class DirEntry:
         Returns:
             bool: True if directory exists.
         """
-        return (self._system.isdir(
-            path=self._path, client_kwargs=self._client_kwargs,
-            virtual_dir=False) or
+        try:
+            return (self._system.isdir(
+                path=self._path, client_kwargs=self._client_kwargs,
+                virtual_dir=False) or
 
-            # Some directories only exists virtually in object path and don't
-            # have headers.
-            bool(S_ISDIR(self.stat().st_mode)))
+                # Some directories only exists virtually in object path and
+                # don't have headers.
+                bool(S_ISDIR(self.stat().st_mode)))
+
+        except ObjectPermissionError:
+            # The directory was listed, but unable to head it or access to its
+            # content
+            return True
 
     @memoizedmethod
     def is_file(self, follow_symlinks=True):

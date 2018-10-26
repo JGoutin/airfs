@@ -70,6 +70,7 @@ def test_equivalent_functions(tmpdir):
     import pycosio._core.functions_os as std_os
     from pycosio._core.io_system import SystemBase
     from pycosio._core.compat import fsencode
+    from pycosio._core.exceptions import ObjectPermissionError
 
     # Mock system
 
@@ -88,6 +89,7 @@ def test_equivalent_functions(tmpdir):
         ('isdir1', {}),
         ('isdir2', {})]
     objects_list = []
+    is_dir_no_access = False
 
     class System(SystemBase):
         """dummy system"""
@@ -101,6 +103,8 @@ def test_equivalent_functions(tmpdir):
         @staticmethod
         def isdir(path=None, *_, **__):
             """Checks arguments and returns fake result"""
+            if is_dir_no_access:
+                raise ObjectPermissionError
             if check_ending_slash:
                 assert path[-1] == '/'
             return path in dirs_exists or 'isdir' in path
@@ -331,6 +335,12 @@ def test_equivalent_functions(tmpdir):
 
         for dir_entry in pycosio.scandir(str(tmpdir)):
             assert dir_entry
+
+        is_dir_no_access = True
+        for dir_entry in pycosio.scandir(fsencode(parent)):
+            assert dir_entry.is_dir() == True
+
+        is_dir_no_access = False
 
         # stat
         assert pycosio.stat(str(tmpdir))
