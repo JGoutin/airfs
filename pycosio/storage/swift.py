@@ -6,15 +6,17 @@ from json import dumps as _dumps
 import swiftclient as _swift
 from swiftclient.exceptions import ClientException as _ClientException
 
-from pycosio._core.exceptions import ObjectNotFoundError, ObjectPermissionError
+from pycosio._core.exceptions import (
+    ObjectNotFoundError as _ObjectNotFoundError,
+    ObjectPermissionError as _ObjectPermissionError)
 from pycosio.io import (
     ObjectRawIOBase as _ObjectRawIOBase,
     ObjectBufferedIOBase as _ObjectBufferedIOBase,
     SystemBase as _SystemBase)
 
 _ERROR_CODES = {
-    403: ObjectPermissionError,
-    404: ObjectNotFoundError}
+    403: _ObjectPermissionError,
+    404: _ObjectNotFoundError}
 
 
 @_contextmanager

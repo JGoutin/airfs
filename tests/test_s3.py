@@ -40,7 +40,8 @@ def test_handle_client_error():
 def test_s3_raw_io():
     """Tests pycosio.s3.S3RawIO"""
     from io import UnsupportedOperation
-    from pycosio.storage.s3 import S3RawIO, _S3System, ObjectNotFoundError
+    from pycosio.storage.s3 import S3RawIO, _S3System
+    from pycosio._core.exceptions import ObjectNotFoundError
     from botocore.exceptions import ClientError
     import boto3
 

@@ -9,17 +9,19 @@ import boto3 as _boto3
 from botocore.exceptions import ClientError as _ClientError
 
 from pycosio._core.compat import to_timestamp as _to_timestamp
-from pycosio._core.exceptions import ObjectNotFoundError, ObjectPermissionError
+from pycosio._core.exceptions import (
+    ObjectNotFoundError as _ObjectNotFoundError,
+    ObjectPermissionError as _ObjectPermissionError)
 from pycosio.io import (
     ObjectRawIOBase as _ObjectRawIOBase,
     ObjectBufferedIOBase as _ObjectBufferedIOBase,
     SystemBase as _SystemBase)
 
 _ERROR_CODES = {
-    'AccessDenied': ObjectPermissionError,
-    'NoSuchKey': ObjectNotFoundError,
-    '403': ObjectPermissionError,
-    '404': ObjectNotFoundError}
+    'AccessDenied': _ObjectPermissionError,
+    'NoSuchKey': _ObjectNotFoundError,
+    '403': _ObjectPermissionError,
+    '404': _ObjectNotFoundError}
 
 
 @_contextmanager
@@ -278,7 +280,7 @@ class _S3System(_SystemBase):
                 for obj in response['Contents']:
                     yield obj.pop('Key'), obj
             except KeyError:
-                raise ObjectNotFoundError('Not found: %s' % path)
+                raise _ObjectNotFoundError('Not found: %s' % path)
 
             # Handles results on more than one page
             try:

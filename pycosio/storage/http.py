@@ -5,7 +5,9 @@ from io import UnsupportedOperation as _UnsupportedOperation
 
 import requests as _requests
 
-from pycosio._core.exceptions import ObjectNotFoundError, ObjectPermissionError
+from pycosio._core.exceptions import (
+    ObjectNotFoundError as _ObjectNotFoundError,
+    ObjectPermissionError as _ObjectPermissionError)
 from pycosio.io import (
     ObjectRawIOBase as _ObjectRawIOBase,
     ObjectBufferedIOBase as _ObjectBufferedIOBase,
@@ -27,8 +29,8 @@ def _handle_http_errors(response):
     if 200 <= code < 400:
         return response
     elif code in (403, 404):
-        raise {403: ObjectPermissionError,
-               404: ObjectNotFoundError}[code](response.reason)
+        raise {403: _ObjectPermissionError,
+               404: _ObjectNotFoundError}[code](response.reason)
     response.raise_for_status()
 
 

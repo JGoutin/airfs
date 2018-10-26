@@ -7,15 +7,17 @@ import oss2 as _oss
 from oss2.models import PartInfo as _PartInfo
 from oss2.exceptions import OssError as _OssError
 
-from pycosio._core.exceptions import ObjectNotFoundError, ObjectPermissionError
+from pycosio._core.exceptions import (
+    ObjectNotFoundError as _ObjectNotFoundError,
+    ObjectPermissionError as _ObjectPermissionError)
 from pycosio.io import (
     ObjectRawIOBase as _ObjectRawIOBase,
     ObjectBufferedIOBase as _ObjectBufferedIOBase,
     SystemBase as _SystemBase)
 
 _ERROR_CODES = {
-    403: ObjectPermissionError,
-    404: ObjectNotFoundError}
+    403: _ObjectPermissionError,
+    404: _ObjectNotFoundError}
 
 
 @_contextmanager
@@ -166,6 +168,21 @@ class _OSSSystem(_SystemBase):
             # Bucket
             return bucket.delete_bucket()
 
+    @staticmethod
+    def _model_to_dict(model, ignore):
+        """
+        Convert OSS model to dict.
+
+        Args:
+            model (oss2.models.RequestResult): Model.
+            ignore (tuple of str): Keys to not insert to dict.
+
+        Returns:
+            dict: Model dict version.
+        """
+        return {attr: value for attr, value in model.__dict__.items()
+                if not attr.startswith('_') and attr not in ignore}
+
     def _list_locators(self):
         """
         Lists locators.
@@ -178,10 +195,7 @@ class _OSSSystem(_SystemBase):
                 self.client, endpoint=self._endpoint).list_buckets()
 
         for bucket in response.buckets:
-            header = {
-                attr: getattr(bucket, attr) for attr in dir(bucket)
-                if not attr.startswith('_') and attr != 'name'}
-            yield bucket.name, header
+            yield bucket.name, self._model_to_dict(bucket, ('name',))
 
     def _list_objects(self, client_kwargs, path, max_request_entries):
         """
@@ -216,14 +230,10 @@ class _OSSSystem(_SystemBase):
                 else:
                     parent_list = None
                 if not parent_list:
-                    raise ObjectNotFoundError('Not found: %s' % path)
+                    raise _ObjectNotFoundError('Not found: %s' % path)
 
             for obj in response.object_list:
-                header = {
-                    attr: getattr(obj, attr) for attr in dir(obj)
-                    if not attr.startswith('_')
-                    and attr not in ('key', 'is_prefix')}
-                yield obj.key, header
+                yield obj.key, self._model_to_dict(obj, ('key',))
 
             # Handles results on more than one page
             if response.next_marker:

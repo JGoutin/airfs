@@ -1,5 +1,6 @@
 # coding=utf-8
 """Test pycosio.oss"""
+from collections import namedtuple
 import io
 import time
 from wsgiref.handlers import format_date_time
@@ -38,6 +39,7 @@ def test_handle_oss_error():
 def test_oss_raw_io():
     """Tests pycosio.oss.OSSRawIO"""
     from pycosio.storage.oss import OSSRawIO, _OSSSystem
+    from pycosio._core.exceptions import ObjectNotFoundError
     from oss2.exceptions import OssError
     import oss2
 
@@ -60,6 +62,13 @@ def test_oss_raw_io():
     storage_kwargs = dict(endpoint=oss_endpoint, auth='auth')
     headers = {'Content-Length': SIZE,
                'Last-Modified': format_date_time(m_time)}
+    max_keys = None
+    next_marker = []
+    object_header = dict(
+        last_modified=int(m_time), etag='etag',
+        type='type', size=SIZE, storage_class='storage_class')
+    no_objects = []
+    exists_in_parent = False
 
     # Mocks oss2
 
@@ -139,14 +148,66 @@ def test_oss_raw_io():
             """Returns fake value"""
             delete_bucket_called.append(1)
 
+        @staticmethod
+        def list_objects(**kwargs):
+            """Returns fake value"""
+            assert 'prefix' in kwargs
+            if max_keys:
+                assert 'max_keys' in kwargs
+
+            response = ListObjectsResult()
+
+            if not next_marker:
+                response.next_marker = 'marker'
+                next_marker.append(1)
+
+            return response
+
+    class ListBucketsResult:
+        """Dummy oss2.models.ListBucketsResult"""
+        def __init__(self):
+            self.is_truncated = False
+            self.next_marker = ''
+            self.buckets = [oss2.models.SimplifiedBucketInfo(
+                bucket, 'location', int(m_time))]
+
+    class ListObjectsResult:
+        """Dummy oss2.models.ListObjectsResult"""
+        def __init__(self):
+            self.is_truncated = False
+            self.next_marker = ''
+
+            self.object_list = [] if no_objects else [
+                oss2.models.SimplifiedObjectInfo(
+                    key=key_value, **object_header)]
+            # Parent exists
+            if exists_in_parent and no_objects:
+                no_objects.pop(0)
+            self.prefix_list = []
+
+    class Service:
+        """Dummy Service"""
+
+        def __init__(self, auth, endpoint, **__):
+            """Checks arguments"""
+            assert isinstance(auth, Auth)
+            assert endpoint == oss_endpoint
+
+        @staticmethod
+        def list_buckets():
+            """Returns fake value"""
+            return ListBucketsResult()
+
     oss2_auth = oss2.Auth
     oss2_stsauth = oss2.StsAuth
     oss2_anonymousauth = oss2.AnonymousAuth
     oss2_bucket = oss2.Bucket
+    oss2_service = oss2.Service
     oss2.Auth = Auth
     oss2.StsAuth = Auth
     oss2.AnonymousAuth = Auth
     oss2.Bucket = Bucket
+    oss2.Service = Service
 
     # Tests
     try:
@@ -170,6 +231,34 @@ def test_oss_raw_io():
         oss_system.remove(url)
         assert len(delete_object_called) == 1
         put_object_called = []
+
+        # Tests _list_locators
+        assert list(oss_system._list_locators()) == [
+            (bucket, dict(location='location', creation_date=int(m_time)))]
+
+        # Tests _list_objects
+        assert list(oss_system._list_objects(
+            client_args.copy(), '', max_keys)) == [
+                (key_value, object_header)] * 2
+
+        max_keys = 10
+        assert list(oss_system._list_objects(
+            client_args, '', max_keys)) == [
+                   (key_value, object_header)]
+
+        no_objects.append(1)
+        with pytest.raises(ObjectNotFoundError):
+            assert list(oss_system._list_objects(
+                client_args, '', max_keys))
+
+        with pytest.raises(ObjectNotFoundError):
+            # Checks parent dir
+            assert list(oss_system._list_objects(
+                client_args, 'dir1/dir2', max_keys))
+
+        exists_in_parent = True
+        assert list(oss_system._list_objects(
+            client_args, 'dir1/dir2', max_keys)) == []
 
         # Tests path and URL handling
         ossobject = OSSRawIO(url, storage_parameters=storage_kwargs)
@@ -212,6 +301,7 @@ def test_oss_raw_io():
         oss2.StsAuth = oss2_stsauth
         oss2.AnonymousAuth = oss2_anonymousauth
         oss2.Bucket = oss2_bucket
+        oss2.Service = oss2_service
 
 
 def test_oss_buffered_io():
