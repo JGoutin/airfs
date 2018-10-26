@@ -7,10 +7,11 @@ from stat import S_ISLNK, S_ISDIR
 from pycosio._core.compat import (
     makedirs as os_makedirs, remove as os_remove, rmdir as os_rmdir,
     is_a_directory_error, mkdir as os_mkdir, stat as os_stat, lstat as os_lstat,
-    scandir as os_scandir)
+    scandir as os_scandir, fsdecode, fspath, fsencode)
 from pycosio._core.storage_manager import get_instance
-from pycosio._core.functions_core import equivalent_to
-from pycosio._core.exceptions import ObjectExistsError, ObjectNotFoundError
+from pycosio._core.functions_core import equivalent_to, is_storage
+from pycosio._core.exceptions import ObjectExistsError, ObjectNotFoundError, \
+    handle_os_exceptions
 from pycosio._core.io_base import memoizedmethod
 
 
@@ -202,7 +203,7 @@ class DirEntry:
     Equivalent to "os.DirEntry".
     """
 
-    def __init__(self, scandir_path, system, name, header):
+    def __init__(self, scandir_path, system, name, header, bytes_path):
         """
         Should only be instantiated by "scandir".
 
@@ -212,12 +213,14 @@ class DirEntry:
                 Storage system.
             name (str): Name of the object relative to "scandir_path".
             header (dict): Object header
+            bytes_path (bool): True if path must be returned as bytes.
         """
         self._cache = dict()
         self._system = system
         self._name = name
         self._header = header
         self._path = '/'.join((scandir_path.rstrip('/'), name))
+        self._bytes_path = bytes_path
 
     def __str__(self):
         return "<DirEntry '%s'>" % self.name
@@ -244,7 +247,10 @@ class DirEntry:
         Returns:
             str: name.
         """
-        return self._name.rstrip('/')
+        name = self._name.rstrip('/')
+        if self._bytes_path:
+            name = fsencode(name)
+        return name
 
     @property
     @memoizedmethod
@@ -259,7 +265,10 @@ class DirEntry:
         Returns:
             str: name.
         """
-        return self._path.rstrip('/')
+        path = self._path.rstrip('/')
+        if self._bytes_path:
+            path = fsencode(path)
+        return path
 
     @memoizedmethod
     def inode(self):
@@ -350,7 +359,6 @@ class DirEntry:
 DirEntry.__module__ = 'pycosio'
 
 
-@equivalent_to(os_scandir)
 def scandir(path='.'):
     """
     Return an iterator of os.DirEntry objects corresponding to the entries in
@@ -361,12 +369,40 @@ def scandir(path='.'):
 
     Args:
         path (path-like object): Path or URL.
+             If path is of type bytes (directly or indirectly through the
+             PathLike interface), the type of the name and path attributes
+             of each os.DirEntry will be bytes; in all other circumstances,
+             they will be of type str.
 
     Returns:
         Generator of os.DirEntry: Entries information.
     """
-    system = get_instance(path)
+    # Handles path-like objects
+    scandir_path = fsdecode(path)
 
-    for name, header in system.list_objects(path, first_level=True):
-        yield DirEntry(
-            scandir_path=path, system=system, name=name, header=header)
+    if not is_storage(scandir_path):
+        return os_scandir(scandir_path)
+
+    return _scandir_generator(
+        is_bytes=isinstance(fspath(path), (bytes, bytearray)),
+        scandir_path=scandir_path, system=get_instance(scandir_path))
+
+
+def _scandir_generator(is_bytes, scandir_path, system):
+    """
+    Scandir generator
+
+    Args:
+        is_bytes (bool): True if DirEntry must handle path as bytes.
+        scandir_path (str): Path.
+        system (pycosio._core.io_system.SystemBase subclass):
+            Storage system.
+
+    Yields:
+        DirEntry: Directory entries
+    """
+    with handle_os_exceptions():
+        for name, header in system.list_objects(scandir_path, first_level=True):
+            yield DirEntry(
+                scandir_path=scandir_path, system=system, name=name,
+                header=header, bytes_path=is_bytes)

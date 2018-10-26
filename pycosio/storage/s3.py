@@ -20,6 +20,7 @@ from pycosio.io import (
 _ERROR_CODES = {
     'AccessDenied': _ObjectPermissionError,
     'NoSuchKey': _ObjectNotFoundError,
+    'InvalidBucketName': _ObjectNotFoundError,
     '403': _ObjectPermissionError,
     '404': _ObjectNotFoundError}
 

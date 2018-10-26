@@ -13,14 +13,16 @@ if _py[0] == 2:
     # Missing .timestamp() method of "datetime.datetime"
     import time as _time
 
-
     def to_timestamp(dt):
         """Return POSIX timestamp as float"""
         return _time.mktime(dt.timetuple()) + dt.microsecond / 1e6
 
-
-    # Missing "os.fsdecode"
+    # Missing "os.fsdecode" / "os.fsencode"
     def fsdecode(filename):
+        """Return filename unchanged"""
+        return filename
+
+    def fsencode(filename):
         """Return filename unchanged"""
         return filename
 
@@ -156,6 +158,7 @@ else:
         return dt.timestamp()
 
     fsdecode = _os.fsdecode
+    fsencode = _os.fsencode
     makedirs = _os.makedirs
     mkdir = _os.mkdir
     remove = _os.remove
@@ -175,6 +178,8 @@ else:
 try:
     from os.path import samefile
 except ImportError:
+
+    # Missing "os.path.samefile"
 
     def samefile(*_, **__):
         """Checks if same files."""
@@ -204,14 +209,28 @@ else:
     ThreadPoolExecutor = _futures.ThreadPoolExecutor
 
 # Python < 3.5 compatibility
-try:
-    from os import scandir, walk
-except ImportError:
-    # Use "scandir" backport
+if _py[0] < 3 or (_py[0] == 3 and _py[1] < 5):
+
+    # Missing "os.scandir"
     from scandir import scandir, walk
+
+else:
+    from os import scandir, walk
+
+# Python < 3.6 compatibility
+if _py[0] < 3 or (_py[0] == 3 and _py[1] < 6):
+
+    # Missing "os.fspath"
+    def fspath(filename):
+        """Return filename unchanged"""
+        return filename
+
+else:
+    fspath = _os.fspath
 
 # Python < 3.7 compatibility
 if _py[0] < 3 or (_py[0] == 3 and _py[1] < 7):
+
     # Missing "re.Pattern"
     Pattern = type(_re.compile(''))
 
@@ -220,6 +239,7 @@ else:
 
 # Python < 3.8 compatibility
 if _py[0] < 3 or (_py[0] == 3 and _py[1] < 8):
+
     # "shutil.COPY_BUFSIZE" backport
     COPY_BUFSIZE = 1024 * 1024 if _os.name == 'nt' else 16 * 1024
 

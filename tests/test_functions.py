@@ -69,6 +69,7 @@ def test_equivalent_functions(tmpdir):
     import pycosio._core.functions_os_path as std_os_path
     import pycosio._core.functions_os as std_os
     from pycosio._core.io_system import SystemBase
+    from pycosio._core.compat import fsencode
 
     # Mock system
 
@@ -316,6 +317,20 @@ def test_equivalent_functions(tmpdir):
             assert not dir_entry.is_symlink()
             assert dir_entry.stat().st_size == 0
             assert name in str(dir_entry)
+
+        for index, dir_entry in enumerate(pycosio.scandir(fsencode(parent))):
+            name = first_level_objects_list[index][0]
+            assert dir_entry.name == fsencode(name)
+            assert dir_entry.path == fsencode('/'.join((parent, name)))
+            assert dir_entry.inode() == 0
+            assert dir_entry.is_dir() == ('isdir' in name)
+            assert dir_entry.is_file() == ('isfile' in name)
+            assert not dir_entry.is_symlink()
+            assert dir_entry.stat().st_size == 0
+            assert name in str(dir_entry)
+
+        for dir_entry in pycosio.scandir(str(tmpdir)):
+            assert dir_entry
 
         # stat
         assert pycosio.stat(str(tmpdir))
