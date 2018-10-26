@@ -1,7 +1,7 @@
 Changelog
 =========
 
-1.2.0 (2018/11)
+1.2.0 (2018/10)
 ---------------
 
 New standard library equivalent functions:
