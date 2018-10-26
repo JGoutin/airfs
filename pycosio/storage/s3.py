@@ -58,6 +58,8 @@ class _S3System(_SystemBase):
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
     """
+    _CTIME_KEYS = ('CreationDate',)
+    _MTIME_KEYS = ('LastModified',)
 
     def __init__(self, *args, **kwargs):
         self._session = None
@@ -141,35 +143,25 @@ class _S3System(_SystemBase):
                 _re.compile(r'http://s3\.amazonaws\.com'),
                 _re.compile(r'http://s3-%s\.amazonaws\.com' % region))
 
-    def _getctime_from_header(self, header):
+    @staticmethod
+    def _get_time(header, keys, name):
         """
-        Return the time from header
+        Get time from header
 
         Args:
             header (dict): Object header.
+            keys (tuple of str): Header keys.
+            name (str): Method name.
 
         Returns:
             float: The number of seconds since the epoch
         """
-        try:
-            return _to_timestamp(header.pop('CreationDate'))
-        except KeyError:
-            raise _UnsupportedOperation('getctime')
-
-    def _getmtime_from_header(self, header):
-        """
-        Return the time from header
-
-        Args:
-            header (dict): Object header.
-
-        Returns:
-            float: The number of seconds since the epoch
-        """
-        try:
-            return _to_timestamp(header.pop('LastModified'))
-        except KeyError:
-            raise _UnsupportedOperation('getmtime')
+        for key in keys:
+            try:
+                return _to_timestamp(header.pop(key))
+            except KeyError:
+                continue
+        raise _UnsupportedOperation(name)
 
     def _getsize_from_header(self, header):
         """
