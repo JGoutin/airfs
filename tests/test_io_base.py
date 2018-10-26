@@ -10,7 +10,7 @@ def test_object_base_io():
     name = 'name'
 
     # Tests mode
-    object_io = ObjectIOBase(name, mode='r')
+    object_io = ObjectIOBase(name)
     assert object_io.name == name
     assert object_io.mode == 'r'
     assert object_io.readable()
@@ -40,7 +40,7 @@ def test_memoizedmethod():
 
     # Tests _memoize
     class Dummy:
-
+        """Dummy class"""
         def __init__(self):
             self._cache = {}
 

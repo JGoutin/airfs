@@ -1,3 +1,4 @@
+# coding=utf-8
 """Cloud object compatibles standard library 'shutil' equivalent functions"""
 from io import UnsupportedOperation
 from os.path import join, basename, dirname

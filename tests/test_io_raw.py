@@ -67,7 +67,7 @@ def test_object_raw_base_io():
     assert object_io.tell() == 0
     assert object_io.seek(10) == 10
     assert object_io.tell() == 10
-    assert object_io.seek(10, os.SEEK_SET) == 10
+    assert object_io.seek(10) == 10
     assert object_io.tell() == 10
     assert object_io.seek(10, os.SEEK_CUR) == 20
     assert object_io.tell() == 20
@@ -84,7 +84,7 @@ def test_object_raw_base_io():
         object_io.tell()
 
     # Test readinto
-    object_io = DummyIO(name, mode='r')
+    object_io = DummyIO(name)
     buffer = bytearray(100)
     assert object_io.readinto(buffer) == 100
     assert bytes(buffer) == 100 * BYTE

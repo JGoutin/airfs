@@ -18,6 +18,7 @@ def test_handle_http_errors():
 
     # Mocks response
     class Response:
+        """Dummy response"""
         status_code = 200
         reason = 'reason'
         raised = False

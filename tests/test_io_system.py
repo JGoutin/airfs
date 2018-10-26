@@ -1,6 +1,5 @@
 # coding=utf-8
 """Test pycosio._core.io_system"""
-from itertools import product
 import time
 import re
 from wsgiref.handlers import format_date_time

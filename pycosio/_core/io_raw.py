@@ -55,7 +55,7 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         self._path = self._system.relpath(name)
         self._client_kwargs = self._system.get_client_kwargs(name)
 
-        # Mark as standalone RAW to avoid flush conflics on close
+        # Mark as standalone RAW to avoid flush conflicts on close
         self._is_raw_of_buffered = False
 
         # Configures write mode

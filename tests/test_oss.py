@@ -1,6 +1,5 @@
 # coding=utf-8
 """Test pycosio.oss"""
-from collections import namedtuple
 import io
 import time
 from wsgiref.handlers import format_date_time
@@ -56,15 +55,15 @@ def test_oss_raw_io():
     create_bucket_called = []
     delete_bucket_called = []
     m_time = time.time()
-    ossobject = None
+    oss_object = None
     raises_exception = False
     error_kwargs = dict(headers={}, body=None, details={})
     storage_kwargs = dict(endpoint=oss_endpoint, auth='auth')
-    headers = {'Content-Length': SIZE,
-               'Last-Modified': format_date_time(m_time)}
+    object_header = {'Content-Length': SIZE,
+                     'Last-Modified': format_date_time(m_time)}
     max_keys = None
     next_marker = []
-    object_header = dict(
+    list_objects_header = dict(
         last_modified=int(m_time), etag='etag',
         type='type', size=SIZE, storage_class='storage_class')
     no_objects = []
@@ -77,10 +76,11 @@ def test_oss_raw_io():
 
         def __init__(self):
             """Returns fake result"""
-            self.headers = headers.copy()
+            self.headers = object_header.copy()
 
     class Auth:
         """Dummy OSS Auth"""
+
         def __init__(self, **kwargs):
             """Checks arguments"""
             assert kwargs == dict(auth='auth')
@@ -122,7 +122,7 @@ def test_oss_raw_io():
             if key[-1] == '/':
                 assert data == b''
             else:
-                assert len(data) == len(ossobject._write_buffer)
+                assert len(data) == len(oss_object._write_buffer)
             put_object_called.append(1)
 
         @staticmethod
@@ -165,6 +165,7 @@ def test_oss_raw_io():
 
     class ListBucketsResult:
         """Dummy oss2.models.ListBucketsResult"""
+
         def __init__(self):
             self.is_truncated = False
             self.next_marker = ''
@@ -173,13 +174,14 @@ def test_oss_raw_io():
 
     class ListObjectsResult:
         """Dummy oss2.models.ListObjectsResult"""
+
         def __init__(self):
             self.is_truncated = False
             self.next_marker = ''
 
             self.object_list = [] if no_objects else [
                 oss2.models.SimplifiedObjectInfo(
-                    key=key_value, **object_header)]
+                    key=key_value, **list_objects_header)]
             # Parent exists
             if exists_in_parent and no_objects:
                 no_objects.pop(0)
@@ -239,12 +241,12 @@ def test_oss_raw_io():
         # Tests _list_objects
         assert list(oss_system._list_objects(
             client_args.copy(), '', max_keys)) == [
-                (key_value, object_header)] * 2
+                   (key_value, list_objects_header)] * 2
 
         max_keys = 10
         assert list(oss_system._list_objects(
             client_args, '', max_keys)) == [
-                   (key_value, object_header)]
+                   (key_value, list_objects_header)]
 
         no_objects.append(1)
         with pytest.raises(ObjectNotFoundError):
@@ -261,27 +263,27 @@ def test_oss_raw_io():
             client_args, 'dir1/dir2', max_keys)) == []
 
         # Tests path and URL handling
-        ossobject = OSSRawIO(url, storage_parameters=storage_kwargs)
-        assert ossobject._client_kwargs == client_args
-        assert ossobject.name == url
+        oss_object = OSSRawIO(url, storage_parameters=storage_kwargs)
+        assert oss_object._client_kwargs == client_args
+        assert oss_object.name == url
 
-        ossobject = OSSRawIO(path, storage_parameters=storage_kwargs)
-        assert ossobject._client_kwargs == client_args
-        assert ossobject.name == path
+        oss_object = OSSRawIO(path, storage_parameters=storage_kwargs)
+        assert oss_object._client_kwargs == client_args
+        assert oss_object.name == path
 
         # Tests read
-        check_raw_read_methods(ossobject)
+        check_raw_read_methods(oss_object)
 
         # Tests _read_range don't hide oss2 exceptions
         raises_exception = True
         with pytest.raises(OssError):
-            assert ossobject.read(10)
+            assert oss_object.read(10)
 
         # Tests _flush
-        ossobject = OSSRawIO(url, mode='w', storage_parameters=storage_kwargs)
+        oss_object = OSSRawIO(url, mode='w', storage_parameters=storage_kwargs)
         assert not put_object_called
-        ossobject.write(50 * BYTE)
-        ossobject.flush()
+        oss_object.write(50 * BYTE)
+        oss_object.flush()
         assert put_object_called == [1]
 
         # Tests unsecure
@@ -293,7 +295,7 @@ def test_oss_raw_io():
 
         # Tests no endpoint
         with pytest.raises(ValueError):
-            ossobject = OSSRawIO(url)
+            oss_object = OSSRawIO(url)
 
     # Restore mocked class
     finally:
@@ -383,9 +385,9 @@ def test_oss_buffered_io():
     try:
         # Write and flush using multipart upload
         with OSSBufferedIO(path, mode='w',
-                           storage_parameters=storage_kwargs) as ossobject:
-            ossobject._buffer_size = 10
-            ossobject.write(BYTE * 95)
+                           storage_parameters=storage_kwargs) as oss_object:
+            oss_object._buffer_size = 10
+            oss_object.write(BYTE * 95)
 
         # Tests read mode instantiation
         OSSBufferedIO(path, mode='r', storage_parameters=storage_kwargs)

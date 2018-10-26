@@ -92,8 +92,7 @@ def test_equivalent_functions(tmpdir):
     class System(SystemBase):
         """dummy system"""
 
-        @staticmethod
-        def relpath(path):
+        def relpath(self, path):
             """Checks arguments and returns fake result"""
             if excepted_path:
                 assert path.startswith(excepted_path)
@@ -220,14 +219,14 @@ def test_equivalent_functions(tmpdir):
         assert std_os_path.isdir('dummy://locator/dir1/')
         assert std_os_path.isdir('dummy://locator/dir1')
 
-        # makesdir
+        # makesdirs
         assert not dir_created
         pycosio.makedirs('dummy://locator/dir1', exist_ok=True)
         assert dir_created
 
         dir_created = []
         with pytest.raises(OSError):
-            pycosio.makedirs('dummy://locator/dir1', exist_ok=False)
+            pycosio.makedirs('dummy://locator/dir1')
         assert not dir_created
 
         directory = tmpdir.join('directory')
@@ -235,7 +234,7 @@ def test_equivalent_functions(tmpdir):
         pycosio.makedirs(str(directory))
         assert directory.check()
         with pytest.raises(OSError):
-            pycosio.makedirs(str(directory), exist_ok=False)
+            pycosio.makedirs(str(directory))
         pycosio.makedirs(str(directory), exist_ok=True)
         directory.remove()
 
@@ -370,13 +369,12 @@ def test_cos_open(tmpdir):
             self.raise_on_copy = False
 
         def copy(self, *_, **__):
-            """Chacks called"""
+            """Checks called"""
             if self.raise_on_copy:
                 raise UnsupportedOperation
             self.copied = True
 
-        @staticmethod
-        def relpath(path):
+        def relpath(self, path):
             """Returns fake result"""
             return path
 

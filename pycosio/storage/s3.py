@@ -1,6 +1,5 @@
 # coding=utf-8
 """Amazon Web Services S3"""
-
 from contextlib import contextmanager as _contextmanager
 from io import UnsupportedOperation as _UnsupportedOperation
 import re as _re
@@ -142,8 +141,7 @@ class _S3System(_SystemBase):
                 _re.compile(r'http://s3\.amazonaws\.com'),
                 _re.compile(r'http://s3-%s\.amazonaws\.com' % region))
 
-    @staticmethod
-    def _getctime_from_header(header):
+    def _getctime_from_header(self, header):
         """
         Return the time from header
 

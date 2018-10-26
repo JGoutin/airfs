@@ -14,7 +14,7 @@ Improvements
 * Copy of objects from and to a same storage is performed directly on remote
   server if possible.
 * Pycosio now raises ``io.UnsupportedOperation`` if an operation is not
-  compatible with the current storage, this appy to all newly created function
+  compatible with the current storage, this apply to all newly created function
   and following existing functions: ``getsize``,  ``getmtime``, ``mkdir``.
 
 Fixes:

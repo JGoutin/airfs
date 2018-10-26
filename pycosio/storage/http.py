@@ -1,6 +1,5 @@
 # coding=utf-8
 """Access file over HTTP"""
-
 from io import UnsupportedOperation as _UnsupportedOperation
 
 import requests as _requests

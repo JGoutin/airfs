@@ -159,7 +159,7 @@ def ismount(path):
 @equivalent_to(os.path.relpath)
 def relpath(path, start=None):
     """
-    Return a relative filepath to path either from the
+    Return a relative file path to path either from the
     current directory or from an optional start directory.
 
     For storage objects, "path" and "start" are relative to

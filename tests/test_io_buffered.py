@@ -94,7 +94,7 @@ def test_object_buffered_base_io():
                 flush, self._write_buffer[:self._buffer_seek]))
 
     # Test raw
-    object_io = DummyBufferedIO(name, mode='r')
+    object_io = DummyBufferedIO(name)
     assert isinstance(object_io.raw, object_io._RAW_CLASS)
     assert object_io._size == object_io.raw._size
 
@@ -111,14 +111,14 @@ def test_object_buffered_base_io():
     assert object_io.raw.tell() == 20
 
     # Tests: Read until end
-    object_io = DummyBufferedIO(name, mode='r')
+    object_io = DummyBufferedIO(name)
     assert object_io.read() == size * BYTE
 
     # Tests: Read, max buffer
-    object_io = DummyBufferedIO(name, mode='r', max_buffers=0)
+    object_io = DummyBufferedIO(name)
     assert object_io._max_buffers == size // buffer_size
 
-    object_io = DummyBufferedIO(name, mode='r', max_buffers=5)
+    object_io = DummyBufferedIO(name, max_buffers=5)
     assert object_io.read(100) == 100 * BYTE
 
     # Tests: Read by parts
@@ -170,7 +170,7 @@ def test_object_buffered_base_io():
         """Returns empty bytes"""
         return b''
 
-    object_io = DummyBufferedIO(name, mode='r', max_buffers=5)
+    object_io = DummyBufferedIO(name, max_buffers=5)
     object_io._read_range = read_range
     assert object_io.read() == b''
 
@@ -233,7 +233,7 @@ def test_object_buffered_base_io():
         object_io.seek(0)
 
     # Test write in read mode
-    object_io = DummyBufferedIO(name, mode='r')
+    object_io = DummyBufferedIO(name)
     with pytest.raises(io.UnsupportedOperation):
         object_io.write(BYTE)
 

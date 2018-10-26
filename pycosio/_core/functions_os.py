@@ -10,8 +10,8 @@ from pycosio._core.compat import (
     scandir as os_scandir, fsdecode, fspath, fsencode)
 from pycosio._core.storage_manager import get_instance
 from pycosio._core.functions_core import equivalent_to, is_storage
-from pycosio._core.exceptions import ObjectExistsError, ObjectNotFoundError, \
-    handle_os_exceptions
+from pycosio._core.exceptions import (
+    ObjectExistsError, ObjectNotFoundError, handle_os_exceptions)
 from pycosio._core.io_base import memoizedmethod
 
 
@@ -222,8 +222,9 @@ class DirEntry:
         self._path = '/'.join((scandir_path.rstrip('/'), name))
         self._bytes_path = bytes_path
 
+    @memoizedmethod
     def __str__(self):
-        return "<DirEntry '%s'>" % self.name
+        return "<DirEntry '%s'>" % self._name.rstrip('/')
 
     __repr__ = __str__
 
@@ -390,7 +391,7 @@ def scandir(path='.'):
 
 def _scandir_generator(is_bytes, scandir_path, system):
     """
-    Scandir generator
+    scandir generator
 
     Args:
         is_bytes (bool): True if DirEntry must handle path as bytes.
