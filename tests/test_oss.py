@@ -220,6 +220,12 @@ def test_oss_raw_io():
         check_head_methods(oss_system, m_time, path=path)
         assert oss_system.head(path=bucket_url)['bucket_name'] == bucket
 
+        # Tests islink
+        assert oss_system.islink(path=bucket_url) is False
+        assert oss_system.islink(header={'type': 'Symlink'}) is True
+        assert oss_system.islink(
+            header={'x-oss-object-type': 'Symlink'}) is True
+
         # Tests create directory
         oss_system.make_dir(bucket_url)
         assert len(create_bucket_called) == 1

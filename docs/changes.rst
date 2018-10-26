@@ -7,7 +7,8 @@ Changelog
 New standard library equivalent functions:
 
 * ``os.listdir``, ``os.lstat``, ``os.remove``, ``os.rmdir``, ``os.scandir``,
-  ``os.stat``, ``os.unlink``, ``os.path.getctime``, ``shutil.copyfile``.
+  ``os.stat``, ``os.unlink``, ``os.path.getctime``, ``os.path.islink``,
+  ``shutil.copyfile``.
 
 Improvements
 

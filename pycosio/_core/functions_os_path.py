@@ -140,6 +140,22 @@ def isfile(path):
     return get_instance(path).isfile(path)
 
 
+@equivalent_to(os.path.islink)
+def islink(path):
+    """
+    Return True if path is an existing symlink.
+
+    Equivalent to "os.path.islink".
+
+    Args:
+        path (path-like object): Path or URL.
+
+    Returns:
+        bool: True if symlink.
+    """
+    return get_instance(path).islink(path)
+
+
 @equivalent_to(os.path.ismount)
 def ismount(path):
     """

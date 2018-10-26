@@ -9,7 +9,8 @@ from oss2.exceptions import OssError as _OssError
 
 from pycosio._core.exceptions import (
     ObjectNotFoundError as _ObjectNotFoundError,
-    ObjectPermissionError as _ObjectPermissionError)
+    ObjectPermissionError as _ObjectPermissionError,
+    ObjectException as _ObjectException)
 from pycosio.io import (
     ObjectRawIOBase as _ObjectRawIOBase,
     ObjectBufferedIOBase as _ObjectBufferedIOBase,
@@ -111,6 +112,27 @@ class _OSSSystem(_SystemBase):
         """
         return _oss.Bucket(self.client, endpoint=self._endpoint,
                            bucket_name=client_kwargs['bucket_name'])
+
+    def islink(self, path=None, header=None):
+        """
+        Returns True if object is a symbolic link.
+
+        Args:
+            path (str): File path or URL.
+            header (dict): Object header.
+
+        Returns:
+            bool: True if object is Symlink.
+        """
+        if header is None:
+            header = self._head(self.get_client_kwargs(path))
+
+        for key in ('x-oss-object-type', 'type'):
+            try:
+                return header.pop(key) == 'Symlink'
+            except KeyError:
+                continue
+        return False
 
     def _head(self, client_kwargs):
         """

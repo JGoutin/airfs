@@ -15,7 +15,7 @@ def test_system_base():
     from pycosio._core.exceptions import (
         ObjectNotFoundError, ObjectPermissionError)
     from io import UnsupportedOperation
-    from stat import S_ISDIR, S_ISREG
+    from stat import S_ISDIR, S_ISREG, S_ISLNK
 
     # Mocks subclass
     m_time = time.time()
@@ -24,9 +24,9 @@ def test_system_base():
     roots = re.compile('root2://'), 'root://', '://',
     storage_parameters = {'arg3': 3, 'arg4': 4}
     raise_not_exists_exception = False
-    header = {'Content-Length': str(SIZE),
-              'Last-Modified': format_date_time(m_time),
-              'ETag': '123456'}
+    object_header = {'Content-Length': str(SIZE),
+                     'Last-Modified': format_date_time(m_time),
+                     'ETag': '123456'}
     locators = ('locator', 'locator_no_access')
     objects = ('dir1/object1', 'dir1/object2', 'dir1/object3',
                'dir1/dir2/object4', 'dir1/dir2/object5', 'dir1')
@@ -57,21 +57,21 @@ def test_system_base():
                 raise ObjectPermissionError
             elif path in ('locator', 'locator/dir1'):
                 for obj in objects:
-                    yield obj, header.copy()
+                    yield obj, object_header.copy()
             else:
                 raise StopIteration
 
         def _list_locators(self):
             """Returns fake result"""
             for locator in locators:
-                yield locator, header.copy()
+                yield locator, object_header.copy()
 
         def _head(self, client_kwargs):
             """Checks arguments and returns fake result"""
             assert client_kwargs == dummy_client_kwargs
             if raise_not_exists_exception:
                 raise ObjectNotFoundError
-            return header.copy()
+            return object_header.copy()
 
         def _make_dir(self, client_kwargs):
             """Checks arguments"""
@@ -100,9 +100,9 @@ def test_system_base():
     with pytest.raises(UnsupportedOperation):
         system.getctime('path')
 
-    header['Last-Modified'] = m_time
+    object_header['Last-Modified'] = m_time
     assert system.getmtime('path') == m_time
-    header['Last-Modified'] = format_date_time(m_time)
+    object_header['Last-Modified'] = format_date_time(m_time)
 
     # Tests relpath
     assert system.relpath('scheme://path') == 'path'
@@ -154,13 +154,13 @@ def test_system_base():
     system.make_dir('locator/path/', relative=True)
 
     # Test empty header
-    header_old = header
-    header = {}
+    header_old = object_header
+    object_header = {}
     with pytest.raises(UnsupportedOperation):
         system.getmtime('path')
     with pytest.raises(UnsupportedOperation):
         system.getsize('path')
-    header = header_old
+    object_header = header_old
 
     # Test default unsupported
     with pytest.raises(UnsupportedOperation):
@@ -175,11 +175,11 @@ def test_system_base():
     system.remove('locator/path/', relative=True)
 
     # Tests stat
-    header['Content-Length'] = '0'
+    object_header['Content-Length'] = '0'
     stat_result = system.stat('root://locator/path/')
     assert S_ISDIR(stat_result.st_mode)
 
-    header['Content-Length'] = str(SIZE)
+    object_header['Content-Length'] = str(SIZE)
     stat_result = system.stat('root://locator/path')
     assert S_ISREG(stat_result.st_mode)
     assert stat_result.st_ino == 0
@@ -191,26 +191,39 @@ def test_system_base():
     assert stat_result.st_atime == 0
     assert stat_result.st_mtime == pytest.approx(m_time, 1)
     assert stat_result.st_ctime == 0
-    assert stat_result.st_etag == header['ETag']
+    assert stat_result.st_etag == object_header['ETag']
+
+    def islink(header=None, **_):
+        """Checks arguments and returns fake result"""
+        assert header is not None
+        return True
+
+    system_islink = system.islink
+    system.islink = islink
+    try:
+        stat_result = system.stat('root://locator/path')
+        assert S_ISLNK(stat_result.st_mode)
+    finally:
+        system.islink = system_islink
 
     # Tests list_objects
     assert list(system.list_objects(path='root://', first_level=True)) == [
-        (locator, header) for locator in locators]
+        (locator, object_header) for locator in locators]
 
     excepted = (
-        [(locators[0], header)] +
-        [('/'.join((locators[0], obj)), header) for obj in objects] +
-        [(locators[1], header)])
+        [(locators[0], object_header)] +
+        [('/'.join((locators[0], obj)), object_header) for obj in objects] +
+        [(locators[1], object_header)])
     assert list(system.list_objects(path='root://')) == excepted
 
     assert list(system.list_objects(path='root://locator')) == [
-        (obj, header) for obj in objects]
+        (obj, object_header) for obj in objects]
 
     assert list(system.list_objects(path='locator', relative=True)) == [
-        (obj, header) for obj in objects]
+        (obj, object_header) for obj in objects]
 
     excepted = (
-        [(obj, header) for obj in ('object1', 'object2', 'object3')] +
+        [(obj, object_header) for obj in ('object1', 'object2', 'object3')] +
         [('dir2/', dict())])
     assert list(system.list_objects(
         path='root://locator/dir1', first_level=True)) == excepted

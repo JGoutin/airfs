@@ -26,8 +26,8 @@ from pycosio._core.functions_io import cos_open as open
 from pycosio._core.functions_os import (
     listdir, lstat, makedirs, mkdir, remove, rmdir, scandir, stat, unlink)
 from pycosio._core.functions_os_path import (
-    exists, getctime, getmtime, getsize, isabs, isdir, isfile, ismount, relpath,
-    samefile, splitdrive)
+    exists, getctime, getmtime, getsize, isabs, isdir, isfile, islink, ismount,
+    relpath, samefile, splitdrive)
 from pycosio._core.functions_shutil import copy, copyfile
 from pycosio._core.storage_manager import mount
 
@@ -41,7 +41,7 @@ __all__ = list(sorted((
 
     # Standard library "os.path"
     'exists', 'getctime', 'getmtime', 'getsize', 'isabs', 'isdir', 'isfile',
-    'ismount', 'relpath', 'samefile', 'splitdrive',
+    'islink', 'ismount', 'relpath', 'samefile', 'splitdrive',
 
     # Standard library "shutil"
     'copy', 'copyfile',

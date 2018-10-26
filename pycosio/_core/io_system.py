@@ -4,7 +4,7 @@ from abc import abstractmethod
 from collections import OrderedDict, namedtuple
 from io import UnsupportedOperation
 from re import compile
-from stat import S_IFDIR, S_IFREG
+from stat import S_IFDIR, S_IFREG, S_IFLNK
 
 from dateutil.parser import parse
 
@@ -594,6 +594,20 @@ class SystemBase(ABC):
         """
         raise UnsupportedOperation('listdir')
 
+    def islink(self, path=None, header=None):
+        """
+        Returns True if object is a symbolic link.
+
+        Args:
+            path (str): File path or URL.
+            header (dict): Object header.
+
+        Returns:
+            bool: True if object is Symlink.
+        """
+        # Not supported by default
+        return False
+
     def stat(self, path=None, client_kwargs=None, header=None):
         """
         Get the status of an object.
@@ -623,11 +637,16 @@ class SystemBase(ABC):
             except UnsupportedOperation:
                 continue
 
-        # File mode (Is directory or file)
-        if ((not path or path[-1] == '/' or self.is_locator(path)) and not
+        # File mode
+        if self.islink(path=path, header=header):
+            # Symlink
+            stat['st_mode'] = S_IFLNK
+        elif ((not path or path[-1] == '/' or self.is_locator(path)) and not
                 stat['st_size']):
+            # Directory
             stat['st_mode'] = S_IFDIR
         else:
+            # File
             stat['st_mode'] = S_IFREG
 
         # Add storage specific keys

@@ -159,7 +159,8 @@ def test_equivalent_functions(tmpdir):
 
         for std_lib, names in (
                 (std_os_path,
-                 ('exists', 'getsize', 'getctime', 'getmtime', 'isfile')),
+                 ('exists', 'getsize', 'getctime', 'getmtime', 'isfile',
+                  'islink')),
                 (std_os, ('stat', 'lstat'))):
 
             for name in names:
