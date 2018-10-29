@@ -49,6 +49,7 @@ PACKAGE_INFO = dict(
 
     extras_require={
         # Storage specific requirements
+        'gs': ['google-cloud-storage>=1.10'],
         'oss': ['oss2>=2.3.0'],
         's3': ['boto3>=1.5.0'],
         'swift': ['python-swiftclient[keystone]>=3.3.0']},

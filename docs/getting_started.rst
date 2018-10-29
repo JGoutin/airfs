@@ -18,6 +18,7 @@ All mandatory dependencies are automatically installed.
 You can also install these optional extras:
 
 * ``all``: Install all extras.
+* ``gs``: Google Cloud Storage.
 * ``oss``: Alibaba Cloud OSS support.
 * ``s3``: AWS S3 support.
 * ``swift``: OpenStack Swift support.
