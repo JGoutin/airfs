@@ -3,6 +3,7 @@
 from contextlib import contextmanager as _contextmanager
 
 from google.cloud.storage.client import Client as _Client
+import google.cloud.exceptions as _gc_exc
 
 from pycosio._core.exceptions import (
     ObjectNotFoundError as _ObjectNotFoundError,
@@ -22,8 +23,14 @@ def _handle_google_exception():
     Raises:
         OSError subclasses: IO error.
     """
-    yield
-    # TODO:
+    try:
+        yield
+
+    except (_gc_exc.Unauthorized, _gc_exc.Forbidden) as exception:
+            raise _ObjectPermissionError(exception.message)
+
+    except _gc_exc.NotFound as exception:
+            raise _ObjectNotFoundError(exception.message)
 
 
 class _GSSystem(_SystemBase):
