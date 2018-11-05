@@ -4,9 +4,11 @@ Changelog
 1.3.0 (2018/??)
 ---------------
 
-Adds support for following cloud storage:
+Add support for following cloud storage:
 
 * Google Cloud Storage
+* Microsoft Azure Blobs Storage
+* Microsoft Azure Files Storage
 
 1.2.0 (2018/10)
 ---------------

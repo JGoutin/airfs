@@ -18,9 +18,10 @@ All mandatory dependencies are automatically installed.
 You can also install these optional extras:
 
 * ``all``: Install all extras.
-* ``gs``: Google Cloud Storage.
+* ``azure``: Microsoft Azure Storage support.
+* ``gs``: Google Cloud Storage support.
 * ``oss``: Alibaba Cloud OSS support.
-* ``s3``: AWS S3 support.
+* ``s3``: Amazon Web Services S3 support.
 * ``swift``: OpenStack Swift support.
 
 Example for installing Pycosio with all dependencies:
