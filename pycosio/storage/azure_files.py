@@ -1,16 +1,18 @@
 # coding=utf-8
 """Microsoft Azure Files Storage"""
+from io import BytesIO as _BytesIO
+import re as _re
+
 from azure.storage.file import FileService as _FileService
 
 from pycosio.storage.azure_blobs import _handle_azure_exception
-from pycosio._core.exceptions import (
-    ObjectNotFoundError as _ObjectNotFoundError,
-    ObjectPermissionError as _ObjectPermissionError)
 from pycosio.io import (
     ObjectRawIOBase as _ObjectRawIOBase,
     ObjectBufferedIOBase as _ObjectBufferedIOBase,
     SystemBase as _SystemBase)
 
+# TODO: Common "azure" storage entry point that generate both blob and file
+# storage
 
 class _AzureFilesSystem(_SystemBase):
     """
@@ -30,6 +32,9 @@ class _AzureFilesSystem(_SystemBase):
             src (str): Path or URL.
             dst (str): Path or URL.
         """
+        with _handle_azure_exception():
+            self.client.copy_file(
+                copy_source=src, **self.get_client_kwargs(dst))
 
     def _get_client(self):
         """
@@ -51,6 +56,28 @@ class _AzureFilesSystem(_SystemBase):
         Returns:
             dict: client args
         """
+        # Convert path from Windows format
+        # TODO: Must apply on all functions
+        path.replace('\\', '/')
+
+        share_name, relpath = self.split_locator(path)
+        kwargs = dict(share_name=share_name)
+
+        # Directory
+        if relpath and relpath[-1] == '/':
+            kwargs['directory_name'] = relpath
+
+        # File
+        elif relpath:
+            try:
+                kwargs['directory_name'], kwargs['file_name'] = relpath.rsplit(
+                    '/', 1)
+            except ValueError:
+                kwargs['directory_name'] = ''
+                kwargs['file_name'] = relpath
+
+        # Else, Share only
+        return kwargs
 
     def _get_roots(self):
         """
@@ -59,7 +86,21 @@ class _AzureFilesSystem(_SystemBase):
         Returns:
             tuple of str or re.Pattern: URL roots
         """
-        # TODO: + smb://endpoint
+        # SMB
+        # - smb://<account>.file.core.windows.net/<share>/<file>
+
+        # Mounted share
+        # - //<account>.file.core.windows.net/<share>/<file>
+        # - \\<account>.file.core.windows.net\<share>\<file>
+
+        # URL:
+        # - http://<account>.file.core.windows.net/<share>/<file>
+        # - https://<account>.file.core.windows.net/<share>/<file>
+
+        # Note: "core.windows.net" may be replaced by another endpoint
+
+        return _re.compile(r'(https?://|smb://|//|\\)%s\.file\.%s' % (
+            self._account, self.endpoint)),
 
     def _head(self, client_kwargs):
         """
@@ -71,6 +112,17 @@ class _AzureFilesSystem(_SystemBase):
         Returns:
             dict: HTTP header.
         """
+        with _handle_azure_exception():
+            # File
+            if 'file_name' in client_kwargs:
+                return self.client.get_file_metadata(**client_kwargs)
+
+            # Directory
+            elif 'directory_name' in client_kwargs:
+                return self.client.get_directory_properties(**client_kwargs)
+
+            # Share
+            return self.client.get_share_properties(**client_kwargs)
 
     def _list_locators(self):
         """
@@ -79,6 +131,9 @@ class _AzureFilesSystem(_SystemBase):
         Returns:
             generator of tuple: locator name str, locator header dict
         """
+        with _handle_azure_exception():
+            for share in self.client.list_shares():
+                yield share['Name'], share['Properties']
 
     def _list_objects(self, client_kwargs, path, max_request_entries):
         """
@@ -93,6 +148,19 @@ class _AzureFilesSystem(_SystemBase):
         Returns:
             generator of tuple: object name str, object header dict
         """
+        client_kwargs = client_kwargs.copy()
+        if max_request_entries:
+            client_kwargs['num_results'] = max_request_entries
+
+        with _handle_azure_exception():
+            for obj in self.client.list_directories_and_files(
+                    prefix=path, **client_kwargs):
+                try:
+                    properties = obj['Properties']
+                except KeyError:
+                    # Directories don't have properties
+                    properties = {}
+                yield obj['Name'], properties
 
     def _make_dir(self, client_kwargs):
         """
@@ -101,6 +169,16 @@ class _AzureFilesSystem(_SystemBase):
         args:
             client_kwargs (dict): Client arguments.
         """
+        with _handle_azure_exception():
+            # Directory
+            if 'directory_name' in client_kwargs:
+                return self.client.create_directory(
+                    share_name=client_kwargs['share_name'],
+                    directory_name=client_kwargs['share_name'])
+
+            # Share
+            return self.client.create_share(
+                share_name=client_kwargs['share_name'])
 
     def _remove(self, client_kwargs):
         """
@@ -109,6 +187,16 @@ class _AzureFilesSystem(_SystemBase):
         args:
             client_kwargs (dict): Client arguments.
         """
+        with _handle_azure_exception():
+            # Directory
+            if 'directory_name' in client_kwargs:
+                return self.client.delete_directory(
+                    share_name=client_kwargs['share_name'],
+                    directory_name=client_kwargs['share_name'])
+
+            # Share
+            return self.client.delete_share(
+                share_name=client_kwargs['share_name'])
 
 
 class AzureFilesRawIO(_ObjectRawIOBase):
@@ -136,6 +224,12 @@ class AzureFilesRawIO(_ObjectRawIOBase):
         Returns:
             bytes: number of bytes read
         """
+        stream = _BytesIO()
+        with _handle_azure_exception():
+            self._client.get_file_to_stream(
+                stream=stream, start_range=start,
+                end_range=end if end else None, **self._client_kwargs)
+        return stream.getvalue()
 
     def _readall(self):
         """
@@ -144,11 +238,22 @@ class AzureFilesRawIO(_ObjectRawIOBase):
         Returns:
             bytes: Object content
         """
+        stream = _BytesIO()
+        with _handle_azure_exception():
+            self._client.get_file_to_stream(
+                stream=stream, **self._client_kwargs)
+        return stream.getvalue()
 
     def _flush(self):
         """
         Flush the write buffers of the stream if applicable.
         """
+        with _handle_azure_exception():
+            # TODO: Do create_file on open ?
+            self._client.create_file(**self._client_kwargs)
+            self._client.update_range(
+                data=self._get_buffer(), start_range=0, end_range=self._size,
+                **self._client_kwargs)
 
 
 class AzureFilesBufferedIO(_ObjectBufferedIOBase):
@@ -172,8 +277,20 @@ class AzureFilesBufferedIO(_ObjectBufferedIOBase):
         """
         Flush the write buffers of the stream.
         """
+        if self._seek == 0:
+            self._client.create_file(**self._client_kwargs)
+
+        start_range = self._buffer_size * self._seek
+        end_range = start_range + self._buffer_size
+
+        self._write_futures.append(self._workers.submit(
+            self._client.update_range, data=self._get_buffer(),
+            start_range=start_range, end_range=end_range,
+            **self._client_kwargs))
 
     def _close_writable(self):
         """
         Close the object in write mode.
         """
+        for future in self._write_futures:
+            future.result()

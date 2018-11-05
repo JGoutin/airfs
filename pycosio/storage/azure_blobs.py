@@ -1,6 +1,7 @@
 # coding=utf-8
 """Microsoft Azure Blobs Storage"""
 from contextlib import contextmanager as _contextmanager
+import re as _re
 
 from azure.storage.blob import (BlockBlobService as _BlockBlobService,
                                 AppendBlobService as _AppendBlobService)
@@ -72,6 +73,14 @@ class _AzureBlobsSystem(_SystemBase):
         Returns:
             tuple of str or re.Pattern: URL roots
         """
+        # URL:
+        # - http://<account>.blob.core.windows.net/<container>/<blob>
+        # - https://<account>.blob.core.windows.net/<container>/<blob>
+
+        # Note: "core.windows.net" may be replaced by another endpoint
+
+        return _re.compile(
+            r'https?://%s\.blob\.%s' % (self._account, self.endpoint)),
 
     def _head(self, client_kwargs):
         """

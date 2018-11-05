@@ -10,6 +10,10 @@ Add support for following cloud storage:
 * Microsoft Azure Blobs Storage
 * Microsoft Azure Files Storage
 
+Fixes:
+
+* Fixe root URL detection in some cases.
+
 1.2.0 (2018/10)
 ---------------
 

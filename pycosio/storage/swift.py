@@ -105,6 +105,9 @@ class _SwiftSystem(_SystemBase):
         Returns:
             tuple of str or re.Pattern: URL roots
         """
+        # URL (May have other format):
+        # - https://<endpoint>/v1/AUTH_<project>/<container>/<object>
+
         return self.client.get_auth()[0],
 
     def _head(self, client_kwargs):

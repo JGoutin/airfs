@@ -98,10 +98,21 @@ class _OSSSystem(_SystemBase):
         Returns:
             tuple of str or re.Pattern: URL roots
         """
-        return 'oss://', _re.compile(_re.sub(
-            r"(https?://)(oss-.+\.aliyuncs\.com)",
-            r"\1[\\w-]+.\2", self._endpoint.rstrip('/'),
-            count=1).replace('.', r'\.'))
+
+        return (
+            # OSS Scheme
+            # - oss://<bucket>/<key>
+            'oss://',
+
+            # URL (With common aliyuncs.com endpoint):
+            # - http://<bucket>.oss-<region>.aliyuncs.com/<key>
+            # - https://<bucket>.oss-<region>.aliyuncs.com/<key>
+
+            # Note: "oss-<region>.aliyuncs.com" may be replaced by another
+            # endpoint
+
+            (r'https?://[\w-]+.%s' % self._endpoint.split(
+                '//', 1)[1]).replace('.', r'\.'))
 
     def _get_bucket(self, client_kwargs):
         """

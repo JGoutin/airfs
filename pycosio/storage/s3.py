@@ -132,16 +132,26 @@ class _S3System(_SystemBase):
         """
         region = self._get_session().region_name or r'[\w-]+'
         return (
-                # "s3" URL scheme
+                # S3 scheme
+                # - s3://<bucket>/<key>
                 's3://',
 
                 # Virtual-hosted–style URL
-                _re.compile(r'http://[\w.-]+\.s3\.amazonaws\.com'),
-                _re.compile(r'http://[\w.-]+\.s3-%s\.amazonaws\.com' % region),
+                # - http://<bucket>.s3.amazonaws.com/<key>
+                # - https://<bucket>.s3.amazonaws.com/<key>
+                # - http://<bucket>.s3-<region>.amazonaws.com/<key>
+                # - https://<bucket>.s3-<region>.amazonaws.com/<key>
+                _re.compile(r'https?://[\w.-]+\.s3\.amazonaws\.com'),
+                _re.compile(
+                    r'https?://[\w.-]+\.s3-%s\.amazonaws\.com' % region),
 
                 # Path-hosted–style URL
-                _re.compile(r'http://s3\.amazonaws\.com'),
-                _re.compile(r'http://s3-%s\.amazonaws\.com' % region))
+                # - http://s3.amazonaws.com/<bucket>/<key>
+                # - https://s3.amazonaws.com/<bucket>/<key>
+                # - http://s3-<region>.amazonaws.com/<bucket>/<key>
+                # - https://s3-<region>.amazonaws.com/<bucket>/<key>
+                _re.compile(r'https?://s3\.amazonaws\.com'),
+                _re.compile(r'https?://s3-%s\.amazonaws\.com' % region))
 
     @staticmethod
     def _get_time(header, keys, name):

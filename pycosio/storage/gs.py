@@ -2,6 +2,7 @@
 """Google Cloud Storage"""
 from contextlib import contextmanager as _contextmanager
 from io import BytesIO as _BytesIO
+import re as _re
 
 from google.cloud.storage.client import Client as _Client
 import google.cloud.exceptions as _gc_exc
@@ -115,9 +116,28 @@ class _GSSystem(_SystemBase):
             tuple of str or re.Pattern: URL roots
         """
         return (
-                # "gs" URL scheme
-                'gs://',)
-                # TODO: HTTPS URL roots
+            # GS scheme
+            # - gs://<bucket>/<blob>
+            'gs://',
+
+            # JSON API URL
+            # - https://www.googleapis.com/storage/v1/<bucket>/<blob>
+            'https://www.googleapis.com/storage/v1',
+
+            # Virtual-hosted–style XML API URL
+            # - http://storage.googleapis.com/<bucket>/<blob>
+            # - https://storage.googleapis.com/<bucket>/<blob>
+            _re.compile(r'https?://storage\.googleapis\.com'),
+
+            # Path-hosted–style XML API URL
+            # - http://<bucket>.storage.googleapis.com/<blob>
+            # - https://<bucket>.storage.googleapis.com/<blob>
+            _re.compile(r'https?://[\w-]+\.storage\.googleapis\.com'),
+
+            # Authenticated Browser Downloads URL
+            # - http://storage.cloud.google.com
+            # - https://storage.cloud.google.com
+            _re.compile(r'https?://storage\.cloud\.google\.com'))
 
     def _head(self, client_kwargs):
         """
@@ -201,7 +221,7 @@ class _GSSystem(_SystemBase):
         with _handle_google_exception():
             # Object
             if 'blob_name' in client_kwargs:
-                self._get_bucket(client_kwargs).delete_blob(
+                return self._get_bucket(client_kwargs).delete_blob(
                     blob_name=client_kwargs['blob_name'])
 
             # Bucket
