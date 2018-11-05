@@ -16,6 +16,9 @@ from pycosio.io import (
     SystemBase as _SystemBase)
 
 
+# TODO: "unsecure" argument support.
+
+
 @_contextmanager
 def _handle_google_exception():
     """
@@ -40,7 +43,9 @@ class _GSSystem(_SystemBase):
     Google Cloud Storage system.
 
     Args:
-        storage_parameters (dict): ????
+        storage_parameters (dict): Google Storage client keyword arguments.
+            This is generally Google Cloud credentials and configuration. See
+            "google.cloud.storage.client.Client" for more information.
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
     """
@@ -235,7 +240,9 @@ class GSRawIO(_ObjectRawIOBase):
         name (path-like object): URL or path to the file which will be opened.
         mode (str): The mode can be 'r', 'w', 'a'
             for reading (default), writing or appending
-        storage_parameters (dict): ????
+        storage_parameters (dict): Google Storage client keyword arguments.
+            This is generally Google Cloud credentials and configuration. See
+            "google.cloud.storage.client.Client" for more information.
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
     """
@@ -296,7 +303,9 @@ class GSBufferedIO(_ObjectBufferedIOBase):
             or awaiting flush in write mode. 0 for no limit.
         max_workers (int): The maximum number of threads that can be used to
             execute the given calls.
-        storage_parameters (dict): ????
+        storage_parameters (dict): Google Storage client keyword arguments.
+            This is generally Google Cloud credentials and configuration. See
+            "google.cloud.storage.client.Client" for more information.
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
     """

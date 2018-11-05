@@ -11,15 +11,20 @@ from pycosio.io import (
     ObjectBufferedIOBase as _ObjectBufferedIOBase,
     SystemBase as _SystemBase)
 
-# TODO: Common "azure" storage entry point that generate both blob and file
-# storage
+# TODO:
+# - Common "azure" storage entry point that generate both blob and file storage
+# - Proper "append" support.
+# - Move common code from blob and file to a parent class.
+
 
 class _AzureFilesSystem(_SystemBase):
     """
     Azure Files Storage system.
 
     Args:
-        storage_parameters (dict): ????
+        storage_parameters (dict): Azure service keyword arguments.
+            This is generally Azure credentials and configuration. See
+            "azure.storage.file.fileservice.FileService" for more information.
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
     """
@@ -43,7 +48,14 @@ class _AzureFilesSystem(_SystemBase):
         Returns:
             google.cloud.storage.client.Client: client
         """
-        return _FileService(**self._storage_parameters)
+        parameters = self._storage_parameters or dict()
+
+        # Handles unsecure mode
+        if self._unsecure:
+            parameters = parameters.copy()
+            parameters['protocol'] = 'http'
+
+        return _FileService(**parameters)
 
     def get_client_kwargs(self, path):
         """
@@ -174,11 +186,10 @@ class _AzureFilesSystem(_SystemBase):
             if 'directory_name' in client_kwargs:
                 return self.client.create_directory(
                     share_name=client_kwargs['share_name'],
-                    directory_name=client_kwargs['share_name'])
+                    directory_name=client_kwargs['directory_name'])
 
             # Share
-            return self.client.create_share(
-                share_name=client_kwargs['share_name'])
+            return self.client.create_share(**client_kwargs)
 
     def _remove(self, client_kwargs):
         """
@@ -206,7 +217,9 @@ class AzureFilesRawIO(_ObjectRawIOBase):
         name (path-like object): URL or path to the file which will be opened.
         mode (str): The mode can be 'r', 'w', 'a'
             for reading (default), writing or appending
-        storage_parameters (dict): ????
+        storage_parameters (dict): Azure service keyword arguments.
+            This is generally Azure credentials and configuration. See
+            "azure.storage.file.fileservice.FileService" for more information.
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
     """
@@ -252,8 +265,10 @@ class AzureFilesRawIO(_ObjectRawIOBase):
             # TODO: Do create_file on open ?
             self._client.create_file(**self._client_kwargs)
             self._client.update_range(
-                data=self._get_buffer(), start_range=0, end_range=self._size,
-                **self._client_kwargs)
+                data=self._get_buffer(),
+                # Append at end
+                start_range=self._size - len(self._get_buffer()),
+                end_range=self._size, **self._client_kwargs)
 
 
 class AzureFilesBufferedIO(_ObjectBufferedIOBase):
@@ -267,7 +282,9 @@ class AzureFilesBufferedIO(_ObjectBufferedIOBase):
             or awaiting flush in write mode. 0 for no limit.
         max_workers (int): The maximum number of threads that can be used to
             execute the given calls.
-        storage_parameters (dict): ????
+        storage_parameters (dict): Azure service keyword arguments.
+            This is generally Azure credentials and configuration. See
+            "azure.storage.file.fileservice.FileService" for more information.
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
     """

@@ -1,6 +1,7 @@
 # coding=utf-8
 """Microsoft Azure Blobs Storage"""
 from contextlib import contextmanager as _contextmanager
+from io import BytesIO as _BytesIO
 import re as _re
 
 from azure.storage.blob import (BlockBlobService as _BlockBlobService,
@@ -44,6 +45,9 @@ class _AzureBlobsSystem(_SystemBase):
             src (str): Path or URL.
             dst (str): Path or URL.
         """
+        with _handle_azure_exception():
+            self.client.copy_blob(
+                copy_source=src, **self.get_client_kwargs(dst))
 
     def _get_client(self):
         """
@@ -52,7 +56,14 @@ class _AzureBlobsSystem(_SystemBase):
         Returns:
             google.cloud.storage.client.Client: client
         """
-        return _BlockBlobService(**self._storage_parameters)
+        parameters = self._storage_parameters or dict()
+
+        # Handles unsecure mode
+        if self._unsecure:
+            parameters = parameters.copy()
+            parameters['protocol'] = 'http'
+
+        return _BlockBlobService(**parameters)
 
     def get_client_kwargs(self, path):
         """
@@ -65,6 +76,14 @@ class _AzureBlobsSystem(_SystemBase):
         Returns:
             dict: client args
         """
+        container_name, blob_name = self.split_locator(path)
+        kwargs = dict(container_name=container_name)
+
+        # Blob
+        if blob_name:
+            kwargs['blob_name'] = blob_name
+
+        return kwargs
 
     def _get_roots(self):
         """
@@ -92,6 +111,13 @@ class _AzureBlobsSystem(_SystemBase):
         Returns:
             dict: HTTP header.
         """
+        with _handle_azure_exception():
+            # Blob
+            if 'blob_name' in client_kwargs:
+                return self.client.get_blob_properties(**client_kwargs)
+
+            # Container
+            return self.client.get_container_properties(**client_kwargs)
 
     def _list_locators(self):
         """
@@ -100,6 +126,9 @@ class _AzureBlobsSystem(_SystemBase):
         Returns:
             generator of tuple: locator name str, locator header dict
         """
+        with _handle_azure_exception():
+            for container in self.client.list_containers():
+                yield container['Name'], container['Properties']
 
     def _list_objects(self, client_kwargs, path, max_request_entries):
         """
@@ -114,6 +143,13 @@ class _AzureBlobsSystem(_SystemBase):
         Returns:
             generator of tuple: object name str, object header dict
         """
+        client_kwargs = client_kwargs.copy()
+        if max_request_entries:
+            client_kwargs['num_results'] = max_request_entries
+
+        with _handle_azure_exception():
+            for blob in self.client.list_blobs(prefix=path, **client_kwargs):
+                yield blob['Name'], blob['Properties']
 
     def _make_dir(self, client_kwargs):
         """
@@ -122,6 +158,14 @@ class _AzureBlobsSystem(_SystemBase):
         args:
             client_kwargs (dict): Client arguments.
         """
+        with _handle_azure_exception():
+            # Blob
+            if 'blob_name' in client_kwargs:
+                return self.client.create_blob_from_stream(
+                    stream=_BytesIO(), **client_kwargs)
+
+            # Container
+            return self.client.create_container(**client_kwargs)
 
     def _remove(self, client_kwargs):
         """
@@ -130,6 +174,13 @@ class _AzureBlobsSystem(_SystemBase):
         args:
             client_kwargs (dict): Client arguments.
         """
+        with _handle_azure_exception():
+            # Blob
+            if 'blob_name' in client_kwargs:
+                return self.client.delete_blob(**client_kwargs)
+
+            # Container
+            return self.client.delete_container(**client_kwargs)
 
 
 class AzureBlobsRawIO(_ObjectRawIOBase):
@@ -170,6 +221,9 @@ class AzureBlobsRawIO(_ObjectRawIOBase):
         """
         Flush the write buffers of the stream if applicable.
         """
+        with _handle_azure_exception():
+            self._client.create_blob_from_stream(
+                stream=_BytesIO(self._write_buffer), **self._client_kwargs)
 
 
 class AzureBlobsBufferedIO(_ObjectBufferedIOBase):
