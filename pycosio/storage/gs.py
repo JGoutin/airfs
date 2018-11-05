@@ -240,8 +240,9 @@ class GSRawIO(_ObjectRawIOBase):
             bytes: number of bytes read
         """
         file_obj = _BytesIO()
-        self._download_to_file(
-            file_obj=file_obj, start=start, end=end if end else None)
+        with _handle_google_exception():
+            self._download_to_file(
+                file_obj=file_obj, start=start, end=end if end else None)
         return file_obj.getvalue()
 
     def _readall(self):
@@ -252,14 +253,16 @@ class GSRawIO(_ObjectRawIOBase):
             bytes: Object content
         """
         file_obj = _BytesIO()
-        self._download_to_file(file_obj=file_obj)
+        with _handle_google_exception():
+            self._download_to_file(file_obj=file_obj)
         return file_obj.getvalue()
 
     def _flush(self):
         """
         Flush the write buffers of the stream if applicable.
         """
-        self._upload_from_file(file_obj=_BytesIO(self._write_buffer))
+        with _handle_google_exception():
+            self._upload_from_file(file_obj=_BytesIO(self._write_buffer))
 
 
 class GSBufferedIO(_ObjectBufferedIOBase):
@@ -284,7 +287,8 @@ class GSBufferedIO(_ObjectBufferedIOBase):
 
         if self._writable:
             self._segment_name = self._client_kwargs['blob_name'] + '.%03d'
-            self._get_blob = self._system._get_blob
+            with _handle_google_exception():
+                self._get_blob = self._system._get_blob
 
     def _flush(self):
         """
@@ -305,19 +309,20 @@ class GSBufferedIO(_ObjectBufferedIOBase):
         """
         Close the object in write mode.
         """
-        # Concatenate parts while waiting for parts upload
-        final_blob = self._get_blob(self._client_kwargs)
-        blobs = []
+        with _handle_google_exception():
+            # Concatenate parts while waiting for parts upload
+            final_blob = self._get_blob(self._client_kwargs)
+            blobs = []
 
-        for blob, future in self._write_futures:
-            future.result()
-            blobs.append(blob)
+            for blob, future in self._write_futures:
+                future.result()
+                blobs.append(blob)
 
-            # Composes limit reached: Concatenates now
-            if len(blobs) == 32:
+                # Composes limit reached: Concatenates now
+                if len(blobs) == 32:
+                    final_blob.compose(blobs)
+                    blobs = [final_blob]
+
+            # Concatenates last segments
+            if blobs != [final_blob]:
                 final_blob.compose(blobs)
-                blobs = [final_blob]
-
-        # Concatenates last segments
-        if blobs != [final_blob]:
-            final_blob.compose(blobs)
