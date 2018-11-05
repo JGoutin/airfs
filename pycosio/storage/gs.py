@@ -1,6 +1,7 @@
 # coding=utf-8
 """Google Cloud Storage"""
 from contextlib import contextmanager as _contextmanager
+from io import BytesIO as _BytesIO
 
 from google.cloud.storage.client import Client as _Client
 import google.cloud.exceptions as _gc_exc
@@ -131,13 +132,11 @@ class _GSSystem(_SystemBase):
         with _handle_google_exception():
             # Object
             if 'blob_name' in client_kwargs:
-                obj = self._get_blob(client_kwargs)
+                return self._get_blob(client_kwargs)._properties
 
             # Bucket
             else:
-                obj = self._get_bucket(client_kwargs)
-
-        return obj._properties
+                return self._get_bucket(client_kwargs)._properties
 
     def _list_locators(self):
         """
@@ -147,11 +146,8 @@ class _GSSystem(_SystemBase):
             generator of tuple: locator name str, locator header dict
         """
         with _handle_google_exception():
-            buckets = self.client.list_buckets()
-
-        for bucket in buckets:
-            # TODO:
-            yield bucket.name, bucket._properties
+            for bucket in self.client.list_buckets():
+                yield bucket.name, bucket._properties
 
     def _list_objects(self, client_kwargs, path, max_request_entries):
         """
@@ -175,11 +171,8 @@ class _GSSystem(_SystemBase):
 
         while True:
             with _handle_google_exception():
-                blobs = bucket.list_blobs(prefix=path, **client_kwargs)
-
-            for blob in blobs:
-                yield blob.name, blob._properties
-            # TODO: next pages
+                for blob in bucket.list_blobs(prefix=path, **client_kwargs):
+                    yield blob.name, blob._properties
 
     def _make_dir(self, client_kwargs):
         """
@@ -190,7 +183,9 @@ class _GSSystem(_SystemBase):
         """
         with _handle_google_exception():
             # Object
-            # TODO:
+            if 'blob_name' in client_kwargs:
+                return self._get_blob(client_kwargs).upload_from_file(
+                    file_obj=_BytesIO())
 
             # Bucket
             return self.client.create_bucket(
@@ -226,6 +221,12 @@ class GSRawIO(_ObjectRawIOBase):
     """
     _SYSTEM_CLASS = _GSSystem
 
+    def __init__(self, *args, **kwargs):
+        _ObjectRawIOBase.__init__(self, *args, **kwargs)
+        self._blob = self._system._get_blob(self._client_kwargs)
+        self._download_to_file = self._blob.download_to_file
+        self._upload_from_file = self._blob.upload_from_file
+
     def _read_range(self, start, end=0):
         """
         Read a range of bytes in stream.
@@ -238,7 +239,10 @@ class GSRawIO(_ObjectRawIOBase):
         Returns:
             bytes: number of bytes read
         """
-        # TODO:
+        file_obj = _BytesIO()
+        self._download_to_file(
+            file_obj=file_obj, start=start, end=end if end else None)
+        return file_obj.getvalue()
 
     def _readall(self):
         """
@@ -247,13 +251,15 @@ class GSRawIO(_ObjectRawIOBase):
         Returns:
             bytes: Object content
         """
-        # TODO:
+        file_obj = _BytesIO()
+        self._download_to_file(file_obj=file_obj)
+        return file_obj.getvalue()
 
     def _flush(self):
         """
         Flush the write buffers of the stream if applicable.
         """
-        # TODO:
+        self._upload_from_file(file_obj=_BytesIO(self._write_buffer))
 
 
 class GSBufferedIO(_ObjectBufferedIOBase):
@@ -273,14 +279,45 @@ class GSBufferedIO(_ObjectBufferedIOBase):
     """
     _RAW_CLASS = GSRawIO
 
+    def __init__(self, *args, **kwargs):
+        _ObjectBufferedIOBase.__init__(self, *args, **kwargs)
+
+        if self._writable:
+            self._segment_name = self._client_kwargs['blob_name'] + '.%03d'
+            self._get_blob = self._system._get_blob
+
     def _flush(self):
         """
         Flush the write buffers of the stream.
         """
-        # TODO:
+        # Upload segment with workers
+        client_kwargs = self._client_kwargs.copy()
+        client_kwargs['blob_name'] = self._segment_name % self._seek
+        blob = self._get_blob(client_kwargs)
+
+        response = self._workers.submit(
+            blob.upload_from_file,
+            file_obj=_BytesIO(self._get_buffer()))
+
+        self._write_futures.append((blob, response))
 
     def _close_writable(self):
         """
         Close the object in write mode.
         """
-        # TODO:
+        # Concatenate parts while waiting for parts upload
+        final_blob = self._get_blob(self._client_kwargs)
+        blobs = []
+
+        for blob, future in self._write_futures:
+            future.result()
+            blobs.append(blob)
+
+            # Composes limit reached: Concatenates now
+            if len(blobs) == 32:
+                final_blob.compose(blobs)
+                blobs = [final_blob]
+
+        # Concatenates last segments
+        if blobs != [final_blob]:
+            final_blob.compose(blobs)
