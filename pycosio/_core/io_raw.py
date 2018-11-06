@@ -60,32 +60,37 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
 
         # Configures write mode
         if self._writable:
-            # In write mode, since it is not possible
-            # to random write on cloud storage,
-            # The full file needs to be write at once.
-            # This write buffer store data in wait to send
-            # it on storage on "flush()" call.
+            self._write_buffer = bytearray()
+
+            # Initializes starting data
             if 'a' in mode:
-                # Read existing file in buffer
-                self._write_buffer = bytearray(self._size)
-                memoryview(self._write_buffer)[:] = self.readall()
+
+                self._init_append()
+                self._seek = self._size
+
+            # Checks if object exists,
+            # and raise if it is the case
             elif 'x' in mode:
-                # Checks if object exists,
-                # and raise if it is the case
                 try:
                     self._head()
                 except ObjectNotFoundError:
                     pass
                 else:
                     raise file_exits_error
-            else:
-                self._write_buffer = bytearray()
 
         # Configure read mode
         else:
             # Get header and checks files exists
             with handle_os_exceptions():
                 self._head()
+
+    def _init_append(self):
+        """
+        Initializes data on 'a' mode
+        """
+        # By default, since appending is not supported by a majority or cloud
+        # storage, reads existing file content in write buffer
+        self._write_buffer[:] = self.readall()
 
     @property
     def _client(self):

@@ -16,9 +16,6 @@ from pycosio.io import (
     SystemBase as _SystemBase)
 
 
-# TODO: "unsecure" argument support.
-
-
 @_contextmanager
 def _handle_google_exception():
     """

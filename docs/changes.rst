@@ -106,3 +106,9 @@ Possibles futures features
 * For buckets, add a checks based on root + bucket name to find the more
   relevant mounted storage to use
   (Example: User's storage or public one using same root)
+
+Known issues
+------------
+
+* Append mode don't work with ``ObjectBufferedIOBase``.
+* ``unsecure`` parameter is not supported on Google Cloud Storage.

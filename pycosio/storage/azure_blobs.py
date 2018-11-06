@@ -12,6 +12,7 @@ from azure.common import AzureHttpError as _AzureHttpError
 from pycosio._core.exceptions import (
     ObjectNotFoundError as _ObjectNotFoundError,
     ObjectPermissionError as _ObjectPermissionError)
+from pycosio._core.io_base import memoizedmethod as _memoizedmethod
 from pycosio.io import (
     ObjectRawIOBase as _ObjectRawIOBase,
     ObjectBufferedIOBase as _ObjectBufferedIOBase,
@@ -46,7 +47,8 @@ class _AzureBlobsSystem(_SystemBase):
     Args:
         storage_parameters (dict): Azure service keyword arguments.
             This is generally Azure credentials and configuration. See
-            "azure.storage.blob.BaseBlobService" for more information.
+            "azure.storage.blob.baseblobservice.BaseBlobService" for more
+            information.
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
     """
@@ -65,10 +67,11 @@ class _AzureBlobsSystem(_SystemBase):
 
     def _get_client(self):
         """
-        Google storage client
+        Azure blob service
 
         Returns:
-            google.cloud.storage.client.Client: client
+            dict of azure.storage.blob.baseblobservice.BaseBlobService subclass:
+            Service
         """
         parameters = self._storage_parameters or dict()
 
@@ -78,12 +81,21 @@ class _AzureBlobsSystem(_SystemBase):
             parameters['protocol'] = 'http'
 
         # Block blob
-        if parameters.pop('blob_type', 'block') == 'block':
-            return _BlockBlobService(**parameters)
+        return dict(
+            block=_BlockBlobService(**parameters),
+            page=_PageBlobService(**parameters),
+            append=_AppendBlobService(**parameters))
 
-        # Page blob
-        else:
-            return _PageBlobService(**parameters)
+    @property
+    @_memoizedmethod
+    def _client_block(self):
+        """
+        Storage client
+
+        Returns:
+            client
+        """
+        return self.client['block']
 
     def get_client_kwargs(self, path):
         """
@@ -112,14 +124,21 @@ class _AzureBlobsSystem(_SystemBase):
         Returns:
             tuple of str or re.Pattern: URL roots
         """
+        parameters = self._storage_parameters or dict()
+        account_name = self._storage_parameters.get('account_name')
+
+        if not account_name:
+            raise ValueError('"account_name" is required for Azure storage')
+
         # URL:
         # - http://<account>.blob.core.windows.net/<container>/<blob>
         # - https://<account>.blob.core.windows.net/<container>/<blob>
 
-        # Note: "core.windows.net" may be replaced by another endpoint
+        # Note: "core.windows.net" may be replaced by another "endpoint_suffix"
 
         return _re.compile(
-            r'https?://%s\.blob\.%s' % (self._account, self.endpoint)),
+            r'https?://%s\.blob\.%s' % (account_name, parameters.get(
+                'endpoint_suffix', 'core.windows.net'))),
 
     def _head(self, client_kwargs):
         """
@@ -134,10 +153,10 @@ class _AzureBlobsSystem(_SystemBase):
         with _handle_azure_exception():
             # Blob
             if 'blob_name' in client_kwargs:
-                return self.client.get_blob_properties(**client_kwargs)
+                return self._client_block.get_blob_properties(**client_kwargs)
 
             # Container
-            return self.client.get_container_properties(**client_kwargs)
+            return self._client_block.get_container_properties(**client_kwargs)
 
     def _list_locators(self):
         """
@@ -147,7 +166,7 @@ class _AzureBlobsSystem(_SystemBase):
             generator of tuple: locator name str, locator header dict
         """
         with _handle_azure_exception():
-            for container in self.client.list_containers():
+            for container in self._client_block.list_containers():
                 yield container['Name'], container['Properties']
 
     def _list_objects(self, client_kwargs, path, max_request_entries):
@@ -168,7 +187,8 @@ class _AzureBlobsSystem(_SystemBase):
             client_kwargs['num_results'] = max_request_entries
 
         with _handle_azure_exception():
-            for blob in self.client.list_blobs(prefix=path, **client_kwargs):
+            for blob in self._client_block.list_blobs(
+                    prefix=path, **client_kwargs):
                 yield blob['Name'], blob['Properties']
 
     def _make_dir(self, client_kwargs):
@@ -181,11 +201,11 @@ class _AzureBlobsSystem(_SystemBase):
         with _handle_azure_exception():
             # Blob
             if 'blob_name' in client_kwargs:
-                return self.client.create_blob_from_stream(
+                return self._client_block.create_blob_from_stream(
                     stream=_BytesIO(), **client_kwargs)
 
             # Container
-            return self.client.create_container(**client_kwargs)
+            return self._client_block.create_container(**client_kwargs)
 
     def _remove(self, client_kwargs):
         """
@@ -197,10 +217,10 @@ class _AzureBlobsSystem(_SystemBase):
         with _handle_azure_exception():
             # Blob
             if 'blob_name' in client_kwargs:
-                return self.client.delete_blob(**client_kwargs)
+                return self._client_block.delete_blob(**client_kwargs)
 
             # Container
-            return self.client.delete_container(**client_kwargs)
+            return self._client_block.delete_container(**client_kwargs)
 
 
 class AzureBlobsRawIO(_ObjectRawIOBase):
@@ -212,11 +232,42 @@ class AzureBlobsRawIO(_ObjectRawIOBase):
             for reading (default), writing or appending
         storage_parameters (dict): Azure service keyword arguments.
             This is generally Azure credentials and configuration. See
-            "azure.storage.blob.BaseBlobService" for more information.
+            "azure.storage.blob.baseblobservice.BaseBlobService" for more
+            information.
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
     """
     _SYSTEM_CLASS = _AzureBlobsSystem
+
+    def __init__(self, *args, **kwargs):
+        _ObjectRawIOBase.__init__(self, *args, **kwargs)
+
+        # Detects blob type to use
+        try:
+            self._blob_type = self._head().get('blob_type', 'page')
+        except _ObjectNotFoundError:
+            self._blob_type = 'page'
+
+        # Creates blob on write mode
+        if 'x' in self.mode or 'w' in self.mode:
+            self._client.create_blob(**self._client_kwargs)
+
+    def _init_append(self):
+        """
+        Initializes data on 'a' mode
+        """
+        # Supported by default
+
+    @property
+    @_memoizedmethod
+    def _client(self):
+        """
+        Returns client instance.
+
+        Returns:
+            client
+        """
+        return self._system.client[self._blob_type]
 
     def _read_range(self, start, end=0):
         """
@@ -272,36 +323,50 @@ class AzureBlobsBufferedIO(_ObjectBufferedIOBase):
             execute the given calls.
         storage_parameters (dict): Azure service keyword arguments.
             This is generally Azure credentials and configuration. See
-            "azure.storage.blob.BaseBlobService" for more information.
+            "azure.storage.blob.baseblobservice.BaseBlobService" for more
+            information.
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
     """
     _RAW_CLASS = AzureBlobsRawIO
 
-    #: Minimal buffer_size in bytes (Minimal blob page size)
-    MINIMUM_BUFFER_SIZE = 512
-
     def __init__(self, *args, **kwargs):
         _ObjectBufferedIOBase.__init__(self, *args, **kwargs)
 
         # Pages must be 512 bytes aligned
-        if self._writable and self._buffer_size % 512:
-            raise ValueError('"buffer_size" must be multiple of 512 bytes')
+        if self._writable:
+            self._blob_type = self._raw._blob_type
+
+            if self._blob_type == 'page' and self._buffer_size % 512:
+                raise ValueError('"buffer_size" must be multiple of 512 bytes')
 
     def _flush(self):
         """
         Flush the write buffers of the stream.
         """
-        if self._seek == 0:
-            self._client.create_blob(**self._client_kwargs)
+        # Page blob: Writes buffer as range of bytes
+        if self._blob_type == 'page':
+            start_range = self._buffer_size * self._seek
+            end_range = start_range + self._buffer_size
 
-        start_range = self._buffer_size * self._seek
-        end_range = start_range + self._buffer_size
+            self._write_futures.append(self._workers.submit(
+                self._client.update_page, page=self._get_buffer(),
+                start_range=start_range, end_range=end_range,
+                **self._client_kwargs))
 
-        self._write_futures.append(self._workers.submit(
-            self._client.update_page, page=self._get_buffer(),
-            start_range=start_range, end_range=end_range,
-            **self._client_kwargs))
+        # Block blob: Writes buffer as a block
+        elif self._blob_type == 'block':
+            block_id = ''  # TODO: Generates ID
+
+            self._write_futures.append(self._workers.submit(
+                self._client.put_block, block=self._get_buffer(),
+                block_id=block_id, **self._client_kwargs))
+
+        # Append blob: Appends buffer as a block
+        elif self._blob_type == 'append':
+            self._write_futures.append(self._workers.submit(
+                self._client.put_block, block=self._get_buffer(),
+                **self._client_kwargs))
 
     def _close_writable(self):
         """
@@ -309,3 +374,11 @@ class AzureBlobsBufferedIO(_ObjectBufferedIOBase):
         """
         for future in self._write_futures:
             future.result()
+
+        # Block blob: Commit put blocks to blob
+        if not self._blob_type == 'block':
+            block_list = self._client.get_block_list(**self._client_kwargs)
+
+            self._client.put_block_list(
+                block_list=block_list.committed_blocks +
+                block_list.uncommitted_blocks, **self._client_kwargs)

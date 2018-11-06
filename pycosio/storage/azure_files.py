@@ -13,12 +13,10 @@ from pycosio.io import (
 
 # TODO:
 # - Common "azure" storage entry point that generate both blob and file storage
-# - Proper "append" support.
 # - Proper "Truncate" support
 # - Proper random write support
 # - Move common code from blob and file to a parent class.
-# - Copy from blob to file
-# - Azure Block blobs support
+# - copy: adapt for copy from Azure blob to Azure file
 
 
 class _AzureFilesSystem(_SystemBase):
@@ -47,10 +45,10 @@ class _AzureFilesSystem(_SystemBase):
 
     def _get_client(self):
         """
-        Google storage client
+        Azure file service
 
         Returns:
-            google.cloud.storage.client.Client: client
+            azure.storage.file.fileservice.FileService: Service
         """
         parameters = self._storage_parameters or dict()
 
@@ -229,6 +227,19 @@ class AzureFilesRawIO(_ObjectRawIOBase):
     """
     _SYSTEM_CLASS = _AzureFilesSystem
 
+    def __init__(self, *args, **kwargs):
+        _ObjectRawIOBase.__init__(self, *args, **kwargs)
+
+        # Creates blob on write mode
+        if 'x' in self.mode or 'w' in self.mode:
+            self._client.create_blob(**self._client_kwargs)
+
+    def _init_append(self):
+        """
+        Initializes data on 'a' mode
+        """
+        # Supported by default
+
     def _read_range(self, start, end=0):
         """
         Read a range of bytes in stream.
@@ -266,8 +277,6 @@ class AzureFilesRawIO(_ObjectRawIOBase):
         Flush the write buffers of the stream if applicable.
         """
         with _handle_azure_exception():
-            # TODO: Do create_file on open ?
-            self._client.create_file(**self._client_kwargs)
             self._client.update_range(
                 data=self._get_buffer(),
                 # Append at end
@@ -298,9 +307,6 @@ class AzureFilesBufferedIO(_ObjectBufferedIOBase):
         """
         Flush the write buffers of the stream.
         """
-        if self._seek == 0:
-            self._client.create_file(**self._client_kwargs)
-
         start_range = self._buffer_size * self._seek
         end_range = start_range + self._buffer_size
 
