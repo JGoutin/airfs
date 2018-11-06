@@ -30,6 +30,8 @@ class _AzureFilesSystem(_SystemBase):
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
     """
+    _MTIME_KEYS = ('last_modified',)
+    _SIZE_KEYS = ('content_length',)
 
     def copy(self, src, dst):
         """
