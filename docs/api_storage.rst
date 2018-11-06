@@ -1,10 +1,22 @@
 pycosio.storage
 ===============
 
-.. csv-table:: Storage features table
+Supported features
+------------------
+
+The following table shows features available for each storage.
+
+.. csv-table::
    :file: features.csv
    :header-rows: 1
+   :stub-columns: 1
    :class: longtable
+
+API
+---
+
+The following pages describes IO class for each storage. This give information
+on parameters to use to configure storage.
 
 .. automodule:: pycosio.storage
    :members:
