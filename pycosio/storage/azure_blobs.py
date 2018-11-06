@@ -4,8 +4,8 @@ from contextlib import contextmanager as _contextmanager
 from io import BytesIO as _BytesIO
 import re as _re
 
-from azure.storage.blob import (BlockBlobService as _BlockBlobService,
-                                AppendBlobService as _AppendBlobService)
+from azure.storage.blob import PageBlobService as _PageBlobService
+from azure.common import AzureHttpError as _AzureHttpError
 
 from pycosio._core.exceptions import (
     ObjectNotFoundError as _ObjectNotFoundError,
@@ -14,6 +14,10 @@ from pycosio.io import (
     ObjectRawIOBase as _ObjectRawIOBase,
     ObjectBufferedIOBase as _ObjectBufferedIOBase,
     SystemBase as _SystemBase)
+
+_ERROR_CODES = {
+    403: _ObjectPermissionError,
+    404: _ObjectNotFoundError}
 
 
 @_contextmanager
@@ -24,7 +28,13 @@ def _handle_azure_exception():
     Raises:
         OSError subclasses: IO error.
     """
-    yield
+    try:
+        yield
+
+    except _AzureHttpError as exception:
+        if exception.status_code in _ERROR_CODES:
+            raise _ERROR_CODES[exception.status_code](str(exception))
+        raise
 
 
 class _AzureBlobsSystem(_SystemBase):
@@ -63,7 +73,7 @@ class _AzureBlobsSystem(_SystemBase):
             parameters = parameters.copy()
             parameters['protocol'] = 'http'
 
-        return _BlockBlobService(**parameters)
+        return _PageBlobService(**parameters)
 
     def get_client_kwargs(self, path):
         """
@@ -254,12 +264,34 @@ class AzureBlobsBufferedIO(_ObjectBufferedIOBase):
     """
     _RAW_CLASS = AzureBlobsRawIO
 
+    #: Minimal buffer_size in bytes (Minimal blob page size)
+    MINIMUM_BUFFER_SIZE = 512
+
+    def __init__(self, *args, **kwargs):
+        _ObjectBufferedIOBase.__init__(self, *args, **kwargs)
+
+        # Pages must be 512 bytes aligned
+        if self._writable and self._buffer_size % 512:
+            raise ValueError('"buffer_size" must be multiple of 512 bytes')
+
     def _flush(self):
         """
         Flush the write buffers of the stream.
         """
+        if self._seek == 0:
+            self._client.create_blob(**self._client_kwargs)
+
+        start_range = self._buffer_size * self._seek
+        end_range = start_range + self._buffer_size
+
+        self._write_futures.append(self._workers.submit(
+            self._client.update_page, page=self._get_buffer(),
+            start_range=start_range, end_range=end_range,
+            **self._client_kwargs))
 
     def _close_writable(self):
         """
         Close the object in write mode.
         """
+        for future in self._write_futures:
+            future.result()

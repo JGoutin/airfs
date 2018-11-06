@@ -14,7 +14,11 @@ from pycosio.io import (
 # TODO:
 # - Common "azure" storage entry point that generate both blob and file storage
 # - Proper "append" support.
+# - Proper "Truncate" support
+# - Proper random write support
 # - Move common code from blob and file to a parent class.
+# - Copy from blob to file
+# - Azure Block blobs support
 
 
 class _AzureFilesSystem(_SystemBase):

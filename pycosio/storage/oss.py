@@ -9,8 +9,7 @@ from oss2.exceptions import OssError as _OssError
 
 from pycosio._core.exceptions import (
     ObjectNotFoundError as _ObjectNotFoundError,
-    ObjectPermissionError as _ObjectPermissionError,
-    ObjectException as _ObjectException)
+    ObjectPermissionError as _ObjectPermissionError)
 from pycosio.io import (
     ObjectRawIOBase as _ObjectRawIOBase,
     ObjectBufferedIOBase as _ObjectBufferedIOBase,
@@ -111,8 +110,8 @@ class _OSSSystem(_SystemBase):
             # Note: "oss-<region>.aliyuncs.com" may be replaced by another
             # endpoint
 
-            (r'https?://[\w-]+.%s' % self._endpoint.split(
-                '//', 1)[1]).replace('.', r'\.'))
+            _re.compile((r'https?://[\w-]+.%s' % self._endpoint.split(
+                '//', 1)[1]).replace('.', r'\.')))
 
     def _get_bucket(self, client_kwargs):
         """
