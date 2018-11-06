@@ -1,6 +1,11 @@
 pycosio.storage
 ===============
 
+.. csv-table:: Storage features table
+   :file: features.csv
+   :header-rows: 1
+   :class: longtable
+
 .. automodule:: pycosio.storage
    :members:
    :inherited-members:

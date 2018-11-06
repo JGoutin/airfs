@@ -12,7 +12,7 @@ Add support for following cloud storage:
 
 Fixes:
 
-* Fixe root URL detection in some cases.
+* Fix root URL detection in some cases.
 
 1.2.0 (2018/10)
 ---------------
@@ -100,6 +100,7 @@ Possibles futures features
       ``pathlib.Path``.
 * ACL/``mode`` support in ``makedirs``, ``mkdir``, ``stat``, ``lstat``.
 * More cloud storage.
+* Support for protocols like FTP/FTPS, SMB, ...
 * Extra ``max_buffers`` for swap on local disk in ``ObjectBufferedIOBase``.
 * Global computer resource managements for cloud object IO.
 * For buckets, add a checks based on root + bucket name to find the more

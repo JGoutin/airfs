@@ -1,0 +1,9 @@
+Storage,Read,Write,Directories,Remove,List content,Symbolic Links
+File system,Yes,Yes,Yes,Yes,Yes,OS dependant
+azure_blobs,Yes,Yes,Virtual,Yes,Yes,No
+azure_files,Yes,Yes,Yes,Yes,Yes,No
+gs,Yes,Full file at once,Virtual,Yes,Yes,No
+http,Random access If Accept-Ranges header,No,No,No,No,No
+oss,Yes,Full file at once,Virtual,Yes,Yes,Yes
+s3,Yes,Full file at once,Virtual,Yes,Yes,No
+swift,Yes,Full file at once,Virtual,Yes,Yes,No

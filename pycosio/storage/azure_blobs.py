@@ -4,7 +4,9 @@ from contextlib import contextmanager as _contextmanager
 from io import BytesIO as _BytesIO
 import re as _re
 
-from azure.storage.blob import PageBlobService as _PageBlobService
+from azure.storage.blob import (
+    PageBlobService as _PageBlobService, BlockBlobService as _BlockBlobService,
+    AppendBlobService as _AppendBlobService)
 from azure.common import AzureHttpError as _AzureHttpError
 
 from pycosio._core.exceptions import (
@@ -73,7 +75,13 @@ class _AzureBlobsSystem(_SystemBase):
             parameters = parameters.copy()
             parameters['protocol'] = 'http'
 
-        return _PageBlobService(**parameters)
+        # Block blob
+        if parameters.pop('blob_type', 'block') == 'block':
+            return _BlockBlobService(**parameters)
+
+        # Page blob
+        else:
+            return _PageBlobService(**parameters)
 
     def get_client_kwargs(self, path):
         """
