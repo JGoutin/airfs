@@ -208,6 +208,12 @@ class AzureBlobsRawIO(_ObjectRawIOBase):
         Returns:
             bytes: number of bytes read
         """
+        stream = _BytesIO()
+        with _handle_azure_exception():
+            self._client.get_blob_to_stream(
+                stream=stream, start_range=start,
+                end_range=end if end else None, **self._client_kwargs)
+        return stream.getvalue()
 
     def _readall(self):
         """
@@ -216,6 +222,11 @@ class AzureBlobsRawIO(_ObjectRawIOBase):
         Returns:
             bytes: Object content
         """
+        stream = _BytesIO()
+        with _handle_azure_exception():
+            self._client.get_blob_to_stream(
+                stream=stream, **self._client_kwargs)
+        return stream.getvalue()
 
     def _flush(self):
         """
