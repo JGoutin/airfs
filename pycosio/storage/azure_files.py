@@ -16,7 +16,6 @@ from pycosio.io import (
 # - Proper "Truncate" support
 # - Proper random write support
 # - Move common code from blob and file to a parent class.
-# - copy: adapt for copy from Azure blob to Azure file
 
 
 class _AzureFilesSystem(_SystemBase):
@@ -45,6 +44,8 @@ class _AzureFilesSystem(_SystemBase):
             self.client.copy_file(
                 copy_source=src, **self.get_client_kwargs(dst))
 
+    copy_from_azure_blobs = copy  # Allows copy from Azure Blobs Storage
+
     def _get_client(self):
         """
         Azure file service
@@ -72,10 +73,6 @@ class _AzureFilesSystem(_SystemBase):
         Returns:
             dict: client args
         """
-        # Convert path from Windows format
-        # TODO: Must apply on all functions
-        path.replace('\\', '/')
-
         share_name, relpath = self.split_locator(path)
         kwargs = dict(share_name=share_name)
 

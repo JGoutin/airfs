@@ -66,7 +66,7 @@ def cos_open(file, mode='r', buffering=-1, encoding=None, errors=None,
         return
 
     # Handles path-like objects
-    file = fsdecode(file)
+    file = fsdecode(file).replace('\\', '/')
 
     # Storage object
     if is_storage(file, storage):

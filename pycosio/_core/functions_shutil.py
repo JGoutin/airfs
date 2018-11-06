@@ -25,17 +25,29 @@ def _copy(src, dst, src_is_storage, dst_is_storage):
     """
     # If both storage: Tries to perform same storage direct copy
     if src_is_storage and dst_is_storage:
-        system = get_instance(src)
-        if system is get_instance(dst):
+        system_src = get_instance(src)
+        system_dst = get_instance(dst)
+
+        # Same storage copy
+        if system_src is system_dst:
 
             # Checks if same file
-            if system.relpath(src) == system.relpath(dst):
+            if system_src.relpath(src) == system_dst.relpath(dst):
                 raise same_file_error(
                     "'%s' and '%s' are the same file" % (src, dst))
 
             # Tries to copy
             try:
-                return system.copy(src, dst)
+                return system_dst.copy(src, dst)
+            except (UnsupportedOperation, ObjectException):
+                pass
+
+        # Copy from compatible storage using "copy_from_<src_storage>" method
+        # if any
+        copy_method = 'copy_from_%s' % system_src.__module__.rsplit('.', 1)[1]
+        if hasattr(system_dst, copy_method):
+            try:
+                return getattr(system_dst, copy_method)(src, dst)
             except (UnsupportedOperation, ObjectException):
                 pass
 

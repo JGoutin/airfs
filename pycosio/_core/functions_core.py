@@ -45,7 +45,8 @@ def format_and_is_storage(path):
             bool (True if is storage).
     """
     if not hasattr(path, 'read'):
-        return fsdecode(path), is_storage(path)
+        path = fsdecode(path).replace('\\', '/')
+        return path, is_storage(path)
     return path, True
 
 
@@ -71,7 +72,7 @@ def equivalent_to(std_function):
             """Decorated function"""
 
             # Handles path-like objects
-            path = fsdecode(path)
+            path = fsdecode(path).replace('\\', '/')
 
             # Storage object: Handle with Cloud object storage
             # function

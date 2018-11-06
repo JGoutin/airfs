@@ -202,6 +202,8 @@ class DirEntry:
     attributes of a directory entry.
 
     Equivalent to "os.DirEntry".
+
+    Not intended to be instantiated directly.
     """
 
     def __init__(self, scandir_path, system, name, header, bytes_path):
@@ -388,7 +390,7 @@ def scandir(path='.'):
         Generator of os.DirEntry: Entries information.
     """
     # Handles path-like objects
-    scandir_path = fsdecode(path)
+    scandir_path = fsdecode(path).replace('\\', '/')
 
     if not is_storage(scandir_path):
         return os_scandir(scandir_path)

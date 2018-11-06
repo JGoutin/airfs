@@ -97,7 +97,7 @@ Possibles futures features
     * ``os.removedirs``, ``os.walk``, ``os.rename``, ``os.renames``,
       ``os.replace``, ``shutil.move``, ``os.chmod``, ``os.access``,
       ``os.readlink``, ``os.symlink``, ``shutil.copytree``, ``shutil.rmtree``,
-      ``pathlib.Path``.
+      ``pathlib.Path``, ``os.truncate``.
 * ACL/``mode`` support in ``makedirs``, ``mkdir``, ``stat``, ``lstat``.
 * More cloud storage.
 * Support for protocols like FTP/FTPS, SMB, ...

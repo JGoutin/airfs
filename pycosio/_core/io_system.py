@@ -68,6 +68,14 @@ class SystemBase(ABC):
             src (str): Path or URL.
             dst (str): Path or URL.
         """
+        # This method is intended to copy objects to and from a same storage
+
+        # It is possible to define methods to copy from a different storage
+        # by creating a "copy_from_<src_storage>" method for the target storage
+        # This method must have the same signature as "copy".
+
+        # Note that if no "copy_from" methods are defined, copy are
+        # performed over the current machine with "shutil.copyfileobj".
         raise UnsupportedOperation
 
     def exists(self, path=None, client_kwargs=None):
