@@ -44,7 +44,9 @@ class _AzureBlobsSystem(_SystemBase):
     Azure Blobs Storage system.
 
     Args:
-        storage_parameters (dict): ????
+        storage_parameters (dict): Azure service keyword arguments.
+            This is generally Azure credentials and configuration. See
+            "azure.storage.blob.BaseBlobService" for more information.
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
     """
@@ -208,7 +210,9 @@ class AzureBlobsRawIO(_ObjectRawIOBase):
         name (path-like object): URL or path to the file which will be opened.
         mode (str): The mode can be 'r', 'w', 'a'
             for reading (default), writing or appending
-        storage_parameters (dict): ????
+        storage_parameters (dict): Azure service keyword arguments.
+            This is generally Azure credentials and configuration. See
+            "azure.storage.blob.BaseBlobService" for more information.
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
     """
@@ -266,7 +270,9 @@ class AzureBlobsBufferedIO(_ObjectBufferedIOBase):
             or awaiting flush in write mode. 0 for no limit.
         max_workers (int): The maximum number of threads that can be used to
             execute the given calls.
-        storage_parameters (dict): ????
+        storage_parameters (dict): Azure service keyword arguments.
+            This is generally Azure credentials and configuration. See
+            "azure.storage.blob.BaseBlobService" for more information.
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
     """
