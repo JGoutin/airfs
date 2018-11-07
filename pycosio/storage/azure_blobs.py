@@ -1,43 +1,23 @@
 # coding=utf-8
 """Microsoft Azure Blobs Storage"""
-from contextlib import contextmanager as _contextmanager
 from io import BytesIO as _BytesIO
 import re as _re
 
 from azure.storage.blob import (
-    PageBlobService as _PageBlobService, BlockBlobService as _BlockBlobService,
+    PageBlobService as _PageBlobService,
+    BlockBlobService as _BlockBlobService,
     AppendBlobService as _AppendBlobService)
-from azure.common import AzureHttpError as _AzureHttpError
 
+from pycosio.storage.azure import (
+    _handle_azure_exception, _update_storage_parameters,
+    _update_listing_client_kwargs)
 from pycosio._core.exceptions import (
-    ObjectNotFoundError as _ObjectNotFoundError,
-    ObjectPermissionError as _ObjectPermissionError)
+    ObjectNotFoundError as _ObjectNotFoundError)
 from pycosio._core.io_base import memoizedmethod as _memoizedmethod
 from pycosio.io import (
     ObjectRawIOBase as _ObjectRawIOBase,
     ObjectBufferedIOBase as _ObjectBufferedIOBase,
     SystemBase as _SystemBase)
-
-_ERROR_CODES = {
-    403: _ObjectPermissionError,
-    404: _ObjectNotFoundError}
-
-
-@_contextmanager
-def _handle_azure_exception():
-    """
-    Handle Azure exception and convert to class IO exceptions
-
-    Raises:
-        OSError subclasses: IO error.
-    """
-    try:
-        yield
-
-    except _AzureHttpError as exception:
-        if exception.status_code in _ERROR_CODES:
-            raise _ERROR_CODES[exception.status_code](str(exception))
-        raise
 
 
 class _AzureBlobsSystem(_SystemBase):
@@ -75,12 +55,8 @@ class _AzureBlobsSystem(_SystemBase):
             dict of azure.storage.blob.baseblobservice.BaseBlobService subclass:
             Service
         """
-        parameters = self._storage_parameters or dict()
-
-        # Handles unsecure mode
-        if self._unsecure:
-            parameters = parameters.copy()
-            parameters['protocol'] = 'http'
+        parameters = _update_storage_parameters(
+            self._storage_parameters, self._unsecure)
 
         # Block blob
         return dict(
@@ -184,9 +160,8 @@ class _AzureBlobsSystem(_SystemBase):
         Returns:
             generator of tuple: object name str, object header dict
         """
-        client_kwargs = client_kwargs.copy()
-        if max_request_entries:
-            client_kwargs['num_results'] = max_request_entries
+        client_kwargs = _update_listing_client_kwargs(
+            client_kwargs, max_request_entries)
 
         with _handle_azure_exception():
             for blob in self._client_block.list_blobs(

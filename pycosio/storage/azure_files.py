@@ -5,17 +5,13 @@ import re as _re
 
 from azure.storage.file import FileService as _FileService
 
-from pycosio.storage.azure_blobs import _handle_azure_exception
+from pycosio.storage.azure import (
+    _handle_azure_exception, _update_storage_parameters,
+    _update_listing_client_kwargs)
 from pycosio.io import (
     ObjectRawIOBase as _ObjectRawIOBase,
     ObjectBufferedIOBase as _ObjectBufferedIOBase,
     SystemBase as _SystemBase)
-
-# TODO:
-# - Common "azure" storage entry point that generate both blob and file storage
-# - Proper "Truncate" support
-# - Proper random write support
-# - Move common code from blob and file to a parent class.
 
 
 class _AzureFilesSystem(_SystemBase):
@@ -53,14 +49,8 @@ class _AzureFilesSystem(_SystemBase):
         Returns:
             azure.storage.file.fileservice.FileService: Service
         """
-        parameters = self._storage_parameters or dict()
-
-        # Handles unsecure mode
-        if self._unsecure:
-            parameters = parameters.copy()
-            parameters['protocol'] = 'http'
-
-        return _FileService(**parameters)
+        return _FileService(**_update_storage_parameters(
+            self._storage_parameters, self._unsecure))
 
     def get_client_kwargs(self, path):
         """
@@ -161,9 +151,8 @@ class _AzureFilesSystem(_SystemBase):
         Returns:
             generator of tuple: object name str, object header dict
         """
-        client_kwargs = client_kwargs.copy()
-        if max_request_entries:
-            client_kwargs['num_results'] = max_request_entries
+        client_kwargs = _update_listing_client_kwargs(
+            client_kwargs, max_request_entries)
 
         with _handle_azure_exception():
             for obj in self.client.list_directories_and_files(

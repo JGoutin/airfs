@@ -64,7 +64,9 @@ def get_instance(name, cls='system', storage=None, storage_parameters=None,
 
         # If not found, tries to mount before getting
         else:
-            info = mount(storage=storage, name=name, **system_parameters)
+            mount_info = mount(
+                storage=storage, name=name, **system_parameters)
+            info = mount_info[tuple(mount_info)[0]]
             same_parameters = True
 
     # Returns system class
@@ -109,7 +111,7 @@ def mount(storage=None, name='', storage_parameters=None,
             "https://www.mycloud.com/user/container/object".
 
     Returns:
-        dict of class: Subclasses
+        dict: keys are mounted storage, values are dicts of storage information.
     """
     # Tries to infer storage from name
     if storage is None:
@@ -128,6 +130,20 @@ def mount(storage=None, name='', storage_parameters=None,
 
     # Finds module containing target subclass
     module = import_module('pycosio.storage.%s' % storage)
+
+    # Case module is a mount redirection to mount multiple storage at once
+    if hasattr(module, 'MOUNT_REDIRECT'):
+        if extra_root:
+            raise ValueError(
+                ("Can't define extra_root with %s. "
+                 "%s can't have a common root.") % (
+                    storage, ', '.join(extra_root)))
+        result = dict()
+        for storage in getattr(module, 'MOUNT_REDIRECT'):
+            result[storage] = mount(
+                storage=storage, storage_parameters=storage_parameters,
+                unsecure=unsecure)
+        return result
 
     # Finds storage subclass
     classes_items = tuple(_BASE_CLASSES.items())
@@ -165,7 +181,7 @@ def mount(storage=None, name='', storage_parameters=None,
         MOUNTED.clear()
         MOUNTED.update(items)
 
-    return storage_info
+    return {storage: storage_info}
 
 
 def _system_parameters(**kwargs):
