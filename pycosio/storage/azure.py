@@ -65,9 +65,9 @@ def _update_listing_client_kwargs(client_kwargs, max_request_entries):
     Updates client kwargs for listing functions.
 
     Args:
-            client_kwargs (dict): Client arguments.
-            max_request_entries (int): If specified, maximum entries returned
-                by request.
+        client_kwargs (dict): Client arguments.
+        max_request_entries (int): If specified, maximum entries returned
+            by request.
 
     Returns:
         dict: Updated client_kwargs

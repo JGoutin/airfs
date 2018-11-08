@@ -2,7 +2,9 @@
 """Microsoft Azure Blobs Storage"""
 from __future__ import absolute_import  # Python 2: Fix azure import
 
+from base64 import urlsafe_b64encode as _urlsafe_b64encode
 from io import BytesIO as _BytesIO
+from os import urandom as _urandom
 import re as _re
 
 from azure.storage.blob import (
@@ -328,11 +330,10 @@ class AzureBlobsBufferedIO(_ObjectBufferedIOBase):
 
         # Block blob: Writes buffer as a block
         elif self._blob_type == 'block':
-            block_id = ''  # TODO: Generates ID
-
             self._write_futures.append(self._workers.submit(
                 self._client.put_block, block=self._get_buffer(),
-                block_id=block_id, **self._client_kwargs))
+                block_id=_urlsafe_b64encode(_urandom(48)),
+                **self._client_kwargs))
 
         # Append blob: Appends buffer as a block
         elif self._blob_type == 'append':

@@ -27,8 +27,8 @@ class _AzureFilesSystem(_SystemBase):
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
     """
-    _MTIME_KEYS = ('last_modified',)
-    _SIZE_KEYS = ('content_length',)
+    _MTIME_KEYS = ('last_modified', 'Last-Modified')
+    _SIZE_KEYS = ('content_length', 'Content-Length')
 
     def copy(self, src, dst):
         """
@@ -222,7 +222,7 @@ class AzureFilesRawIO(_ObjectRawIOBase):
 
         # Creates blob on write mode
         if 'x' in self.mode or 'w' in self.mode:
-            self._client.create_blob(**self._client_kwargs)
+            self._client.create_file(**self._client_kwargs)
 
     def _init_append(self):
         """
