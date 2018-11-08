@@ -367,8 +367,10 @@ def test_cos_open(tmpdir):
 
     root = 'dummy_read://'
     root2 = 'dummy_read2://'
+    root3 = 'dummy_read3://'
     cos_path = root + 'file.txt'
     cos_path2 = root2 + 'file.txt'
+    cos_path3 = root3 + 'file.txt'
     content = b'dummy_content'
 
     # Mock storage
@@ -380,6 +382,18 @@ def test_cos_open(tmpdir):
             self.raise_on_copy = False
 
         def copy(self, *_, **__):
+            """Checks called"""
+            if self.raise_on_copy:
+                raise UnsupportedOperation
+            self.copied = True
+
+        def copy_to_storage3(self, *_, **__):
+            """Checks called"""
+            if self.raise_on_copy:
+                raise UnsupportedOperation
+            self.copied = True
+
+        def copy_from_storage3(self, *_, **__):
             """Checks called"""
             if self.raise_on_copy:
                 raise UnsupportedOperation
@@ -419,16 +433,26 @@ def test_cos_open(tmpdir):
         """Dummy buffered IO"""
 
     system = DummySystem()
+    system._storage = 'storage1'
     MOUNTED[root] = dict(
         raw=DummyRawIO, buffered=DummyBufferedIO,
         system_cached=system, storage_parameters={})
+
+    system2 = DummySystem()
+    system2._storage = 'storage2'
     MOUNTED[root2] = dict(
         raw=DummyRawIO, buffered=DummyBufferedIO,
-        system_cached=DummySystem(), storage_parameters={})
+        system_cached=system2, storage_parameters={})
+
+    system3 = DummySystem()
+    system3._storage = 'storage3'
+    MOUNTED[root3] = dict(
+        raw=DummyRawIO, buffered=DummyBufferedIO,
+        system_cached=system3, storage_parameters={})
 
     def dummy_isdir(path):
         """Returns fake result"""
-        if path in ('dummy_read:', 'dummy_read2:'):
+        if path in ('dummy_read:', 'dummy_read2:', 'dummy_read3:'):
             return True
         if 'dummy_read://' in path:
             return False
@@ -532,11 +556,32 @@ def test_cos_open(tmpdir):
         assert not system.copied
         copy(cos_path, cos_path2)
         assert not system.copied
+        system.copied = False
+
+        assert not system.copied
+        copy(cos_path, cos_path3)
+        assert system.copied
+        system.copied = False
+
+        assert not system.copied
+        copy(cos_path3, cos_path)
+        assert system.copied
+        system.copied = False
 
         # copy: No special copy function
         system.raise_on_copy = True
         copy(cos_path, cos_path + '2')
         assert not system.copied
+
+        copy(cos_path, cos_path2)
+        assert not system.copied
+
+        copy(cos_path, cos_path3)
+        assert not system.copied
+
+        copy(cos_path3, cos_path)
+        assert not system.copied
+        system.raise_on_copy = False
 
         # copy: Buffer size
         DummyIO._buffer_size = 1024

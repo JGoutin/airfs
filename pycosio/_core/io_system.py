@@ -38,6 +38,7 @@ class SystemBase(ABC):
         # Save storage parameters
         self._storage_parameters = storage_parameters or dict()
         self._unsecure = unsecure
+        self._storage = self.__module__.rsplit('.', 1)[1]
 
         # Initialize client
         self._client = None
@@ -47,6 +48,16 @@ class SystemBase(ABC):
             self._roots = roots
         else:
             self._roots = self._get_roots()
+
+    @property
+    def storage(self):
+        """
+        Storage name
+
+        Returns:
+            str: Storage
+        """
+        return self._storage
 
     @property
     def client(self):
@@ -72,9 +83,12 @@ class SystemBase(ABC):
 
         # It is possible to define methods to copy from a different storage
         # by creating a "copy_from_<src_storage>" method for the target storage
-        # This method must have the same signature as "copy".
+        # and, vice versa, to copy to a different storage by creating a
+        # "copy_to_<src_storage>" method.
 
-        # Note that if no "copy_from" methods are defined, copy are
+        # Theses methods must have the same signature as "copy".
+
+        # Note that if no "copy_from"/'copy_to" methods are defined, copy are
         # performed over the current machine with "shutil.copyfileobj".
         raise UnsupportedOperation
 

@@ -1,5 +1,5 @@
 # coding=utf-8
-"""Test pycosio.oss"""
+"""Test pycosio.storage.oss"""
 import io
 import time
 from wsgiref.handlers import format_date_time

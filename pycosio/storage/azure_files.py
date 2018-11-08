@@ -7,7 +7,7 @@ from azure.storage.file import FileService as _FileService
 
 from pycosio.storage.azure import (
     _handle_azure_exception, _update_storage_parameters,
-    _update_listing_client_kwargs)
+    _update_listing_client_kwargs, _get_endpoint)
 from pycosio.io import (
     ObjectRawIOBase as _ObjectRawIOBase,
     ObjectBufferedIOBase as _ObjectBufferedIOBase,
@@ -102,8 +102,8 @@ class _AzureFilesSystem(_SystemBase):
 
         # Note: "core.windows.net" may be replaced by another endpoint
 
-        return _re.compile(r'(https?://|smb://|//|\\)%s\.file\.%s' % (
-            self._account, self.endpoint)),
+        return _re.compile(r'(https?://|smb://|//|\\)%s\.file\.%s' %
+                           _get_endpoint(self._storage_parameters)),
 
     def _head(self, client_kwargs):
         """

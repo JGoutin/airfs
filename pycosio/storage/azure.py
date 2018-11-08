@@ -74,3 +74,23 @@ def _update_listing_client_kwargs(client_kwargs, max_request_entries):
     if max_request_entries:
         client_kwargs['num_results'] = max_request_entries
     return client_kwargs
+
+
+def _get_endpoint(storage_parameters):
+    """
+    Get endpoint information from storage parameters.
+
+    Args:
+        storage_parameters (dict): Azure service keyword arguments.
+
+    Returns:
+        tuple of str: account_name, endpoint_suffix
+    """
+    storage_parameters = storage_parameters or dict()
+    account_name = storage_parameters.get('account_name')
+
+    if not account_name:
+        raise ValueError('"account_name" is required for Azure storage')
+
+    return account_name, storage_parameters.get(
+            'endpoint_suffix', 'core.windows.net')

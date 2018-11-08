@@ -1,5 +1,5 @@
 # coding=utf-8
-"""Test pycosio.s3"""
+"""Test pycosio.storage.s3"""
 from datetime import datetime
 import io
 import time

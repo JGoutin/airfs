@@ -42,14 +42,16 @@ def _copy(src, dst, src_is_storage, dst_is_storage):
             except (UnsupportedOperation, ObjectException):
                 pass
 
-        # Copy from compatible storage using "copy_from_<src_storage>" method
-        # if any
-        copy_method = 'copy_from_%s' % system_src.__module__.rsplit('.', 1)[1]
-        if hasattr(system_dst, copy_method):
-            try:
-                return getattr(system_dst, copy_method)(src, dst)
-            except (UnsupportedOperation, ObjectException):
-                pass
+        # Copy from compatible storage using "copy_from_<src_storage>" or
+        # "copy_to_<src_storage>" method if any
+        for caller, called, method in (
+                (system_dst, system_src, 'copy_from_%s'),
+                (system_src, system_dst, 'copy_to_%s')):
+            if hasattr(caller, method % called.storage):
+                try:
+                    return getattr(caller, method % called.storage)(src, dst)
+                except (UnsupportedOperation, ObjectException):
+                    continue
 
     # At least one storage object: copies streams
     with cos_open(src, 'rb') as fsrc:

@@ -10,7 +10,7 @@ from azure.storage.blob import (
 
 from pycosio.storage.azure import (
     _handle_azure_exception, _update_storage_parameters,
-    _update_listing_client_kwargs)
+    _update_listing_client_kwargs, _get_endpoint)
 from pycosio._core.exceptions import (
     ObjectNotFoundError as _ObjectNotFoundError)
 from pycosio._core.io_base import memoizedmethod as _memoizedmethod
@@ -102,12 +102,6 @@ class _AzureBlobsSystem(_SystemBase):
         Returns:
             tuple of str or re.Pattern: URL roots
         """
-        parameters = self._storage_parameters or dict()
-        account_name = self._storage_parameters.get('account_name')
-
-        if not account_name:
-            raise ValueError('"account_name" is required for Azure storage')
-
         # URL:
         # - http://<account>.blob.core.windows.net/<container>/<blob>
         # - https://<account>.blob.core.windows.net/<container>/<blob>
@@ -115,8 +109,7 @@ class _AzureBlobsSystem(_SystemBase):
         # Note: "core.windows.net" may be replaced by another "endpoint_suffix"
 
         return _re.compile(
-            r'https?://%s\.blob\.%s' % (account_name, parameters.get(
-                'endpoint_suffix', 'core.windows.net'))),
+            r'https?://%s\.blob\.%s' % _get_endpoint(self._storage_parameters)),
 
     def _head(self, client_kwargs):
         """

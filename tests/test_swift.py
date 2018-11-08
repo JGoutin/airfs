@@ -1,5 +1,5 @@
 # coding=utf-8
-"""Test pycosio.swift"""
+"""Test pycosio.storage.swift"""
 import json
 import time
 from wsgiref.handlers import format_date_time
