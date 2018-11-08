@@ -18,7 +18,8 @@ All mandatory dependencies are automatically installed.
 You can also install these optional extras:
 
 * ``all``: Install all extras.
-* ``azure``: Microsoft Azure Storage support.
+* ``azure_blob``: Microsoft Azure Blob Storage support.
+* ``azure_file``: Microsoft Azure File Storage support.
 * ``gs``: Google Cloud Storage support.
 * ``oss``: Alibaba Cloud OSS support.
 * ``s3``: Amazon Web Services S3 support.

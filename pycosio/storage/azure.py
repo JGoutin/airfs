@@ -1,5 +1,7 @@
 # coding=utf-8
 """Microsoft Azure Storage"""
+from __future__ import absolute_import  # Python 2: Fix azure import
+
 from contextlib import contextmanager as _contextmanager
 from azure.common import AzureHttpError as _AzureHttpError
 
@@ -12,7 +14,7 @@ from pycosio._core.exceptions import (
 # - Proper random write support
 
 #: 'azure' can be used to mount following storage at once with pycosio.mount
-MOUNT_REDIRECT = ('azure_blobs', 'azure_files')
+MOUNT_REDIRECT = ('azure_blob', 'azure_file')
 
 _ERROR_CODES = {
     403: _ObjectPermissionError,

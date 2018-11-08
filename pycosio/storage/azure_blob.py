@@ -1,27 +1,36 @@
 # coding=utf-8
-"""Microsoft Azure Files Storage"""
+"""Microsoft Azure Blobs Storage"""
+from __future__ import absolute_import  # Python 2: Fix azure import
+
 from io import BytesIO as _BytesIO
 import re as _re
 
-from azure.storage.file import FileService as _FileService
+from azure.storage.blob import (
+    PageBlobService as _PageBlobService,
+    BlockBlobService as _BlockBlobService,
+    AppendBlobService as _AppendBlobService)
 
 from pycosio.storage.azure import (
     _handle_azure_exception, _update_storage_parameters,
     _update_listing_client_kwargs, _get_endpoint)
+from pycosio._core.exceptions import (
+    ObjectNotFoundError as _ObjectNotFoundError)
+from pycosio._core.io_base import memoizedmethod as _memoizedmethod
 from pycosio.io import (
     ObjectRawIOBase as _ObjectRawIOBase,
     ObjectBufferedIOBase as _ObjectBufferedIOBase,
     SystemBase as _SystemBase)
 
 
-class _AzureFilesSystem(_SystemBase):
+class _AzureBlobsSystem(_SystemBase):
     """
-    Azure Files Storage system.
+    Azure Blobs Storage system.
 
     Args:
         storage_parameters (dict): Azure service keyword arguments.
             This is generally Azure credentials and configuration. See
-            "azure.storage.file.fileservice.FileService" for more information.
+            "azure.storage.blob.baseblobservice.BaseBlobService" for more
+            information.
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
     """
@@ -37,20 +46,36 @@ class _AzureFilesSystem(_SystemBase):
             dst (str): Path or URL.
         """
         with _handle_azure_exception():
-            self.client.copy_file(
+            self.client.copy_blob(
                 copy_source=src, **self.get_client_kwargs(dst))
-
-    copy_from_azure_blobs = copy  # Allows copy from Azure Blobs Storage
 
     def _get_client(self):
         """
-        Azure file service
+        Azure blob service
 
         Returns:
-            azure.storage.file.fileservice.FileService: Service
+            dict of azure.storage.blob.baseblobservice.BaseBlobService subclass:
+            Service
         """
-        return _FileService(**_update_storage_parameters(
-            self._storage_parameters, self._unsecure))
+        parameters = _update_storage_parameters(
+            self._storage_parameters, self._unsecure)
+
+        # Block blob
+        return dict(
+            block=_BlockBlobService(**parameters),
+            page=_PageBlobService(**parameters),
+            append=_AppendBlobService(**parameters))
+
+    @property
+    @_memoizedmethod
+    def _client_block(self):
+        """
+        Storage client
+
+        Returns:
+            client
+        """
+        return self.client['block']
 
     def get_client_kwargs(self, path):
         """
@@ -63,23 +88,13 @@ class _AzureFilesSystem(_SystemBase):
         Returns:
             dict: client args
         """
-        share_name, relpath = self.split_locator(path)
-        kwargs = dict(share_name=share_name)
+        container_name, blob_name = self.split_locator(path)
+        kwargs = dict(container_name=container_name)
 
-        # Directory
-        if relpath and relpath[-1] == '/':
-            kwargs['directory_name'] = relpath
+        # Blob
+        if blob_name:
+            kwargs['blob_name'] = blob_name
 
-        # File
-        elif relpath:
-            try:
-                kwargs['directory_name'], kwargs['file_name'] = relpath.rsplit(
-                    '/', 1)
-            except ValueError:
-                kwargs['directory_name'] = ''
-                kwargs['file_name'] = relpath
-
-        # Else, Share only
         return kwargs
 
     def _get_roots(self):
@@ -89,21 +104,14 @@ class _AzureFilesSystem(_SystemBase):
         Returns:
             tuple of str or re.Pattern: URL roots
         """
-        # SMB
-        # - smb://<account>.file.core.windows.net/<share>/<file>
-
-        # Mounted share
-        # - //<account>.file.core.windows.net/<share>/<file>
-        # - \\<account>.file.core.windows.net\<share>\<file>
-
         # URL:
-        # - http://<account>.file.core.windows.net/<share>/<file>
-        # - https://<account>.file.core.windows.net/<share>/<file>
+        # - http://<account>.blob.core.windows.net/<container>/<blob>
+        # - https://<account>.blob.core.windows.net/<container>/<blob>
 
-        # Note: "core.windows.net" may be replaced by another endpoint
+        # Note: "core.windows.net" may be replaced by another "endpoint_suffix"
 
-        return _re.compile(r'(https?://|smb://|//|\\)%s\.file\.%s' %
-                           _get_endpoint(self._storage_parameters)),
+        return _re.compile(
+            r'https?://%s\.blob\.%s' % _get_endpoint(self._storage_parameters)),
 
     def _head(self, client_kwargs):
         """
@@ -116,16 +124,12 @@ class _AzureFilesSystem(_SystemBase):
             dict: HTTP header.
         """
         with _handle_azure_exception():
-            # File
-            if 'file_name' in client_kwargs:
-                return self.client.get_file_metadata(**client_kwargs)
+            # Blob
+            if 'blob_name' in client_kwargs:
+                return self._client_block.get_blob_properties(**client_kwargs)
 
-            # Directory
-            elif 'directory_name' in client_kwargs:
-                return self.client.get_directory_properties(**client_kwargs)
-
-            # Share
-            return self.client.get_share_properties(**client_kwargs)
+            # Container
+            return self._client_block.get_container_properties(**client_kwargs)
 
     def _list_locators(self):
         """
@@ -135,8 +139,8 @@ class _AzureFilesSystem(_SystemBase):
             generator of tuple: locator name str, locator header dict
         """
         with _handle_azure_exception():
-            for share in self.client.list_shares():
-                yield share['Name'], share['Properties']
+            for container in self._client_block.list_containers():
+                yield container['Name'], container['Properties']
 
     def _list_objects(self, client_kwargs, path, max_request_entries):
         """
@@ -155,14 +159,9 @@ class _AzureFilesSystem(_SystemBase):
             client_kwargs, max_request_entries)
 
         with _handle_azure_exception():
-            for obj in self.client.list_directories_and_files(
+            for blob in self._client_block.list_blobs(
                     prefix=path, **client_kwargs):
-                try:
-                    properties = obj['Properties']
-                except KeyError:
-                    # Directories don't have properties
-                    properties = {}
-                yield obj['Name'], properties
+                yield blob['Name'], blob['Properties']
 
     def _make_dir(self, client_kwargs):
         """
@@ -172,14 +171,13 @@ class _AzureFilesSystem(_SystemBase):
             client_kwargs (dict): Client arguments.
         """
         with _handle_azure_exception():
-            # Directory
-            if 'directory_name' in client_kwargs:
-                return self.client.create_directory(
-                    share_name=client_kwargs['share_name'],
-                    directory_name=client_kwargs['directory_name'])
+            # Blob
+            if 'blob_name' in client_kwargs:
+                return self._client_block.create_blob_from_stream(
+                    stream=_BytesIO(), **client_kwargs)
 
-            # Share
-            return self.client.create_share(**client_kwargs)
+            # Container
+            return self._client_block.create_container(**client_kwargs)
 
     def _remove(self, client_kwargs):
         """
@@ -189,19 +187,16 @@ class _AzureFilesSystem(_SystemBase):
             client_kwargs (dict): Client arguments.
         """
         with _handle_azure_exception():
-            # Directory
-            if 'directory_name' in client_kwargs:
-                return self.client.delete_directory(
-                    share_name=client_kwargs['share_name'],
-                    directory_name=client_kwargs['share_name'])
+            # Blob
+            if 'blob_name' in client_kwargs:
+                return self._client_block.delete_blob(**client_kwargs)
 
-            # Share
-            return self.client.delete_share(
-                share_name=client_kwargs['share_name'])
+            # Container
+            return self._client_block.delete_container(**client_kwargs)
 
 
-class AzureFilesRawIO(_ObjectRawIOBase):
-    """Binary Azure Files Storage Object I/O
+class AzureBlobsRawIO(_ObjectRawIOBase):
+    """Binary Azure Blobs Storage Object I/O
 
     Args:
         name (path-like object): URL or path to the file which will be opened.
@@ -209,14 +204,21 @@ class AzureFilesRawIO(_ObjectRawIOBase):
             for reading (default), writing or appending
         storage_parameters (dict): Azure service keyword arguments.
             This is generally Azure credentials and configuration. See
-            "azure.storage.file.fileservice.FileService" for more information.
+            "azure.storage.blob.baseblobservice.BaseBlobService" for more
+            information.
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
     """
-    _SYSTEM_CLASS = _AzureFilesSystem
+    _SYSTEM_CLASS = _AzureBlobsSystem
 
     def __init__(self, *args, **kwargs):
         _ObjectRawIOBase.__init__(self, *args, **kwargs)
+
+        # Detects blob type to use
+        try:
+            self._blob_type = self._head().get('blob_type', 'page')
+        except _ObjectNotFoundError:
+            self._blob_type = 'page'
 
         # Creates blob on write mode
         if 'x' in self.mode or 'w' in self.mode:
@@ -227,6 +229,17 @@ class AzureFilesRawIO(_ObjectRawIOBase):
         Initializes data on 'a' mode
         """
         # Supported by default
+
+    @property
+    @_memoizedmethod
+    def _client(self):
+        """
+        Returns client instance.
+
+        Returns:
+            client
+        """
+        return self._system.client[self._blob_type]
 
     def _read_range(self, start, end=0):
         """
@@ -242,7 +255,7 @@ class AzureFilesRawIO(_ObjectRawIOBase):
         """
         stream = _BytesIO()
         with _handle_azure_exception():
-            self._client.get_file_to_stream(
+            self._client.get_blob_to_stream(
                 stream=stream, start_range=start,
                 end_range=end if end else None, **self._client_kwargs)
         return stream.getvalue()
@@ -256,7 +269,7 @@ class AzureFilesRawIO(_ObjectRawIOBase):
         """
         stream = _BytesIO()
         with _handle_azure_exception():
-            self._client.get_file_to_stream(
+            self._client.get_blob_to_stream(
                 stream=stream, **self._client_kwargs)
         return stream.getvalue()
 
@@ -265,15 +278,12 @@ class AzureFilesRawIO(_ObjectRawIOBase):
         Flush the write buffers of the stream if applicable.
         """
         with _handle_azure_exception():
-            self._client.update_range(
-                data=self._get_buffer(),
-                # Append at end
-                start_range=self._size - len(self._get_buffer()),
-                end_range=self._size, **self._client_kwargs)
+            self._client.create_blob_from_stream(
+                stream=_BytesIO(self._write_buffer), **self._client_kwargs)
 
 
-class AzureFilesBufferedIO(_ObjectBufferedIOBase):
-    """Buffered binary Azure Files Storage Object I/O
+class AzureBlobsBufferedIO(_ObjectBufferedIOBase):
+    """Buffered binary Azure Blobs Storage Object I/O
 
     Args:
         name (path-like object): URL or path to the file which will be opened.
@@ -285,23 +295,50 @@ class AzureFilesBufferedIO(_ObjectBufferedIOBase):
             execute the given calls.
         storage_parameters (dict): Azure service keyword arguments.
             This is generally Azure credentials and configuration. See
-            "azure.storage.file.fileservice.FileService" for more information.
+            "azure.storage.blob.baseblobservice.BaseBlobService" for more
+            information.
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
     """
-    _RAW_CLASS = AzureFilesRawIO
+    _RAW_CLASS = AzureBlobsRawIO
+
+    def __init__(self, *args, **kwargs):
+        _ObjectBufferedIOBase.__init__(self, *args, **kwargs)
+
+        # Pages must be 512 bytes aligned
+        if self._writable:
+            self._blob_type = self._raw._blob_type
+
+            if self._blob_type == 'page' and self._buffer_size % 512:
+                raise ValueError('"buffer_size" must be multiple of 512 bytes')
 
     def _flush(self):
         """
         Flush the write buffers of the stream.
         """
-        start_range = self._buffer_size * self._seek
-        end_range = start_range + self._buffer_size
+        # Page blob: Writes buffer as range of bytes
+        if self._blob_type == 'page':
+            start_range = self._buffer_size * self._seek
+            end_range = start_range + self._buffer_size
 
-        self._write_futures.append(self._workers.submit(
-            self._client.update_range, data=self._get_buffer(),
-            start_range=start_range, end_range=end_range,
-            **self._client_kwargs))
+            self._write_futures.append(self._workers.submit(
+                self._client.update_page, page=self._get_buffer(),
+                start_range=start_range, end_range=end_range,
+                **self._client_kwargs))
+
+        # Block blob: Writes buffer as a block
+        elif self._blob_type == 'block':
+            block_id = ''  # TODO: Generates ID
+
+            self._write_futures.append(self._workers.submit(
+                self._client.put_block, block=self._get_buffer(),
+                block_id=block_id, **self._client_kwargs))
+
+        # Append blob: Appends buffer as a block
+        elif self._blob_type == 'append':
+            self._write_futures.append(self._workers.submit(
+                self._client.put_block, block=self._get_buffer(),
+                **self._client_kwargs))
 
     def _close_writable(self):
         """
@@ -309,3 +346,11 @@ class AzureFilesBufferedIO(_ObjectBufferedIOBase):
         """
         for future in self._write_futures:
             future.result()
+
+        # Block blob: Commit put blocks to blob
+        if not self._blob_type == 'block':
+            block_list = self._client.get_block_list(**self._client_kwargs)
+
+            self._client.put_block_list(
+                block_list=block_list.committed_blocks +
+                block_list.uncommitted_blocks, **self._client_kwargs)

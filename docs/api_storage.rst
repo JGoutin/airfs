@@ -25,8 +25,8 @@ on parameters to use to configure storage.
 .. toctree::
    :maxdepth: 2
 
-   api_storage_azure_blobs
-   api_storage_azure_files
+   api_storage_azure_blob
+   api_storage_azure_file
    api_storage_gs
    api_storage_http
    api_storage_oss

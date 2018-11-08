@@ -38,7 +38,7 @@ def test_mount_redirect():
     try:
         result = manager.mount(storage='azure', storage_parameters=dict(
             account_name=account_name, endpoint_suffix=endpoint_suffix))
-        assert 'azure_blobs' in result
-        assert 'azure_files' in result
+        assert 'azure_blob' in result
+        assert 'azure_file' in result
     finally:
         manager.MOUNTED = manager_mounted
