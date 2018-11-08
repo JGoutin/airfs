@@ -95,4 +95,4 @@ def _get_endpoint(storage_parameters):
         raise ValueError('"account_name" is required for Azure storage')
 
     return account_name, storage_parameters.get(
-            'endpoint_suffix', 'core.windows.net')
+            'endpoint_suffix', 'core.windows.net').replace('.', r'\.')
