@@ -13,8 +13,8 @@ from azure.storage.blob import (
     AppendBlobService as _AppendBlobService)
 
 from pycosio.storage.azure import (
-    _handle_azure_exception, _update_storage_parameters,
-    _update_listing_client_kwargs, _get_endpoint)
+    _handle_azure_exception, _update_storage_parameters, _get_time,
+    _update_listing_client_kwargs, _get_endpoint, _model_to_dict)
 from pycosio._core.exceptions import (
     ObjectNotFoundError as _ObjectNotFoundError)
 from pycosio._core.io_base import memoizedmethod as _memoizedmethod
@@ -67,6 +67,21 @@ class _AzureBlobsSystem(_SystemBase):
             block=_BlockBlobService(**parameters),
             page=_PageBlobService(**parameters),
             append=_AppendBlobService(**parameters))
+
+    @staticmethod
+    def _get_time(header, keys, name):
+        """
+        Get time from header
+
+        Args:
+            header (dict): Object header.
+            keys (tuple of str): Header keys.
+            name (str): Method name.
+
+        Returns:
+            float: The number of seconds since the epoch
+        """
+        return _get_time(header, keys, name)
 
     @property
     @_memoizedmethod
@@ -128,10 +143,14 @@ class _AzureBlobsSystem(_SystemBase):
         with _handle_azure_exception():
             # Blob
             if 'blob_name' in client_kwargs:
-                return self._client_block.get_blob_properties(**client_kwargs)
+                result = self._client_block.get_blob_properties(**client_kwargs)
 
             # Container
-            return self._client_block.get_container_properties(**client_kwargs)
+            else:
+                result = self._client_block.get_container_properties(
+                    **client_kwargs)
+
+        return _model_to_dict(result)
 
     def _list_locators(self):
         """

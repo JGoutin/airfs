@@ -1,5 +1,10 @@
 # coding=utf-8
 """Test pycosio.storage.azure"""
+from __future__ import absolute_import  # Python 2: Fix azure import
+
+from datetime import datetime
+from time import time
+
 import pytest
 
 
@@ -79,3 +84,34 @@ def test_update_listing_client_kwargs():
     assert _update_listing_client_kwargs(params, 10) == dict(
         num_results=10, arg=1)
     assert _update_listing_client_kwargs(params, 0) == dict(arg=1)
+
+
+def test_model_to_dict():
+    """Test pycosio.storage.azure._model_to_dict"""
+    from pycosio.storage.azure import _model_to_dict
+    from azure.storage.file import models
+
+    last_modified = datetime.now()
+    props = models.FileProperties()
+    props.etag = 'etag'
+    props.last_modified = last_modified
+    file = models.File(props=props, metadata=dict(metadata1=0))
+
+    assert _model_to_dict(file) == dict(
+        etag='etag', last_modified=last_modified, metadata=dict(metadata1=0))
+
+
+def test_get_time():
+    """Test pycosio.storage.azure._get_time"""
+    from pycosio.storage.azure import _get_time
+    from io import UnsupportedOperation
+
+    m_time = time()
+    last_modified = datetime.fromtimestamp(m_time)
+
+    assert (_get_time(
+        {'last_modified': last_modified}, ('last_modified',), 'gettime') ==
+            pytest.approx(m_time, 1))
+
+    with pytest.raises(UnsupportedOperation):
+        _get_time({}, ('last_modified',), 'gettime')

@@ -8,8 +8,8 @@ import re as _re
 from azure.storage.file import FileService as _FileService
 
 from pycosio.storage.azure import (
-    _handle_azure_exception, _update_storage_parameters,
-    _update_listing_client_kwargs, _get_endpoint)
+    _handle_azure_exception, _update_storage_parameters, _get_time,
+    _update_listing_client_kwargs, _get_endpoint, _model_to_dict)
 from pycosio.io import (
     ObjectRawIOBase as _ObjectRawIOBase,
     ObjectBufferedIOBase as _ObjectBufferedIOBase,
@@ -27,8 +27,8 @@ class _AzureFilesSystem(_SystemBase):
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
     """
-    _MTIME_KEYS = ('last_modified', 'Last-Modified')
-    _SIZE_KEYS = ('content_length', 'Content-Length')
+    _MTIME_KEYS = ('last_modified',)
+    _SIZE_KEYS = ('content_length',)
 
     def copy(self, src, dst):
         """
@@ -54,6 +54,21 @@ class _AzureFilesSystem(_SystemBase):
         return _FileService(**_update_storage_parameters(
             self._storage_parameters, self._unsecure))
 
+    @staticmethod
+    def _get_time(header, keys, name):
+        """
+        Get time from header
+
+        Args:
+            header (dict): Object header.
+            keys (tuple of str): Header keys.
+            name (str): Method name.
+
+        Returns:
+            float: The number of seconds since the epoch
+        """
+        return _get_time(header, keys, name)
+
     def get_client_kwargs(self, path):
         """
         Get base keyword arguments for client for a
@@ -70,7 +85,7 @@ class _AzureFilesSystem(_SystemBase):
 
         # Directory
         if relpath and relpath[-1] == '/':
-            kwargs['directory_name'] = relpath
+            kwargs['directory_name'] = relpath.rstrip('/')
 
         # File
         elif relpath:
@@ -120,14 +135,17 @@ class _AzureFilesSystem(_SystemBase):
         with _handle_azure_exception():
             # File
             if 'file_name' in client_kwargs:
-                return self.client.get_file_metadata(**client_kwargs)
+                result = self.client.get_file_properties(**client_kwargs)
 
             # Directory
             elif 'directory_name' in client_kwargs:
-                return self.client.get_directory_properties(**client_kwargs)
+                result = self.client.get_directory_properties(**client_kwargs)
 
             # Share
-            return self.client.get_share_properties(**client_kwargs)
+            else:
+                result = self.client.get_share_properties(**client_kwargs)
+
+        return _model_to_dict(result)
 
     def _list_locators(self):
         """
@@ -191,11 +209,18 @@ class _AzureFilesSystem(_SystemBase):
             client_kwargs (dict): Client arguments.
         """
         with _handle_azure_exception():
+            # File
+            if 'file_name' in client_kwargs:
+                return self.client.delete_file(
+                    share_name=client_kwargs['share_name'],
+                    directory_name=client_kwargs['directory_name'],
+                    file_name=client_kwargs['file_name'])
+
             # Directory
-            if 'directory_name' in client_kwargs:
+            elif 'directory_name' in client_kwargs:
                 return self.client.delete_directory(
                     share_name=client_kwargs['share_name'],
-                    directory_name=client_kwargs['share_name'])
+                    directory_name=client_kwargs['directory_name'])
 
             # Share
             return self.client.delete_share(

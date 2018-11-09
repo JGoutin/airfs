@@ -3,8 +3,11 @@
 from __future__ import absolute_import  # Python 2: Fix azure import
 
 from contextlib import contextmanager as _contextmanager
+from io import UnsupportedOperation as _UnsupportedOperation
+
 from azure.common import AzureHttpError as _AzureHttpError
 
+from pycosio._core.compat import to_timestamp as _to_timestamp
 from pycosio._core.exceptions import (
     ObjectNotFoundError as _ObjectNotFoundError,
     ObjectPermissionError as _ObjectPermissionError)
@@ -96,3 +99,66 @@ def _get_endpoint(storage_parameters):
 
     return account_name, storage_parameters.get(
             'endpoint_suffix', 'core.windows.net').replace('.', r'\.')
+
+
+def _properties_model_to_dict(properties):
+    """
+    Convert properties model to dict.
+
+    Args:
+        properties: Properties model.
+
+    Returns:
+        dict: Converted model.
+    """
+    result = {}
+    for attr in properties.__dict__:
+        value = getattr(properties, attr)
+
+        if hasattr(value, '__module__') and 'models' in value.__module__:
+            value = _properties_model_to_dict(value)
+
+        if value:
+            result[attr] = value
+
+    return result
+
+
+def _model_to_dict(obj):
+    """
+    Convert object model to dict.
+
+    Args:
+        obj: Object model.
+
+    Returns:
+        dict: Converted model.
+    """
+    result = _properties_model_to_dict(obj.properties)
+    result['metadata'] = obj.metadata
+    try:
+        result['snapshot'] = obj.snapshot
+    except AttributeError:
+        pass
+    return result
+
+
+def _get_time(header, keys, name):
+    """
+    Get time from header
+
+    Args:
+        header (dict): Object header.
+        keys (tuple of str): Header keys.
+        name (str): Method name.
+
+    Returns:
+        float: The number of seconds since the epoch
+    """
+    for key in keys:
+        try:
+            return _to_timestamp(header.pop(key))
+        except KeyError:
+            continue
+
+    raise _UnsupportedOperation(name)

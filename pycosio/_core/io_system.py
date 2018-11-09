@@ -381,16 +381,22 @@ class SystemBase(ABC):
             str: relative path.
         """
         for root in self.roots:
+            # Root is regex, convert to matching root string
+            if isinstance(root, Pattern):
+                match = root.match(path)
+                if not match:
+                    continue
+                root = match.group(0)
+
+            # Split root and relative path
             try:
-                if isinstance(root, Pattern):
-                    relative = root.split(path, maxsplit=1)[1]
-                else:
-                    relative = path.split(root, 1)[1]
+                relative = path.split(root, 1)[1]
                 # Strip "/" only at path start. "/" is used to known if
                 # path is a directory on some cloud storage.
                 return relative.lstrip('/')
             except IndexError:
                 continue
+
         return path
 
     def is_locator(self, path, relative=False):
