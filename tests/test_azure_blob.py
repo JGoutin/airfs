@@ -5,7 +5,8 @@ from __future__ import absolute_import  # Python 2: Fix azure import
 from datetime import datetime
 import time
 
-from tests.utilities import SIZE, check_head_methods
+from tests.utilities import (
+    BYTE, SIZE, check_head_methods, check_raw_read_methods)
 
 
 def test_azure_blob_raw_io():
@@ -24,12 +25,16 @@ def test_azure_blob_raw_io():
     account_name = 'account'
     root = 'http://%s.blob.core.windows.net' % account_name
     container_url = '/'.join((root, container_name))
+    blob_path = '/'.join((container_name, blob_name))
     blob_url = '/'.join((root, container_name, blob_name))
     m_time = time.time()
     create_container_called = []
     delete_container_called = []
     delete_blob_called = []
     copy_blob_called = []
+    create_blob_called = []
+    write_blob_called = []
+    blob_not_exists = False
 
     # Mocks Azure service client
 
@@ -50,12 +55,14 @@ def test_azure_blob_raw_io():
         @staticmethod
         def get_blob_properties(**kwargs):
             """Checks arguments and returns fake result"""
-            print(kwargs)
             assert kwargs['container_name'] == container_name
             assert kwargs['blob_name'] == blob_name
+            if blob_not_exists:
+                raise ObjectNotFoundError
             props = BlobProperties()
             props.last_modified = datetime.fromtimestamp(m_time)
             props.content_length = SIZE
+            props.blob_type = 'block'
             return Blob(props=props, metadata=blob_name)
 
         @staticmethod
@@ -93,8 +100,11 @@ def test_azure_blob_raw_io():
             create_container_called.append(1)
 
         @staticmethod
-        def create_blob(*_, **__):
-            """Do nothing"""
+        def create_blob(**kwargs):
+            """Checks arguments"""
+            assert kwargs['container_name'] == container_name
+            assert kwargs['blob_name'] == blob_name
+            create_blob_called.append(1)
 
         @staticmethod
         def create_blob_from_stream(**kwargs):
@@ -106,6 +116,9 @@ def test_azure_blob_raw_io():
             content = stream.read()
             if kwargs['blob_name'][-1] == '/':
                 assert content == b''
+            else:
+                assert content == 50 * BYTE
+                write_blob_called.append(1)
 
         @staticmethod
         def delete_container(**kwargs):
@@ -122,12 +135,16 @@ def test_azure_blob_raw_io():
             delete_blob_called.append(1)
 
         @staticmethod
-        def get_file_to_stream(*_, **__):
-            """Do nothing"""
-
-        @staticmethod
-        def update_range(*_, **__):
-            """Do nothing"""
+        def get_blob_to_stream(**kwargs):
+            """Checks arguments and returns fake result"""
+            assert kwargs['container_name'] == container_name
+            assert kwargs['blob_name'] == blob_name
+            stream = kwargs['stream']
+            end_range = kwargs.get('end_range') or SIZE
+            if end_range > SIZE:
+                end_range = SIZE
+            start_range = kwargs.get('start_range') or 0
+            stream.write(BYTE * (end_range - start_range))
 
     azure_storage_block_blob_service = azure_blob._BlockBlobService
     azure_storage_append_blob_service = azure_blob._AppendBlobService
@@ -173,6 +190,35 @@ def test_azure_blob_raw_io():
             container_client_args, '', None)) == [
             (blob_name, dict(last_modified=datetime.fromtimestamp(m_time),
                              content_length=SIZE))]
+
+        # Tests path and URL handling
+        azure_object = AzureBlobRawIO(
+            blob_url, storage_parameters=dict(account_name=account_name))
+        assert azure_object._client_kwargs == blob_client_args
+        assert azure_object.name == blob_url
+        assert azure_object._blob_type == 'block'
+
+        azure_object = AzureBlobRawIO(
+            blob_path, storage_parameters=dict(account_name=account_name))
+        assert azure_object._client_kwargs == blob_client_args
+        assert azure_object.name == blob_path
+
+        # Tests read
+        check_raw_read_methods(azure_object)
+
+        # Tests create blob
+        blob_not_exists = True
+        azure_object = AzureBlobRawIO(
+            blob_url, mode='w',
+            storage_parameters=dict(account_name=account_name))
+        assert azure_object._blob_type == 'page'
+        assert len(create_blob_called) == 1
+        blob_not_exists = False
+
+        # Tests _flush
+        azure_object.write(50 * BYTE)
+        azure_object.flush()
+        assert len(write_blob_called) == 1
 
     # Restore mocked class
     finally:

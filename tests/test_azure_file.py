@@ -5,7 +5,8 @@ from __future__ import absolute_import  # Python 2: Fix azure import
 from datetime import datetime
 import time
 
-from tests.utilities import SIZE, check_head_methods
+from tests.utilities import (
+    BYTE, SIZE, check_head_methods, check_raw_read_methods)
 
 
 def test_azure_file_raw_io():
@@ -21,13 +22,16 @@ def test_azure_file_raw_io():
     share_name = 'share'
     file_name = 'file'
     directory_name = 'directory'
-    share_client_args = dict(share_name=share_name)
-    file_client_args = dict(share_name=share_name, file_name=file_name)
+    share_client_args = dict(
+        share_name=share_name, directory_name='')
+    file_client_args = dict(
+        share_name=share_name, directory_name='', file_name=file_name)
     account_name = 'account'
     root = '//%s.file.core.windows.net' % account_name
     share_url = '/'.join((root, share_name))
     directory_url = '/'.join((root, share_name, directory_name)) + '/'
     file_url = '/'.join((root, share_name, file_name))
+    file_path = '/'.join((share_name, file_name))
     m_time = time.time()
     create_directory_called = []
     create_share_called = []
@@ -35,6 +39,9 @@ def test_azure_file_raw_io():
     delete_share_called = []
     delete_file_called = []
     copy_file_called = []
+    create_file_called = []
+    write_file_called = []
+    file_not_exists = False
 
     # Mocks Azure service client
 
@@ -59,6 +66,8 @@ def test_azure_file_raw_io():
             assert kwargs['share_name'] == share_name
             assert kwargs['directory_name'] == ''
             assert kwargs['file_name'] == file_name
+            if file_not_exists:
+                raise ObjectNotFoundError
             props = FileProperties()
             props.last_modified = datetime.fromtimestamp(m_time)
             props.content_length = SIZE
@@ -96,7 +105,7 @@ def test_azure_file_raw_io():
             """Checks arguments and returns fake result"""
             assert kwargs['share_name'] == share_name
             assert kwargs['prefix'] == ''
-            assert 'directory_name' not in kwargs
+            assert kwargs['directory_name'] == ''
             assert 'file_name' not in kwargs
             props = FileProperties()
             props.last_modified = datetime.fromtimestamp(m_time)
@@ -120,8 +129,12 @@ def test_azure_file_raw_io():
             create_share_called.append(1)
 
         @staticmethod
-        def create_file(*_, **__):
-            """Do nothing"""
+        def create_file(**kwargs):
+            """Checks arguments"""
+            assert kwargs['share_name'] == share_name
+            assert kwargs['directory_name'] == ''
+            assert kwargs['file_name'] == file_name
+            create_file_called.append(1)
 
         @staticmethod
         def delete_directory(**kwargs):
@@ -148,12 +161,26 @@ def test_azure_file_raw_io():
             delete_file_called.append(1)
 
         @staticmethod
-        def get_file_to_stream(*_, **__):
-            """Do nothing"""
+        def get_file_to_stream(**kwargs):
+            """Checks arguments and returns fake result"""
+            assert kwargs['share_name'] == share_name
+            assert kwargs['directory_name'] == ''
+            assert kwargs['file_name'] == file_name
+            stream = kwargs['stream']
+            end_range = kwargs.get('end_range') or SIZE
+            if end_range > SIZE:
+                end_range = SIZE
+            start_range = kwargs.get('start_range') or 0
+            stream.write(BYTE * (end_range - start_range))
 
         @staticmethod
-        def update_range(*_, **__):
+        def update_range(**kwargs):
             """Do nothing"""
+            assert kwargs['share_name'] == share_name
+            assert kwargs['directory_name'] == ''
+            assert kwargs['file_name'] == file_name
+            assert kwargs['data'] == 50 * BYTE
+            write_file_called.append(1)
 
     azure_storage_file_file_service = azure_file._FileService
     azure_file._FileService = FileService
@@ -196,6 +223,33 @@ def test_azure_file_raw_io():
             share_client_args, '', None)) == [
             (file_name, dict(last_modified=datetime.fromtimestamp(m_time),
                              content_length=SIZE))]
+
+        # Tests path and URL handling
+        azure_object = AzureFileRawIO(
+            file_url, storage_parameters=dict(account_name=account_name))
+        assert azure_object._client_kwargs == file_client_args
+        assert azure_object.name == file_url
+
+        azure_object = AzureFileRawIO(
+            file_path, storage_parameters=dict(account_name=account_name))
+        assert azure_object._client_kwargs == file_client_args
+        assert azure_object.name == file_path
+
+        # Tests read
+        check_raw_read_methods(azure_object)
+
+        # Tests create blob
+        file_not_exists = True
+        azure_object = AzureFileRawIO(
+            file_url, mode='w',
+            storage_parameters=dict(account_name=account_name))
+        assert len(create_file_called) == 1
+        file_not_exists = False
+
+        # Tests _flush
+        azure_object.write(50 * BYTE)
+        azure_object.flush()
+        assert len(write_file_called) == 1
 
     # Restore mocked class
     finally:
