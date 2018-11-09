@@ -24,7 +24,7 @@ from pycosio.io import (
     SystemBase as _SystemBase)
 
 
-class _AzureBlobsSystem(_SystemBase):
+class _AzureBlobSystem(_SystemBase):
     """
     Azure Blobs Storage system.
 
@@ -48,7 +48,7 @@ class _AzureBlobsSystem(_SystemBase):
             dst (str): Path or URL.
         """
         with _handle_azure_exception():
-            self.client.copy_blob(
+            self._client_block.copy_blob(
                 copy_source=src, **self.get_client_kwargs(dst))
 
     def _get_client(self):
@@ -161,7 +161,7 @@ class _AzureBlobsSystem(_SystemBase):
         """
         with _handle_azure_exception():
             for container in self._client_block.list_containers():
-                yield container['Name'], container['Properties']
+                yield container.name, _model_to_dict(container)
 
     def _list_objects(self, client_kwargs, path, max_request_entries):
         """
@@ -182,7 +182,7 @@ class _AzureBlobsSystem(_SystemBase):
         with _handle_azure_exception():
             for blob in self._client_block.list_blobs(
                     prefix=path, **client_kwargs):
-                yield blob['Name'], blob['Properties']
+                yield blob.name, _model_to_dict(blob)
 
     def _make_dir(self, client_kwargs):
         """
@@ -216,7 +216,7 @@ class _AzureBlobsSystem(_SystemBase):
             return self._client_block.delete_container(**client_kwargs)
 
 
-class AzureBlobsRawIO(_ObjectRawIOBase):
+class AzureBlobRawIO(_ObjectRawIOBase):
     """Binary Azure Blobs Storage Object I/O
 
     Args:
@@ -230,7 +230,7 @@ class AzureBlobsRawIO(_ObjectRawIOBase):
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
     """
-    _SYSTEM_CLASS = _AzureBlobsSystem
+    _SYSTEM_CLASS = _AzureBlobSystem
 
     def __init__(self, *args, **kwargs):
         _ObjectRawIOBase.__init__(self, *args, **kwargs)
@@ -303,7 +303,7 @@ class AzureBlobsRawIO(_ObjectRawIOBase):
                 stream=_BytesIO(self._write_buffer), **self._client_kwargs)
 
 
-class AzureBlobsBufferedIO(_ObjectBufferedIOBase):
+class AzureBlobBufferedIO(_ObjectBufferedIOBase):
     """Buffered binary Azure Blobs Storage Object I/O
 
     Args:
@@ -321,7 +321,7 @@ class AzureBlobsBufferedIO(_ObjectBufferedIOBase):
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
     """
-    _RAW_CLASS = AzureBlobsRawIO
+    _RAW_CLASS = AzureBlobRawIO
 
     def __init__(self, *args, **kwargs):
         _ObjectBufferedIOBase.__init__(self, *args, **kwargs)

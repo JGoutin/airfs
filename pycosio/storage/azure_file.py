@@ -16,7 +16,7 @@ from pycosio.io import (
     SystemBase as _SystemBase)
 
 
-class _AzureFilesSystem(_SystemBase):
+class _AzureFileSystem(_SystemBase):
     """
     Azure Files Storage system.
 
@@ -156,7 +156,7 @@ class _AzureFilesSystem(_SystemBase):
         """
         with _handle_azure_exception():
             for share in self.client.list_shares():
-                yield share['Name'], share['Properties']
+                yield share.name, _model_to_dict(share)
 
     def _list_objects(self, client_kwargs, path, max_request_entries):
         """
@@ -177,12 +177,7 @@ class _AzureFilesSystem(_SystemBase):
         with _handle_azure_exception():
             for obj in self.client.list_directories_and_files(
                     prefix=path, **client_kwargs):
-                try:
-                    properties = obj['Properties']
-                except KeyError:
-                    # Directories don't have properties
-                    properties = {}
-                yield obj['Name'], properties
+                yield obj.name, _model_to_dict(obj)
 
     def _make_dir(self, client_kwargs):
         """
@@ -227,7 +222,7 @@ class _AzureFilesSystem(_SystemBase):
                 share_name=client_kwargs['share_name'])
 
 
-class AzureFilesRawIO(_ObjectRawIOBase):
+class AzureFileRawIO(_ObjectRawIOBase):
     """Binary Azure Files Storage Object I/O
 
     Args:
@@ -240,7 +235,7 @@ class AzureFilesRawIO(_ObjectRawIOBase):
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
     """
-    _SYSTEM_CLASS = _AzureFilesSystem
+    _SYSTEM_CLASS = _AzureFileSystem
 
     def __init__(self, *args, **kwargs):
         _ObjectRawIOBase.__init__(self, *args, **kwargs)
@@ -299,7 +294,7 @@ class AzureFilesRawIO(_ObjectRawIOBase):
                 end_range=self._size, **self._client_kwargs)
 
 
-class AzureFilesBufferedIO(_ObjectBufferedIOBase):
+class AzureFileBufferedIO(_ObjectBufferedIOBase):
     """Buffered binary Azure Files Storage Object I/O
 
     Args:
@@ -316,7 +311,7 @@ class AzureFilesBufferedIO(_ObjectBufferedIOBase):
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
     """
-    _RAW_CLASS = AzureFilesRawIO
+    _RAW_CLASS = AzureFileRawIO
 
     def _flush(self):
         """

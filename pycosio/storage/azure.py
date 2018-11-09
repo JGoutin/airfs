@@ -135,11 +135,13 @@ def _model_to_dict(obj):
         dict: Converted model.
     """
     result = _properties_model_to_dict(obj.properties)
-    result['metadata'] = obj.metadata
-    try:
-        result['snapshot'] = obj.snapshot
-    except AttributeError:
-        pass
+    for attribute in ('metadata', 'snapshot'):
+        try:
+            value = getattr(obj, attribute)
+        except AttributeError:
+            continue
+        if value:
+            result[attribute] = value
     return result
 
 

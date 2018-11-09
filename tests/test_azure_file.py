@@ -3,19 +3,14 @@
 from __future__ import absolute_import  # Python 2: Fix azure import
 
 from datetime import datetime
-import io
 import time
 
-from tests.utilities import (BYTE, SIZE, parse_range, check_head_methods,
-                             check_raw_read_methods)
-
-import pytest
+from tests.utilities import SIZE, check_head_methods
 
 
 def test_azure_file_raw_io():
-    """Tests pycosio.storage.azure_file.AzureFilesRawIO"""
-    from io import UnsupportedOperation
-    from pycosio.storage.azure_file import AzureFilesRawIO, _AzureFilesSystem
+    """Tests pycosio.storage.azure_file.AzureFileRawIO"""
+    from pycosio.storage.azure_file import AzureFileRawIO, _AzureFileSystem
     from pycosio._core.exceptions import ObjectNotFoundError
     import pycosio.storage.azure_file as azure_file
     from azure.storage.file.models import (
@@ -28,8 +23,6 @@ def test_azure_file_raw_io():
     directory_name = 'directory'
     share_client_args = dict(share_name=share_name)
     file_client_args = dict(share_name=share_name, file_name=file_name)
-    directory_client_args = dict(
-        share_name=share_name, directory_name=directory_name)
     account_name = 'account'
     root = '//%s.file.core.windows.net' % account_name
     share_url = '/'.join((root, share_name))
@@ -92,12 +85,23 @@ def test_azure_file_raw_io():
             return Share(props=props, metadata=share_name)
 
         @staticmethod
-        def list_shares(*_, **__):
-            """Do nothing"""
+        def list_shares():
+            """Returns fake result"""
+            props = ShareProperties()
+            props.last_modified = datetime.fromtimestamp(m_time)
+            return [Share(props=props, name=share_name)]
 
         @staticmethod
-        def list_directories_and_files(*_, **__):
-            """Do nothing"""
+        def list_directories_and_files(**kwargs):
+            """Checks arguments and returns fake result"""
+            assert kwargs['share_name'] == share_name
+            assert kwargs['prefix'] == ''
+            assert 'directory_name' not in kwargs
+            assert 'file_name' not in kwargs
+            props = FileProperties()
+            props.last_modified = datetime.fromtimestamp(m_time)
+            props.content_length = SIZE
+            return [File(props=props, name=file_name)]
 
         @staticmethod
         def create_directory(**kwargs):
@@ -155,7 +159,7 @@ def test_azure_file_raw_io():
     azure_file._FileService = FileService
     # Tests
     try:
-        azure_system = _AzureFilesSystem(
+        azure_system = _AzureFileSystem(
             storage_parameters=dict(account_name=account_name))
 
         # Tests head
@@ -182,6 +186,16 @@ def test_azure_file_raw_io():
         # Tests copy
         azure_system.copy(file_url, file_url)
         assert len(copy_file_called) == 1
+
+        # Tests _list_locator
+        assert list(azure_system._list_locators()) == [
+            (share_name, dict(last_modified=datetime.fromtimestamp(m_time)))]
+
+        # Tests _list_objects
+        assert list(azure_system._list_objects(
+            share_client_args, '', None)) == [
+            (file_name, dict(last_modified=datetime.fromtimestamp(m_time),
+                             content_length=SIZE))]
 
     # Restore mocked class
     finally:

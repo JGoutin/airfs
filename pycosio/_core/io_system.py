@@ -43,6 +43,9 @@ class SystemBase(ABC):
         # Initialize client
         self._client = None
 
+        # Cache for values
+        self._cache = {}
+
         # Initialize roots
         if roots:
             self._roots = roots
