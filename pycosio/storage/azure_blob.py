@@ -11,7 +11,8 @@ import string
 from azure.storage.blob import (
     PageBlobService as _PageBlobService,
     BlockBlobService as _BlockBlobService,
-    AppendBlobService as _AppendBlobService)
+    AppendBlobService as _AppendBlobService,
+    BlobBlock as _BlobBlock)
 
 from pycosio.storage.azure import (
     _handle_azure_exception, _update_storage_parameters, _get_time,
@@ -344,6 +345,8 @@ class AzureBlobBufferedIO(_ObjectBufferedIOBase):
 
             if self._blob_type == 'page' and self._buffer_size % 512:
                 raise ValueError('"buffer_size" must be multiple of 512 bytes')
+            elif self._blob_type == 'block':
+                self._blocks = []
 
     def _random_block_id(self, length):
         return ''.join(random.choice(string.ascii_lowercase) for i in range(length))
@@ -364,9 +367,11 @@ class AzureBlobBufferedIO(_ObjectBufferedIOBase):
 
         # Block blob: Writes buffer as a block
         elif self._blob_type == 'block':
+            block_id = self._random_block_id(32)
+            self._blocks.append(_BlobBlock(id=block_id))
             self._write_futures.append(self._workers.submit(
                 self._client[self._blob_type].put_block, block=_BytesIO(self._get_buffer()),
-                block_id=self._random_block_id(32),
+                block_id=block_id,
                 **self._client_kwargs))
 
         # Append blob: Appends buffer as a block
@@ -383,9 +388,9 @@ class AzureBlobBufferedIO(_ObjectBufferedIOBase):
             future.result()
 
         # Block blob: Commit put blocks to blob
-        if not self._blob_type == 'block':
+        if self._blob_type == 'block':
             block_list = self._client[self._blob_type].get_block_list(**self._client_kwargs)
 
             self._client[self._blob_type].put_block_list(
                 block_list=block_list.committed_blocks +
-                block_list.uncommitted_blocks, **self._client_kwargs)
+                self._blocks, **self._client_kwargs)
