@@ -62,7 +62,7 @@ def test_azure_blob_raw_io():
             props = BlobProperties()
             props.last_modified = datetime.fromtimestamp(m_time)
             props.content_length = SIZE
-            props.blob_type = 'block'
+            props.blob_type = 'BlockBlob'
             return Blob(props=props, metadata=blob_name)
 
         @staticmethod
@@ -101,6 +101,13 @@ def test_azure_blob_raw_io():
 
         @staticmethod
         def create_blob(**kwargs):
+            """Checks arguments"""
+            assert kwargs['container_name'] == container_name
+            assert kwargs['blob_name'] == blob_name
+            create_blob_called.append(1)
+
+        @staticmethod
+        def create_blob_from_bytes(**kwargs):
             """Checks arguments"""
             assert kwargs['container_name'] == container_name
             assert kwargs['blob_name'] == blob_name
@@ -146,12 +153,36 @@ def test_azure_blob_raw_io():
             start_range = kwargs.get('start_range') or 0
             stream.write(BYTE * (end_range - start_range))
 
+    class PageBlobService(BlobService):
+        @staticmethod
+        def get_blob_properties(**kwargs):
+            """Checks arguments and returns fake result"""
+            blob = BlobService.get_blob_properties(**kwargs)
+            blob.properties.blob_type = 'PageBlob'
+            return blob
+
+    class BlockBlobService(BlobService):
+        @staticmethod
+        def get_blob_properties(**kwargs):
+            """Checks arguments and returns fake result"""
+            blob = BlobService.get_blob_properties(**kwargs)
+            blob.properties.blob_type = 'BlockBlob'
+            return blob
+
+    class AppendBlobService(BlobService):
+        @staticmethod
+        def get_blob_properties(**kwargs):
+            """Checks arguments and returns fake result"""
+            blob = BlobService.get_blob_properties(**kwargs)
+            blob.properties.blob_type = 'AppendBlob'
+            return blob
+
     azure_storage_block_blob_service = azure_blob._BlockBlobService
     azure_storage_append_blob_service = azure_blob._AppendBlobService
     azure_storage_page_blob_service = azure_blob._PageBlobService
-    azure_blob._BlockBlobService = BlobService
-    azure_blob._AppendBlobService = BlobService
-    azure_blob._PageBlobService = BlobService
+    azure_blob._BlockBlobService = BlockBlobService
+    azure_blob._AppendBlobService = AppendBlobService
+    azure_blob._PageBlobService = PageBlobService
     # Tests
     try:
         azure_system = _AzureBlobSystem(
@@ -192,11 +223,12 @@ def test_azure_blob_raw_io():
                              content_length=SIZE))]
 
         # Tests path and URL handling
+        print("\n\n", azure_blob._BlockBlobService, "\n\n")
         azure_object = AzureBlobRawIO(
             blob_url, storage_parameters=dict(account_name=account_name))
         assert azure_object._client_kwargs == blob_client_args
         assert azure_object.name == blob_url
-        assert azure_object._blob_type == 'block'
+        assert azure_object._blob_type == 'BlockBlob'
 
         azure_object = AzureBlobRawIO(
             blob_path, storage_parameters=dict(account_name=account_name))
@@ -206,14 +238,27 @@ def test_azure_blob_raw_io():
         # Tests read
         check_raw_read_methods(azure_object)
 
-        # Tests create blob
-        blob_not_exists = True
+        # Tests create page blob
+        azure_blob._BlockBlobService = PageBlobService
+        page_blob_not_exists = True
+        len_create_blob_called = len(create_blob_called)
         azure_object = AzureBlobRawIO(
             blob_url, mode='w',
             storage_parameters=dict(account_name=account_name))
-        assert azure_object._blob_type == 'page'
-        assert len(create_blob_called) == 1
-        blob_not_exists = False
+        assert azure_object._blob_type == 'PageBlob'
+        assert len(create_blob_called) == len_create_blob_called + 1
+        page_blob_not_exists = False
+
+        # Tests create block blob
+        azure_blob._BlockBlobService = BlockBlobService
+        block_blob_not_exists = True
+        len_create_blob_called = len(create_blob_called)
+        azure_object = AzureBlobRawIO(
+            blob_url, mode='w',
+            storage_parameters=dict(account_name=account_name))
+        assert azure_object._blob_type == 'BlockBlob'
+        assert len(create_blob_called) == len_create_blob_called + 1
+        block_blob_not_exists = False
 
         # Tests _flush
         azure_object.write(50 * BYTE)

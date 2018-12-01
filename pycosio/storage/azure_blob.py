@@ -13,6 +13,7 @@ from azure.storage.blob import (
     BlockBlobService as _BlockBlobService,
     AppendBlobService as _AppendBlobService,
     BlobBlock as _BlobBlock)
+from azure.storage.blob.models import _BlobTypes
 
 from pycosio.storage.azure import (
     _handle_azure_exception, _update_storage_parameters, _get_time,
@@ -65,10 +66,11 @@ class _AzureBlobSystem(_SystemBase):
             self._storage_parameters, self._unsecure)
 
         # Block blob
-        return dict(
-            block=_BlockBlobService(**parameters),
-            page=_PageBlobService(**parameters),
-            append=_AppendBlobService(**parameters))
+        return {
+            _BlobTypes.PageBlob: _PageBlobService(**parameters),
+            _BlobTypes.BlockBlob: _BlockBlobService(**parameters),
+            _BlobTypes.AppendBlob: _AppendBlobService(**parameters)
+        }
 
     @staticmethod
     def _get_time(header, keys, name):
@@ -94,7 +96,7 @@ class _AzureBlobSystem(_SystemBase):
         Returns:
             client
         """
-        return self.client['block']
+        return self.client[_BlobTypes.BlockBlob]
 
     def get_client_kwargs(self, path):
         """
@@ -239,15 +241,9 @@ class AzureBlobRawIO(_ObjectRawIOBase):
 
         # Detects blob type to use
         try:
-            blob_type_map = {
-                'BlockBlob': 'block',
-                'PageBlob': 'page',
-                'AppendBlob': 'append'
-            }
-            blob_type = self._head().get('blob_type', 'page')
-            self._blob_type = blob_type_map[blob_type]
+            self._blob_type = self._head().get('blob_type', 'PageBlob')
         except _ObjectNotFoundError:
-            self._blob_type = 'page'
+            self._blob_type = _BlobTypes.PageBlob
 
         # Creates blob on write mode
         if 'x' in self.mode or 'w' in self.mode:
@@ -343,12 +339,13 @@ class AzureBlobBufferedIO(_ObjectBufferedIOBase):
         if self._writable:
             self._blob_type = self._raw._blob_type
 
-            if self._blob_type == 'page' and self._buffer_size % 512:
+            if self._blob_type == _BlobTypes.PageBlob and self._buffer_size % 512:
                 raise ValueError('"buffer_size" must be multiple of 512 bytes')
-            elif self._blob_type == 'block':
+            elif self._blob_type == _BlobTypes.BlockBlob:
                 self._blocks = []
 
-    def _random_block_id(self, length):
+    @staticmethod
+    def _random_block_id(length):
         return ''.join(random.choice(string.ascii_lowercase) for i in range(length))
 
     def _flush(self):
@@ -356,7 +353,7 @@ class AzureBlobBufferedIO(_ObjectBufferedIOBase):
         Flush the write buffers of the stream.
         """
         # Page blob: Writes buffer as range of bytes
-        if self._blob_type == 'page':
+        if self._blob_type == _BlobTypes.PageBlob:
             start_range = self._buffer_size * self._seek
             end_range = start_range + self._buffer_size
 
@@ -366,7 +363,7 @@ class AzureBlobBufferedIO(_ObjectBufferedIOBase):
                 **self._client_kwargs))
 
         # Block blob: Writes buffer as a block
-        elif self._blob_type == 'block':
+        elif self._blob_type == _BlobTypes.BlockBlob:
             block_id = self._random_block_id(32)
             self._blocks.append(_BlobBlock(id=block_id))
             self._write_futures.append(self._workers.submit(
@@ -375,7 +372,7 @@ class AzureBlobBufferedIO(_ObjectBufferedIOBase):
                 **self._client_kwargs))
 
         # Append blob: Appends buffer as a block
-        elif self._blob_type == 'append':
+        elif self._blob_type == _BlobTypes.AppendBlob:
             self._write_futures.append(self._workers.submit(
                 self._client[self._blob_type].put_block, block=_BytesIO(self._get_buffer()),
                 **self._client_kwargs))
@@ -388,7 +385,7 @@ class AzureBlobBufferedIO(_ObjectBufferedIOBase):
             future.result()
 
         # Block blob: Commit put blocks to blob
-        if self._blob_type == 'block':
+        if self._blob_type == _BlobTypes.BlockBlob:
             block_list = self._client[self._blob_type].get_block_list(**self._client_kwargs)
 
             self._client[self._blob_type].put_block_list(
