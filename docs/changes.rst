@@ -1,7 +1,7 @@
 Changelog
 =========
 
-1.3.0 (2018/??)
+1.3.0 (2019/??)
 ---------------
 
 Add support for following cloud storage:
@@ -89,23 +89,6 @@ Adds support for following cloud storage:
 * OpenStack Swift
 
 Adds read only generic HTTP/HTTPS objects support.
-
-Possibles futures features
---------------------------
-
-* Equivalent functions of:
-    * ``os.removedirs``, ``os.walk``, ``os.rename``, ``os.renames``,
-      ``os.replace``, ``shutil.move``, ``os.chmod``, ``os.access``,
-      ``os.readlink``, ``os.symlink``, ``shutil.copytree``, ``shutil.rmtree``,
-      ``pathlib.Path``, ``os.truncate``.
-* ACL/``mode`` support in ``makedirs``, ``mkdir``, ``stat``, ``lstat``.
-* More cloud storage.
-* Support for protocols like FTP/FTPS, SMB, ...
-* Extra ``max_buffers`` for swap on local disk in ``ObjectBufferedIOBase``.
-* Global computer resource managements for cloud object IO.
-* For buckets, add a checks based on root + bucket name to find the more
-  relevant mounted storage to use
-  (Example: User's storage or public one using same root)
 
 Known issues
 ------------
