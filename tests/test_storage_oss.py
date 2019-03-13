@@ -170,7 +170,8 @@ def test_oss_raw_io():
             self.is_truncated = False
             self.next_marker = ''
             self.buckets = [oss2.models.SimplifiedBucketInfo(
-                bucket, 'location', int(m_time), 'extranet_endpoint', 'intranet_endpoint', 'storage_class')]
+                bucket, 'location', int(m_time), 'extranet_endpoint',
+                'intranet_endpoint', 'storage_class')]
 
     class ListObjectsResult:
         """Dummy oss2.models.ListObjectsResult"""
@@ -242,7 +243,10 @@ def test_oss_raw_io():
 
         # Tests _list_locators
         assert list(oss_system._list_locators()) == [
-            (bucket, dict(location='location', creation_date=int(m_time),  extranet_endpoint='extranet_endpoint', intranet_endpoint='intranet_endpoint', storage_class='storage_class'))]
+            (bucket, dict(location='location', creation_date=int(m_time),
+                          extranet_endpoint='extranet_endpoint',
+                          intranet_endpoint='intranet_endpoint',
+                          storage_class='storage_class'))]
 
         # Tests _list_objects
         assert list(oss_system._list_objects(

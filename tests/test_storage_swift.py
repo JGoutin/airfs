@@ -37,6 +37,127 @@ def test_handle_client_exception():
             raise ClientException('error', http_status=500)
 
 
+def test_swift_mocked():
+    """Tests pycosio.swift with a mock"""
+    # TODO
+    pytest.xfail('WIP')
+
+    import swiftclient
+    from pycosio.storage.swift import SwiftRawIO, _SwiftSystem, SwiftBufferedIO
+    from tests.storage_common import ObjectStorageMock, StorageTester
+
+    # Mocks swiftclient
+    storage_mock = ObjectStorageMock()
+    raises_exception = False
+
+    class Connection:
+        """Fake Connection"""
+
+        def __init__(self, *_, **__):
+            """Do nothing"""
+
+        @staticmethod
+        def get_auth():
+            """Do Nothing"""
+            return '###',
+
+        @staticmethod
+        def get_object(container, obj, headers=None, **_):
+            """Check arguments and returns fake result"""
+            # TODO:
+
+            if raises_exception:
+                raise swiftclient.ClientException(
+                    'error', http_status=500)
+
+            try:
+                content = parse_range(headers)
+            except ValueError:
+                raise swiftclient.ClientException(
+                    'error', http_status=416)
+
+            return dict(), content
+
+        @staticmethod
+        def head_object(container, obj, **_):
+            """Check arguments and returns fake result"""
+            return storage_mock.head_object(container, obj)
+
+        @staticmethod
+        def put_object(container, obj, contents, **_):
+            """Check arguments and returns fake result"""
+            storage_mock.put_object(container, obj, contents)
+
+        @staticmethod
+        def delete_object(container, obj):
+            """Check arguments"""
+            storage_mock.delete_object(container, obj)
+
+        @staticmethod
+        def put_container(container, **_):
+            """Check arguments and returns fake result"""
+            storage_mock.put_locator(container)
+
+        @staticmethod
+        def head_container(**kwargs):
+            """Check arguments and returns fake value"""
+            return storage_mock.head_locator(kwargs['container'])
+
+        @staticmethod
+        def delete_container(container, **_):
+            """Check arguments and returns fake result"""
+            storage_mock.delete_locator(container)
+
+        @staticmethod
+        def copy_object(**kwargs):
+            """Check arguments"""
+            storage_mock.copy_object(
+                kwargs['container'], kwargs['obj'],
+                kwargs['destination'])
+
+        @staticmethod
+        def get_container(container, **kwargs):
+            """Check arguments and returns fake result"""
+            limit = kwargs.get('limit')
+            objects = []
+            index = 0
+            for name, header in storage_mock.get_locator(container):
+
+                # max_request_entries
+                if limit is not None and index > limit:
+                    break
+                index += 1
+
+                # File header
+                header['name'] = name
+
+            return storage_mock.head_locator(container), objects
+
+        @staticmethod
+        def get_account():
+            """Check arguments and returns fake result"""
+            return {}, list(storage_mock.get_locators().items())
+
+    swiftclient_client_connection = swiftclient.client.Connection
+    swiftclient.client.Connection = Connection
+
+    # Tests
+    try:
+        swift_system = _SwiftSystem()
+
+        # Attach mock
+        storage_mock.attach_io_system(swift_system)
+
+        # Run common tests
+        StorageTester(swift_system, SwiftRawIO, SwiftBufferedIO)
+
+        # TODO: Retrieve specific tests from test_swift_raw_io
+
+    # Restore mocked functions
+    finally:
+        swiftclient.client.Connection = swiftclient_client_connection
+
+
 def test_swift_raw_io():
     """Tests pycosio.swift.SwiftRawIO _SwiftSystem"""
     import swiftclient
