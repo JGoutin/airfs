@@ -35,7 +35,7 @@ def test_handle_client_exception():
             raise ClientException('error', http_status=500)
 
 
-def test_swift_mocked():
+def test_mocked_storage():
     """Tests pycosio.swift with a mock"""
     from json import loads
     import swiftclient
@@ -164,10 +164,9 @@ def test_swift_mocked():
         storage_mock.attach_io_system(system)
 
         # Tests
-        with StorageTester(system, SwiftRawIO, SwiftBufferedIO,
-                           storage_mock,
-                           unsupported_operations=UNSUPPORTED_OPERATIONS
-                           ) as tester:
+        with StorageTester(
+                system, SwiftRawIO, SwiftBufferedIO, storage_mock,
+                unsupported_operations=UNSUPPORTED_OPERATIONS) as tester:
 
             # Common tests
             tester.test_common()

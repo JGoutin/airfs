@@ -53,10 +53,11 @@ class StorageTester:
     def __del__(self):
         from pycosio._core.exceptions import ObjectNotFoundError
 
+        # Remove objects, and once empty the locator
         for obj in list(self._objects) + [self.locator]:
+            self._objects.discard(obj)
             try:
                 self._system.remove(obj, relative=True)
-                self._objects.discard(obj)
             except ObjectNotFoundError:
                 continue
 
@@ -343,7 +344,7 @@ class StorageTester:
                    for name, _ in self._system.list_objects(self.locator))
 
 
-def test_storage(storage):
+def test_user_storage(storage):
     """
     Test specified storage.
 

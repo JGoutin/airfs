@@ -35,7 +35,7 @@ def test_handle_client_error():
             raise ClientError(response, 'testing')
 
 
-def test_s3_mocked():
+def test_mocked_storage():
     """Tests pycosio.s3 with a mock"""
     from datetime import datetime
     from io import BytesIO, UnsupportedOperation
@@ -198,7 +198,8 @@ def test_s3_mocked():
 
         # Tests
         with StorageTester(
-                system, S3RawIO, S3BufferedIO, storage_mock) as tester:
+                system, S3RawIO, S3BufferedIO, storage_mock,
+                unsupported_operations=UNSUPPORTED_OPERATIONS) as tester:
 
             # Common tests
             tester.test_common()
