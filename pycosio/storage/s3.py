@@ -20,6 +20,7 @@ _ERROR_CODES = {
     'AccessDenied': _ObjectPermissionError,
     'NoSuchKey': _ObjectNotFoundError,
     'InvalidBucketName': _ObjectNotFoundError,
+    'NoSuchBucket': _ObjectNotFoundError,
     '403': _ObjectPermissionError,
     '404': _ObjectNotFoundError}
 
@@ -226,7 +227,10 @@ class _S3System(_SystemBase):
                 return self.client.put_object(Body=b'', **client_kwargs)
 
             # Bucket
-            return self.client.create_bucket(Bucket=client_kwargs['Bucket'])
+            return self.client.create_bucket(
+                Bucket=client_kwargs['Bucket'],
+                CreateBucketConfiguration=dict(
+                    LocationConstraint=self._get_session().region_name))
 
     def _remove(self, client_kwargs):
         """

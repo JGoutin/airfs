@@ -1,5 +1,6 @@
 # coding=utf-8
 """Test pycosio.storage"""
+from io import UnsupportedOperation as _UnsupportedOperation
 from os import urandom as _urandom
 from time import time as _time
 from uuid import uuid4 as _uuid
@@ -22,11 +23,13 @@ class StorageTester:
             Storage mock in use, if any.
     """
 
-    def __init__(self, system, raw_io, buffered_io, storage_mock=None):
+    def __init__(self, system, raw_io, buffered_io, storage_mock=None,
+                 unsupported_operations=None):
         self._system = system
         self._raw_io = raw_io
         self._buffered_io = buffered_io
         self._storage_mock = storage_mock
+        self._unsupported_operations = unsupported_operations or tuple()
 
         # Get storage root
         root = system.roots[0]
@@ -48,11 +51,13 @@ class StorageTester:
         self.__del__()
 
     def __del__(self):
+        from pycosio._core.exceptions import ObjectNotFoundError
+
         for obj in list(self._objects) + [self.locator]:
             try:
                 self._system.remove(obj, relative=True)
                 self._objects.discard(obj)
-            except Exception:
+            except ObjectNotFoundError:
                 continue
 
     def test_common(self):
@@ -68,6 +73,18 @@ class StorageTester:
         if self._storage_mock is not None:
             self._test_mock_only()
 
+    def _is_supported(self, feature):
+        """
+        Return True if a feature is supported.
+
+        Args:
+            feature (str): Feature to support.
+
+        Returns:
+            bool: Feature is supported.
+        """
+        return feature not in self._unsupported_operations
+
     @staticmethod
     def _get_id():
         """
@@ -76,7 +93,7 @@ class StorageTester:
         Returns:
             str: id
         """
-        return 'pytest_pycosio_%s' % (str(_uuid()).replace('-', ''))
+        return 'pycosio%s' % (str(_uuid()).replace('-', ''))
 
     def _test_raw_io(self):
         """
@@ -150,6 +167,7 @@ class StorageTester:
 
         # Define data to write
         file_path = self.base_dir_path + 'buffered_file.dat'
+        self._to_clean(file_path)
         size = int(4.5 * buffer_size)
         data = _urandom(size)
 
@@ -221,12 +239,20 @@ class StorageTester:
         assert system.getsize(file_path) == size
 
         # Test: Check file modification time
-        if system._MTIME_KEYS:
+        try:
             assert system.getmtime(file_path) == _pytest.approx(create_time, 2)
+        except _UnsupportedOperation:
+            # May not be supported on all files, if supported
+            if self._is_supported('getmtime'):
+                raise
 
         # Test: Check file creation time
-        if system._CTIME_KEYS:
+        try:
             assert system.getctime(file_path) == _pytest.approx(create_time, 2)
+        except _UnsupportedOperation:
+            # May not be supported on all files, if supported
+            if self._is_supported('getctime'):
+                raise
 
         # Test: Check path and URL handling
         with self._raw_io(file_path) as file:
@@ -313,4 +339,31 @@ class StorageTester:
         Returns:
             set of str: objects names.
         """
-        return set(name for name, _ in self._system.list_objects(''))
+        return set('%s/%s' % (self.locator, name)
+                   for name, _ in self._system.list_objects(self.locator))
+
+
+def test_storage(storage):
+    """
+    Test specified storage.
+
+    Test cases are automatically generated base on user configuration,
+    see "tests.conftest.pytest_generate_tests"
+
+    Args:
+        storage (dict): Storage information.
+    """
+    # Get list of unsupported operations
+    from importlib import import_module
+    module = import_module('tests.test_storage_%s' % storage['storage'])
+    try:
+        unsupported_operations = module.UNSUPPORTED_OPERATIONS
+    except AttributeError:
+        unsupported_operations = None
+
+    # Run tests
+    with StorageTester(
+            storage['system_cached'], storage['raw'],
+            storage['buffered'],
+            unsupported_operations=unsupported_operations) as tester:
+        tester.test_common()

@@ -126,7 +126,7 @@ def mount(storage=None, name='', storage_parameters=None,
     # Saves get_storage_parameters
     system_parameters = _system_parameters(
         unsecure=unsecure, storage_parameters=storage_parameters)
-    storage_info = dict(system_parameters=system_parameters)
+    storage_info = dict(storage=storage, system_parameters=system_parameters)
 
     # Finds module containing target subclass
     module = import_module('pycosio.storage.%s' % storage)

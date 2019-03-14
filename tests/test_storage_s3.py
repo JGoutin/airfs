@@ -2,6 +2,11 @@
 """Test pycosio.storage.s3"""
 import pytest
 
+UNSUPPORTED_OPERATIONS = (
+    # Not supported on all objects
+    'getctime',
+)
+
 
 def test_handle_client_error():
     """Test pycosio.s3._handle_client_error"""
@@ -40,7 +45,7 @@ def test_s3_mocked():
     from botocore.exceptions import ClientError
     import boto3
 
-    from tests.storage_common import StorageTester
+    from tests.test_storage import StorageTester
     from tests.storage_mock import ObjectStorageMock
 
     # Mocks boto3 client

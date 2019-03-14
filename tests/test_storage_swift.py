@@ -2,6 +2,11 @@
 """Test pycosio.storage.swift"""
 import pytest
 
+UNSUPPORTED_OPERATIONS = (
+    # Not supported on all objects
+    'getctime',
+)
+
 
 def test_handle_client_exception():
     """Test pycosio.swift._handle_client_exception"""
@@ -36,7 +41,7 @@ def test_swift_mocked():
     import swiftclient
     from pycosio.storage.swift import SwiftRawIO, _SwiftSystem, SwiftBufferedIO
 
-    from tests.storage_common import StorageTester
+    from tests.test_storage import StorageTester
     from tests.storage_mock import ObjectStorageMock
 
     # Mocks Swift client
@@ -160,7 +165,9 @@ def test_swift_mocked():
 
         # Tests
         with StorageTester(system, SwiftRawIO, SwiftBufferedIO,
-                           storage_mock) as tester:
+                           storage_mock,
+                           unsupported_operations=UNSUPPORTED_OPERATIONS
+                           ) as tester:
 
             # Common tests
             tester.test_common()

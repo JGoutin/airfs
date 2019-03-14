@@ -13,6 +13,9 @@ Add support for following cloud storage:
 Fixes:
 
 * Fix root URL detection in some cases.
+* Fix too many returned result in ``io_system.SystemBase.list_objects``.
+* S3: Fix error when creating a bucket due to unspecified region.
+* S3: Fix unprocessed error in listing bucket content of an not existing bucket.
 
 1.2.0 (2018/10)
 ---------------

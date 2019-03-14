@@ -4,6 +4,9 @@
 .pytest_cache/
 .tox/
 
+# Test user configuration
+mount.json
+
 # Build generated files
 docs/_build/
 build/
