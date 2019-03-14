@@ -1,12 +1,5 @@
 # coding=utf-8
 """Test pycosio.storage.s3"""
-from datetime import datetime
-import io
-import time
-
-from tests.utilities import (BYTE, SIZE, parse_range, check_head_methods,
-                             check_raw_read_methods)
-
 import pytest
 
 
@@ -37,323 +30,155 @@ def test_handle_client_error():
             raise ClientError(response, 'testing')
 
 
-def test_s3_raw_io():
-    """Tests pycosio.s3.S3RawIO"""
-    from io import UnsupportedOperation
-    from pycosio.storage.s3 import S3RawIO, _S3System
-    from pycosio._core.exceptions import ObjectNotFoundError
+def test_s3_mocked():
+    """Tests pycosio.s3 with a mock"""
+    from datetime import datetime
+    from io import BytesIO, UnsupportedOperation
+
+    from pycosio.storage.s3 import S3RawIO, _S3System, S3BufferedIO
+
     from botocore.exceptions import ClientError
     import boto3
 
-    # Initializes some variables
-    bucket = 'bucket'
-    key_value = 'key'
-    client_args = dict(Bucket=bucket, Key=key_value)
-    path = '%s/%s' % (bucket, key_value)
-    url = 's3://' + path
-    bucket_url = 's3://' + bucket
-    put_object_called = []
-    delete_object_called = []
-    create_bucket_called = []
-    delete_bucket_called = []
-    m_time = time.time()
-    s3object = None
-    raises_exception = False
-    no_head = False
-    no_objects = False
-    continuation_token = []
-    max_request_entries = None
+    from tests.storage_common import StorageTester
+    from tests.storage_mock import ObjectStorageMock
 
     # Mocks boto3 client
 
-    client_error_response = {
-        'Error': {'Code': 'Error', 'Message': 'Error'}}
+    def raise_404():
+        """Raise 404 error"""
+        raise ClientError({
+            'Error': {'Code': '404', 'Message': 'Error'}}, 'Error')
+
+    def raise_416():
+        """Raise 416 error"""
+        raise ClientError({
+            'Error': {'Code': 'InvalidRange', 'Message': 'Error'}}, 'Error')
+
+    def raise_500():
+        """Raise 500 error"""
+        raise ClientError({
+            'Error': {'Code': 'Error', 'Message': 'Error'}}, 'Error')
+
+    storage_mock = ObjectStorageMock(
+        raise_404, raise_416, raise_500, ClientError,
+        format_date=datetime.fromtimestamp)
+
+    no_head = False
 
     class Client:
-        """Dummy client"""
-
-        def __init__(self, *_, **__):
-            """Do nothing"""
-
-        @staticmethod
-        def get_object(**kwargs):
-            """Mock boto3 get_object
-            Check arguments and returns fake value"""
-            if raises_exception:
-                client_error_response['Error']['Code'] = 'Error'
-                raise ClientError(client_error_response, 'Error')
-
-            for key, value in client_args.items():
-                assert key in kwargs
-                assert kwargs[key] == value
-
-            try:
-                content = parse_range(kwargs)
-            except ValueError:
-                # EOF reached
-                client_error_response['Error']['Code'] = 'InvalidRange'
-                raise ClientError(client_error_response, 'EOF')
-
-            return dict(Body=io.BytesIO(content))
-
-        @staticmethod
-        def head_object(**kwargs):
-            """Mock boto3 head_object
-            Check arguments and returns fake value"""
-            assert kwargs == client_args
-            return dict() if no_head else dict(
-                ContentLength=SIZE,
-                LastModified=datetime.fromtimestamp(m_time),
-                CreationDate=datetime.fromtimestamp(m_time))
-
-        @staticmethod
-        def put_object(**kwargs):
-            """Mock boto3 put_object
-            Check arguments and returns fake value"""
-            if kwargs['Key'][-1] == '/':
-                assert kwargs['Body'] == b''
-            else:
-                for key, value in client_args.items():
-                    assert key in kwargs
-                    assert kwargs[key] == value
-                assert len(kwargs['Body']) == len(s3object._write_buffer)
-            put_object_called.append(1)
-
-        @staticmethod
-        def delete_object(**kwargs):
-            """Mock boto3 delete_object
-            Check arguments and returns fake value"""
-            for key, value in client_args.items():
-                assert key in kwargs
-                assert kwargs[key] == value
-            delete_object_called.append(1)
-
-        @staticmethod
-        def head_bucket(**kwargs):
-            """Mock boto3 head_bucket
-            Check arguments and returns fake value"""
-            assert 'Key' not in kwargs
-            assert 'Bucket' in kwargs
-            return dict(Bucket=kwargs['Bucket'])
-
-        @staticmethod
-        def create_bucket(**kwargs):
-            """Mock boto3 create_bucket
-            Check arguments and returns fake value"""
-            assert 'Key' not in kwargs
-            assert 'Bucket' in kwargs
-            create_bucket_called.append(1)
-
-        @staticmethod
-        def copy_object(CopySource=None, **kwargs):
-            """Mock boto3 create_bucket
-            Check arguments"""
-            for key in ('Key', 'Bucket'):
-                assert key in CopySource
-                assert key in kwargs
-
-        @staticmethod
-        def delete_bucket(**kwargs):
-            """Mock boto3 delete_bucket
-            Check arguments and returns fake value"""
-            assert 'Key' not in kwargs
-            assert 'Bucket' in kwargs
-            delete_bucket_called.append(1)
-
-        @staticmethod
-        def list_objects_v2(**kwargs):
-            """Mock boto3 list_objects_v2
-            Check arguments and returns fake value"""
-            assert 'Bucket' in kwargs
-            assert 'Prefix' in kwargs
-            if max_request_entries:
-                assert 'MaxKeys' in kwargs
-
-            if no_objects:
-                return dict()
-
-            response = {'Contents': [{'Key': key_value, 'ContentLength': SIZE}]}
-            if not continuation_token:
-                response['NextContinuationToken'] = 'token'
-                continuation_token.append(1)
-
-            return response
-
-        @staticmethod
-        def list_buckets():
-            """Mock boto3 list_buckets
-            Check arguments and returns fake value"""
-            return {'Buckets': [{'Name': bucket, 'ContentLength': SIZE}]}
-
-    class Session:
-        """Dummy Session"""
-        client = Client
-        region_name = ''
-
-        def __init__(self, *_, **__):
-            """Do nothing"""
-
-    boto3_client = boto3.client
-    boto3_session_session = boto3.session.Session
-    boto3.client = Client
-    boto3.session.Session = Session
-
-    # Tests
-    try:
-        s3system = _S3System()
-
-        # Tests head
-        check_head_methods(s3system, m_time, c_time=m_time, path=path)
-        assert s3system.head(path=bucket_url)['Bucket'] == bucket
-
-        no_head = True
-        with pytest.raises(UnsupportedOperation):
-            s3system.getctime('path')
-        with pytest.raises(UnsupportedOperation):
-            s3system.getmtime('path')
-        with pytest.raises(UnsupportedOperation):
-            s3system.getsize('path')
-        no_head = False
-
-        # Tests create directory
-        s3system.make_dir(bucket_url)
-        assert len(create_bucket_called) == 1
-        s3system.make_dir(url)
-        assert len(put_object_called) == 1
-        put_object_called = []
-
-        # Tests remove
-        s3system.remove(bucket_url)
-        assert len(delete_bucket_called) == 1
-        s3system.remove(url)
-        assert len(delete_object_called) == 1
-        put_object_called = []
-
-        # Tests copy
-        s3system.copy(url, url)
-
-        # Tests _list_locators
-        assert list(s3system._list_locators()) == [
-            (bucket, dict(ContentLength=SIZE))]
-
-        # Tests _list_objects
-        assert list(s3system._list_objects(
-            client_args, '', max_request_entries)) == [
-                (key_value, dict(ContentLength=SIZE))] * 2
-
-        max_request_entries = 10
-        assert list(s3system._list_objects(
-            client_args, '', max_request_entries)) == [
-                   (key_value, dict(ContentLength=SIZE))]
-
-        no_objects = True
-        with pytest.raises(ObjectNotFoundError):
-            assert list(s3system._list_objects(
-                client_args, '', max_request_entries))
-
-        # Tests path and URL handling
-        s3object = S3RawIO(url)
-        assert s3object._client_kwargs == client_args
-        assert s3object.name == url
-
-        s3object = S3RawIO(path)
-        assert s3object._client_kwargs == client_args
-        assert s3object.name == path
-
-        # Tests read
-        check_raw_read_methods(s3object)
-
-        # Tests _read_range don't hide Boto exceptions
-        raises_exception = True
-        with pytest.raises(ClientError):
-            assert s3object.read(10)
-
-        # Tests _flush
-        s3object = S3RawIO(url, mode='w')
-        assert not put_object_called
-        s3object.write(50 * BYTE)
-        s3object.flush()
-        assert len(put_object_called) == 1
-
-    # Restore mocked class
-    finally:
-        boto3.client = boto3_client
-        boto3.session.Session = boto3_session_session
-
-
-def test_s3_buffered_io():
-    """Tests pycosio.s3.S3BufferedIO"""
-    from pycosio.storage.s3 import S3BufferedIO
-    import boto3
-
-    # Mocks client
-    bucket = 'bucket'
-    key_value = 'key'
-    client_args = dict(Bucket=bucket, Key=key_value)
-    path = '%s/%s' % (bucket, key_value)
-
-    class Client:
-        """Dummy client"""
+        """boto3.client"""
 
         def __init__(self, *_, **kwargs):
-            """Do nothing"""
+            """boto3.client.__init__"""
             self.kwargs = kwargs
 
         @staticmethod
-        def create_multipart_upload(**kwargs):
-            """Checks arguments and returns fake result"""
-            for key, value in client_args.items():
-                assert key in kwargs
-                assert kwargs[key] == value
+        def get_object(Bucket=None, Key=None, Range=None, **_):
+            """boto3.client.get_object"""
+            return dict(Body=BytesIO(
+                storage_mock.get_object(Bucket, Key, header=dict(Range=Range))))
+
+        @staticmethod
+        def head_object(Bucket=None, Key=None, **_):
+            """boto3.client.head_object"""
+            if no_head:
+                return dict()
+            return storage_mock.head_object(Bucket, Key)
+
+        @staticmethod
+        def put_object(Bucket=None, Key=None, Body=None, **_):
+            """boto3.client.put_object"""
+            storage_mock.put_object(Bucket, Key, Body)
+
+        @staticmethod
+        def delete_object(Bucket=None, Key=None, **_):
+            """boto3.client.delete_object"""
+            storage_mock.delete_object(Bucket, Key)
+
+        @staticmethod
+        def head_bucket(Bucket=None, **_):
+            """boto3.client.head_bucket"""
+            return storage_mock.head_locator(Bucket)
+
+        @staticmethod
+        def create_bucket(Bucket=None, **_):
+            """boto3.client.create_bucket"""
+            storage_mock.put_locator(Bucket)
+
+        @staticmethod
+        def copy_object(Bucket=None, Key=None, CopySource=None, **_):
+            """boto3.client.copy_object"""
+            storage_mock.copy_object(
+                CopySource['Key'], Key, dst_locator=Bucket,
+                src_locator=CopySource['Bucket'])
+
+        @staticmethod
+        def delete_bucket(Bucket=None, **_):
+            """boto3.client.delete_bucket"""
+            storage_mock.delete_locator(Bucket)
+
+        @staticmethod
+        def list_objects_v2(Bucket=None, Prefix=None, MaxKeys=None, **_):
+            """boto3.client.list_objects_v2"""
+            objects = []
+
+            for name, header in storage_mock.get_locator(
+                    Bucket, prefix=Prefix, limit=MaxKeys,
+                    raise_404_if_empty=False).items():
+
+                header['Key'] = name
+                objects.append(header)
+
+            if not objects:
+                return dict()
+            return dict(Contents=objects)
+
+        @staticmethod
+        def list_buckets():
+            """boto3.client.list_buckets"""
+            objects = []
+            for name, header in storage_mock.get_locators().items():
+                header['Name'] = name
+                objects.append(header)
+
+            return dict(Buckets=objects)
+
+        @staticmethod
+        def create_multipart_upload(**_):
+            """boto3.client.create_multipart_upload"""
             return dict(UploadId=123)
 
         @staticmethod
-        def complete_multipart_upload(**kwargs):
-            """Checks arguments and returns fake result"""
-            for key, value in client_args.items():
-                assert key in kwargs
-                assert kwargs[key] == value
-            uploaded_parts = kwargs['MultipartUpload']['Parts']
-            assert 10 == len(uploaded_parts)
-            for index, part in enumerate(uploaded_parts):
-                assert part['PartNumber'] == index + 1
+        def complete_multipart_upload(
+                Bucket=None, Key=None, MultipartUpload=None,
+                UploadId=None, **_):
+            """boto3.client.complete_multipart_upload"""
+            uploaded_parts = MultipartUpload['Parts']
+            assert UploadId == 123
+
+            parts = []
+            for part in uploaded_parts:
+                parts.append(Key + str(part['PartNumber']))
                 assert part['ETag'] == 456
 
+            storage_mock.concat_objects(Bucket, Key, parts)
+
         @staticmethod
-        def upload_part(**kwargs):
-            """Checks arguments and returns fake result"""
-            assert kwargs['PartNumber'] > 0
-            assert kwargs['PartNumber'] <= 10
-            assert kwargs['Body'] == BYTE * (
-                5 if kwargs['PartNumber'] == 10 else 10)
-            assert kwargs['UploadId'] == 123
-            for key, value in client_args.items():
-                assert key in kwargs
-                assert kwargs[key] == value
+        def upload_part(Bucket=None, Key=None, PartNumber=None,
+                        Body=None, UploadId=None, **_):
+            """boto3.client.upload_part"""
+            assert UploadId == 123
+            storage_mock.put_object(Bucket, Key + str(PartNumber), Body)
             return dict(ETag=456)
 
-        @staticmethod
-        def put_object(**_):
-            """Do nothing"""
-
-        @staticmethod
-        def get_object(**_):
-            """Do nothing"""
-
-        @staticmethod
-        def head_object(**_):
-            """Do nothing"""
-            return dict(
-                ContentLength=SIZE,
-                LastModified=datetime.fromtimestamp(time.time()))
-
     class Session:
-        """Dummy Session"""
+        """boto3.session.Session"""
         client = Client
         region_name = ''
 
         def __init__(self, *_, **__):
-            """Do nothing"""
+            """boto3.session.Session.__init__"""
 
     boto3_client = boto3.client
     boto3_session_session = boto3.session.Session
@@ -362,19 +187,33 @@ def test_s3_buffered_io():
 
     # Tests
     try:
-        # Write and flush using multipart upload
-        with S3BufferedIO(path, mode='w') as s3object:
-            s3object._buffer_size = 10
-            s3object.write(BYTE * 95)
+        # Init mocked system
+        system = _S3System()
+        storage_mock.attach_io_system(system)
 
-        # Tests unsecure
-        with S3BufferedIO(path, mode='w', unsecure=True) as s3object:
-            assert s3object._client.kwargs['use_ssl'] is False
+        # Tests
+        with StorageTester(
+                system, S3RawIO, S3BufferedIO, storage_mock) as tester:
 
-        # Tests read mode instantiation
-        S3BufferedIO(path, mode='r')
+            # Common tests
+            tester.test_common()
 
-    # Restore mocked class
+            # Test: Unsecure mode
+            file_path = tester.base_dir_path + 'file0.dat'
+            with S3RawIO(file_path, unsecure=True) as file:
+                assert file._client.kwargs['use_ssl'] is False
+
+            # Test: Header values may be missing
+            no_head = True
+            with pytest.raises(UnsupportedOperation):
+                system.getctime(file_path)
+            with pytest.raises(UnsupportedOperation):
+                system.getmtime(file_path)
+            with pytest.raises(UnsupportedOperation):
+                system.getsize(file_path)
+            no_head = False
+
+    # Restore mocked functions
     finally:
         boto3.client = boto3_client
         boto3.session.Session = boto3_session_session

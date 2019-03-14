@@ -18,12 +18,15 @@ class StorageTester:
             Raw IO class.
         buffered_io (pycosio._core.io_buffered.ObjectBufferedIOBase subclass):
             Buffered IO class.
+        storage_mock (tests.storage_mock.ObjectStorageMock instance):
+            Storage mock in use, if any.
     """
 
-    def __init__(self, system, raw_io, buffered_io):
+    def __init__(self, system, raw_io, buffered_io, storage_mock=None):
         self._system = system
         self._raw_io = raw_io
         self._buffered_io = buffered_io
+        self._storage_mock = storage_mock
 
         # Get storage root
         root = system.roots[0]
@@ -52,14 +55,18 @@ class StorageTester:
             except Exception:
                 continue
 
-    def run_common_tests(self):
+    def test_common(self):
         """
-        Run common set of tests
+        Common set of tests
         """
         self._test_system_locator()
         self._test_system_objects()
         self._test_raw_io()
         self._test_buffered_io()
+
+        # Only if mocked
+        if self._storage_mock is not None:
+            self._test_mock_only()
 
     @staticmethod
     def _get_id():
@@ -282,6 +289,22 @@ class StorageTester:
         assert file_path in self._list_objects_names()
         system.remove(file_path)
         assert file_path not in self._list_objects_names()
+
+    def _test_mock_only(self):
+        """
+        Tests that can only be performed on mocks
+        """
+        # Create a file
+        file_path = self.base_dir_path + 'mocked.dat'
+
+        self._to_clean(file_path)
+        with self._raw_io(file_path, mode='w') as file:
+            file.flush()
+
+        # Test: Read not block other exceptions
+        with self._storage_mock.raise_server_error():
+            with _pytest.raises(self._storage_mock.base_exception):
+                self._raw_io(file_path).read(10)
 
     def _list_objects_names(self):
         """

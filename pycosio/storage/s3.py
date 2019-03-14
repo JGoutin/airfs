@@ -58,6 +58,7 @@ class _S3System(_SystemBase):
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
     """
+    _SIZE_KEYS = ('ContentLength',)
     _CTIME_KEYS = ('CreationDate',)
     _MTIME_KEYS = ('LastModified',)
 

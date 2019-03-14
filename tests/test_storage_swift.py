@@ -49,9 +49,12 @@ def test_swift_mocked():
         """Raise 416 error"""
         raise swiftclient.ClientException('error', http_status=416)
 
-    storage_mock = ObjectStorageMock(raise_404, raise_416)
+    def raise_500():
+        """Raise 500 error"""
+        raise swiftclient.ClientException('error', http_status=500)
 
-    raises_exception = False
+    storage_mock = ObjectStorageMock(
+        raise_404, raise_416, raise_500, swiftclient.ClientException)
 
     class Connection:
         """swiftclient.client.Connection"""
@@ -67,19 +70,8 @@ def test_swift_mocked():
         @staticmethod
         def get_object(container, obj, headers=None, **_):
             """swiftclient.client.Connection.get_object"""
-            # Simulate server exception
-            if raises_exception:
-                raise swiftclient.ClientException(
-                    'error', http_status=500)
-
-            # Get object
-            if headers is not None:
-                data_range = headers.get('Range')
-            else:
-                data_range = None
-            content = storage_mock.get_object(container, obj, data_range)
-
-            return dict(), content
+            return (storage_mock.head_object(container, obj),
+                    storage_mock.get_object(container, obj, header=headers))
 
         @staticmethod
         def head_object(container, obj, **_):
@@ -111,7 +103,7 @@ def test_swift_mocked():
             return '123'
 
         @staticmethod
-        def delete_object(container, obj):
+        def delete_object(container, obj, **_):
             """swiftclient.client.Connection.delete_object"""
             storage_mock.delete_object(container, obj)
 
@@ -121,9 +113,9 @@ def test_swift_mocked():
             storage_mock.put_locator(container)
 
         @staticmethod
-        def head_container(**kwargs):
+        def head_container(container=None, **_):
             """swiftclient.client.Connection.head_container"""
-            return storage_mock.head_locator(kwargs['container'])
+            return storage_mock.head_locator(container)
 
         @staticmethod
         def delete_container(container, **_):
@@ -131,26 +123,17 @@ def test_swift_mocked():
             storage_mock.delete_locator(container)
 
         @staticmethod
-        def copy_object(**kwargs):
+        def copy_object(container=None, obj=None, destination=None, **_):
             """swiftclient.client.Connection.copy_object"""
-            storage_mock.copy_object(
-                kwargs['container'], kwargs['obj'],
-                kwargs['destination'])
+            storage_mock.copy_object(obj, destination, src_locator=container)
 
         @staticmethod
         def get_container(container, limit=None, prefix=None, **_):
             """swiftclient.client.Connection.get_container"""
             objects = []
-            index = 0
+
             for name, header in storage_mock.get_locator(
-                    container, prefix=prefix).items():
-
-                # max_request_entries
-                if limit is not None and index >= limit:
-                    break
-                index += 1
-
-                # File header
+                    container, prefix=prefix, limit=limit).items():
                 header['name'] = name
                 objects.append(header)
 
@@ -172,27 +155,20 @@ def test_swift_mocked():
     # Tests
     try:
         # Init mocked system
-        swift_system = _SwiftSystem()
-        storage_mock.attach_io_system(swift_system)
+        system = _SwiftSystem()
+        storage_mock.attach_io_system(system)
 
         # Tests
-        with StorageTester(swift_system, SwiftRawIO, SwiftBufferedIO) as tester:
+        with StorageTester(system, SwiftRawIO, SwiftBufferedIO,
+                           storage_mock) as tester:
 
             # Common tests
-            tester.run_common_tests()
-
-            # Test: Read not block other exceptions
-            file_path = tester.base_dir_path + 'file0.dat'
-
-            raises_exception = True
-            swift_object = SwiftRawIO(file_path)
-            with pytest.raises(swiftclient.ClientException):
-                swift_object.read(10)
-            raises_exception = False
+            tester.test_common()
 
             # Test: Unsecure mode
-            with SwiftRawIO(file_path, unsecure=True) as swift_object:
-                assert swift_object._client.kwargs['ssl_compression'] is False
+            with SwiftRawIO(
+                    tester.base_dir_path + 'file0.dat', unsecure=True) as file:
+                assert file._client.kwargs['ssl_compression'] is False
 
     # Restore mocked functions
     finally:
