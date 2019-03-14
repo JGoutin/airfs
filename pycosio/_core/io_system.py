@@ -516,7 +516,7 @@ class SystemBase(ABC):
         List objects.
 
         Args:
-            path (str):
+            path (str): Path or URL.
             relative (bool): Path is relative to current root.
             first_level (bool): It True, returns only first level objects.
                 Else, returns full tree.
@@ -526,6 +526,9 @@ class SystemBase(ABC):
         Returns:
             generator of tuple: object name str, object header dict
         """
+        entries = 0
+        max_request_entries_arg = None
+
         if not relative:
             path = self.relpath(path)
 
@@ -536,7 +539,11 @@ class SystemBase(ABC):
             # Yields locators
             if first_level:
                 for locator in locators:
+
+                    entries += 1
                     yield locator
+                    if entries == max_request_entries:
+                        return
                 return
 
             # Yields each locator objects
@@ -544,15 +551,25 @@ class SystemBase(ABC):
 
                 # Yields locator itself
                 loc_path = loc_path.strip('/')
+
+                entries += 1
                 yield loc_path, loc_header
+                if entries == max_request_entries:
+                    return
 
                 # Yields locator content is read access to it
+                if max_request_entries is not None:
+                    max_request_entries_arg = max_request_entries - entries
                 try:
                     for obj_path, obj_header in self._list_objects(
                             self.get_client_kwargs(loc_path), '',
-                            max_request_entries):
+                            max_request_entries_arg):
+
+                        entries += 1
                         yield ('/'.join((loc_path, obj_path.lstrip('/'))),
                                obj_header)
+                        if entries == max_request_entries:
+                            return
 
                 except ObjectPermissionError:
                     # No read access to locator
@@ -565,8 +582,11 @@ class SystemBase(ABC):
         if first_level:
             seen = set()
 
+        if max_request_entries is not None:
+            max_request_entries_arg = max_request_entries - entries
+
         for obj_path, header in self._list_objects(
-                self.get_client_kwargs(locator), path, max_request_entries):
+                self.get_client_kwargs(locator), path, max_request_entries_arg):
 
             if path:
                 try:
@@ -597,12 +617,18 @@ class SystemBase(ABC):
                     pass
 
                 if obj_path not in seen:
+                    entries += 1
                     yield obj_path, header
+                    if entries == max_request_entries:
+                        return
                     seen.add(obj_path)
 
             # Yields locator objects
             else:
+                entries += 1
                 yield obj_path, header
+                if entries == max_request_entries:
+                    return
 
     def _list_locators(self):
         """
