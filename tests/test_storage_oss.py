@@ -1,13 +1,13 @@
 # coding=utf-8
 """Test pycosio.storage.oss"""
-import io
-import time
-from wsgiref.handlers import format_date_time
-
-from tests.utilities import (BYTE, SIZE, parse_range, check_head_methods,
-                             check_raw_read_methods)
-
 import pytest
+
+UNSUPPORTED_OPERATIONS = (
+    'copy',
+
+    # Not supported on some objects
+    'getctime',
+)
 
 
 def test_handle_oss_error():
@@ -35,8 +35,147 @@ def test_handle_oss_error():
             raise OssError(403, **kwargs)
 
 
+def test_mocked_storage():
+    """Tests pycosio.oss with a mock"""
+    from pycosio.storage.oss import OSSRawIO, _OSSSystem, OSSBufferedIO
+
+    from oss2.exceptions import OssError
+    import oss2
+
+    from tests.test_storage import StorageTester
+    from tests.storage_mock import ObjectStorageMock
+
+    # Mocks oss2 client
+
+    def raise_404():
+        """Raise 404 error"""
+        raise OssError(404, headers={}, body=None, details={'Message': ''})
+
+    def raise_416():
+        """Raise 416 error"""
+        raise OssError(416, headers={}, body=None, details={'Message': ''})
+
+    def raise_500():
+        """Raise 500 error"""
+        raise OssError(500, headers={}, body=None, details={'Message': ''})
+
+    storage_mock = ObjectStorageMock(
+        raise_404, raise_416, raise_500, OssError)
+
+    # TODO: OSS mock using storage mock
+
+    class Auth:
+        """oss2.Auth/oss2.StsAuth/oss2.AnonymousAuth"""
+
+        def __init__(self, **_):
+            """oss2.Auth.__init__"""
+
+    class Bucket:
+        """oss2.Bucket"""
+
+        def __init__(self, *_, **__):
+            """oss2.Bucket.__init__"""
+
+        @staticmethod
+        def get_object(key=None, headers=None, **_):
+            """oss2.Bucket.get_object"""
+
+        @staticmethod
+        def head_object(key=None, **_):
+            """oss2.Bucket.head_object"""
+
+        @staticmethod
+        def put_object(key=None, data=None, **_):
+            """oss2.Bucket.put_object"""
+
+        @staticmethod
+        def delete_object(key=None, **_):
+            """oss2.Bucket.delete_object"""
+
+        @staticmethod
+        def get_bucket_info(**_):
+            """oss2.Bucket.get_bucket_info"""
+
+        @staticmethod
+        def create_bucket(**_):
+            """oss2.Bucket.create_bucket"""
+
+        @staticmethod
+        def delete_bucket(**_):
+            """oss2.Bucket.delete_bucket"""
+
+        @staticmethod
+        def list_objects(**_):
+            """oss2.Bucket.list_objects"""
+
+        @staticmethod
+        def init_multipart_upload(key=None, **_):
+            """oss2.Bucket.init_multipart_upload"""
+
+        @staticmethod
+        def complete_multipart_upload(
+                key=None, upload_id=None, parts=None, **_):
+            """oss2.Bucket.complete_multipart_upload"""
+
+        @staticmethod
+        def upload_part(key=None, upload_id=None,
+                        part_number=None, data=None, **_):
+            """oss2.Bucket.upload_part"""
+
+    class Service:
+        """oss2.Service"""
+
+        def __init__(self, *_, **__):
+            """oss2.Service.__init__"""
+
+        @staticmethod
+        def list_buckets(**_):
+            """oss2.Service.list_buckets"""
+
+    oss2_auth = oss2.Auth
+    oss2_stsauth = oss2.StsAuth
+    oss2_anonymousauth = oss2.AnonymousAuth
+    oss2_bucket = oss2.Bucket
+    oss2_service = oss2.Service
+    oss2.Auth = Auth
+    oss2.StsAuth = Auth
+    oss2.AnonymousAuth = Auth
+    oss2.Bucket = Bucket
+    oss2.Service = Service
+
+    # Tests
+    try:
+        # Init mocked system
+        system = _OSSSystem()
+        storage_mock.attach_io_system(system)
+
+        # Tests
+        with StorageTester(
+                system, OSSRawIO, OSSBufferedIO, storage_mock,
+                unsupported_operations=UNSUPPORTED_OPERATIONS) as tester:
+
+            # Common tests
+            tester.test_common()
+
+    # Restore mocked functions
+    finally:
+        oss2.Auth = oss2_auth
+        oss2.StsAuth = oss2_stsauth
+        oss2.AnonymousAuth = oss2_anonymousauth
+        oss2.Bucket = oss2_bucket
+        oss2.Service = oss2_service
+
+
 def test_oss_raw_io():
     """Tests pycosio.oss.OSSRawIO"""
+    # TODO: remove tests once "test_mocked_storage" complete
+
+    pytest.skip('Deprecated')
+    import io
+    import time
+    from wsgiref.handlers import format_date_time
+    from tests.utilities import (BYTE, SIZE, parse_range, check_head_methods,
+                                 check_raw_read_methods)
     from pycosio.storage.oss import OSSRawIO, _OSSSystem
     from pycosio._core.exceptions import ObjectNotFoundError
     from oss2.exceptions import OssError
@@ -318,6 +457,12 @@ def test_oss_raw_io():
 
 def test_oss_buffered_io():
     """Tests pycosio.oss.OSSBufferedIO"""
+    # TODO: remove tests once "test_mocked_storage" complete
+
+    pytest.skip('Deprecated')
+    import time
+    from wsgiref.handlers import format_date_time
+    from tests.utilities import BYTE, SIZE
     from pycosio.storage.oss import OSSBufferedIO
     import oss2
 

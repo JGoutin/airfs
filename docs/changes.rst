@@ -25,6 +25,7 @@ Fixes:
 * S3: Fix error when creating a bucket due to unspecified region.
 * S3: Fix unprocessed error in listing bucket content of an not existing bucket.
 * S3: Clean up multipart upload parts on failed uploads.
+* S3: Fix missing transfer acceleration endpoints.
 
 1.2.0 (2018/10)
 ---------------
