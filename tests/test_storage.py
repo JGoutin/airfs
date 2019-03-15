@@ -21,10 +21,24 @@ class StorageTester:
             Buffered IO class.
         storage_mock (tests.storage_mock.ObjectStorageMock instance):
             Storage mock in use, if any.
+        storage_info (dict): Storage information from pycosio.mount.
     """
 
-    def __init__(self, system, raw_io, buffered_io, storage_mock=None,
-                 unsupported_operations=None):
+    def __init__(self, system=None, raw_io=None, buffered_io=None,
+                 storage_mock=None, unsupported_operations=None,
+                 storage_info=None):
+
+        if system is None:
+            system = storage_info['system_cached']
+        if raw_io is None:
+            raw_io = storage_info['raw']
+        if buffered_io is None:
+            buffered_io = storage_info['buffered']
+        if storage_info:
+            self._system_parameters = storage_info['system_parameters']
+        else:
+            self._system_parameters = dict()
+
         self._system = system
         self._raw_io = raw_io
         self._buffered_io = buffered_io
@@ -100,13 +114,15 @@ class StorageTester:
         """
         Tests raw IO.
         """
+        from os import SEEK_END
+
         size = 100
         file_path = self.base_dir_path + 'sample_100B.dat'
         self._to_clean(file_path)
         content = _urandom(size)
 
         # Open file in write mode
-        file = self._raw_io(file_path, 'wb')
+        file = self._raw_io(file_path, 'wb', **self._system_parameters)
         try:
             # Test: Write
             file.write(content)
@@ -121,7 +137,7 @@ class StorageTester:
             file.close()
 
         # Open file in read mode
-        file = self._raw_io(file_path)
+        file = self._raw_io(file_path, **self._system_parameters)
         try:
             # Test: _read_all
             assert file.readall() == content
@@ -153,6 +169,12 @@ class StorageTester:
             assert bytes(buffer) == b'\x00' * 40
             assert file.tell() == size
 
+            file.seek(-10, SEEK_END)
+            buffer = bytearray(20)
+            assert file.readinto(buffer) == 10
+            assert bytes(buffer) == content[90:] + b'\x00' * 10
+            assert file.tell() == size
+
         finally:
             file.close()
 
@@ -172,14 +194,27 @@ class StorageTester:
         size = int(4.5 * buffer_size)
         data = _urandom(size)
 
-        # Test: write data
-        with self._buffered_io(
-                file_path, 'wb', buffer_size=buffer_size) as file:
+        # Test: write data, not multiple of buffer
+        with self._buffered_io(file_path, 'wb', buffer_size=buffer_size,
+                               **self._system_parameters) as file:
             file.write(data)
 
-        # Test: Read data
-        with self._buffered_io(
-                file_path, 'rb', buffer_size=buffer_size) as file:
+        # Test: Read data, not multiple of buffer
+        with self._buffered_io(file_path, 'rb', buffer_size=buffer_size,
+                               **self._system_parameters) as file:
+            assert data == file.read()
+
+        size = int(4.5 * buffer_size)
+        data = _urandom(size)
+
+        # Test: write data, multiple of buffer
+        with self._buffered_io(file_path, 'wb', buffer_size=buffer_size,
+                               **self._system_parameters) as file:
+            file.write(data)
+
+        # Test: Read data, multiple of buffer
+        with self._buffered_io(file_path, 'rb', buffer_size=buffer_size,
+                               **self._system_parameters) as file:
             assert data == file.read()
 
     def _test_system_locator(self):
@@ -198,8 +233,8 @@ class StorageTester:
         else:
             _pytest.fail('Locator "%s" not found' % self.locator)
 
-        # Test: Check locator header
-        assert isinstance(system.head(path=self.locator), dict)
+        # Test: Check locator header return a mapping
+        assert hasattr(system.head(path=self.locator), '__getitem__')
 
         # Test: remove locator
         tmp_locator = self._get_id()
@@ -226,7 +261,8 @@ class StorageTester:
         size = 16
         content = _urandom(size)
 
-        with self._raw_io(file_path, mode='w') as file:
+        with self._raw_io(file_path, mode='w',
+                          **self._system_parameters) as file:
             # Write content
             file.write(content)
 
@@ -234,7 +270,7 @@ class StorageTester:
             create_time = _time()
 
         # Test: Check file header
-        assert isinstance(system.head(path=file_path), dict)
+        assert hasattr(system.head(path=file_path), '__getitem__')
 
         # Test: Check file size
         assert system.getsize(file_path) == size
@@ -256,10 +292,10 @@ class StorageTester:
                 raise
 
         # Test: Check path and URL handling
-        with self._raw_io(file_path) as file:
+        with self._raw_io(file_path, **self._system_parameters) as file:
             assert file.name == file_path
 
-        with self._raw_io(file_url) as file:
+        with self._raw_io(file_url, **self._system_parameters) as file:
             assert file.name == file_url
 
         # Write some files
@@ -269,7 +305,8 @@ class StorageTester:
             path = self.base_dir_path + 'file%d.dat' % i
             files.add(path)
             self._to_clean(path)
-            with self._raw_io(path, mode='w') as file:
+            with self._raw_io(
+                    path, mode='w', **self._system_parameters) as file:
                 file.flush()
 
         # Test: List objects
@@ -287,6 +324,7 @@ class StorageTester:
 
         # Test: List objects, no objects found
         with _pytest.raises(ObjectNotFoundError):
+            print(1)
             list(system.list_objects(self.base_dir_path + 'dir_not_exists/'))
 
         # Test: List objects, locator not found
@@ -296,8 +334,12 @@ class StorageTester:
         # Test: copy
         copy_path = file_path + '.copy'
         self._to_clean(copy_path)
-        system.copy(file_path, copy_path)
-        assert system.getsize(copy_path) == size
+        if self._is_supported('copy'):
+            system.copy(file_path, copy_path)
+            assert system.getsize(copy_path) == size
+        else:
+            with _pytest.raises(_UnsupportedOperation):
+                system.copy(file_path, copy_path)
 
         # Test: Make a directory (With trailing /)
         dir_path0 = self.base_dir_path + 'directory0/'
@@ -325,13 +367,14 @@ class StorageTester:
         file_path = self.base_dir_path + 'mocked.dat'
 
         self._to_clean(file_path)
-        with self._raw_io(file_path, mode='w') as file:
+        with self._raw_io(
+                file_path, mode='w', **self._system_parameters) as file:
             file.flush()
 
         # Test: Read not block other exceptions
         with self._storage_mock.raise_server_error():
             with _pytest.raises(self._storage_mock.base_exception):
-                self._raw_io(file_path).read(10)
+                self._raw_io(file_path, **self._system_parameters).read(10)
 
     def _list_objects_names(self):
         """
@@ -364,7 +407,6 @@ def test_user_storage(storage):
 
     # Run tests
     with StorageTester(
-            storage['system_cached'], storage['raw'],
-            storage['buffered'],
+            storage_info=storage,
             unsupported_operations=unsupported_operations) as tester:
         tester.test_common()

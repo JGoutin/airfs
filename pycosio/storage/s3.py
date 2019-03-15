@@ -153,7 +153,18 @@ class _S3System(_SystemBase):
                 # - http://s3-<region>.amazonaws.com/<bucket>/<key>
                 # - https://s3-<region>.amazonaws.com/<bucket>/<key>
                 _re.compile(r'https?://s3\.amazonaws\.com'),
-                _re.compile(r'https?://s3-%s\.amazonaws\.com' % region))
+                _re.compile(r'https?://s3-%s\.amazonaws\.com' % region),
+
+                # Transfer acceleration URL
+                # - http://<bucket>.s3-accelerate.amazonaws.com
+                # - https://<bucket>.s3-accelerate.amazonaws.com
+                # - http://<bucket>.s3-accelerate.dualstack.amazonaws.com
+                # - https://<bucket>.s3-accelerate.dualstack.amazonaws.com
+                _re.compile(
+                    r'https?://[\w.-]+\.s3-accelerate\.amazonaws\.com'),
+                _re.compile(
+                    r'https?://[\w.-]+\.s3-accelerate\.dualstack'
+                    r'\.amazonaws\.com'))
 
     @staticmethod
     def _get_time(header, keys, name):
@@ -427,6 +438,15 @@ class S3BufferedIO(_ObjectBufferedIOBase):
             part['ETag'] = part.pop('response').result()['ETag']
 
         # Complete multipart upload
-        self._client.complete_multipart_upload(
-            MultipartUpload={'Parts': self._write_futures},
-            UploadId=self._upload_args['UploadId'], **self._client_kwargs)
+        with _handle_client_error():
+            try:
+                self._client.complete_multipart_upload(
+                    MultipartUpload={'Parts': self._write_futures},
+                    UploadId=self._upload_args['UploadId'],
+                    **self._client_kwargs)
+            except _ClientError:
+                # Clean up if failure
+                self._client.abort_multipart_upload(
+                    UploadId=self._upload_args['UploadId'],
+                    **self._client_kwargs)
+                raise

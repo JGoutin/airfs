@@ -3,7 +3,7 @@
 import pytest
 
 UNSUPPORTED_OPERATIONS = (
-    # Not supported on all objects
+    # Not supported on some objects
     'getctime',
 )
 

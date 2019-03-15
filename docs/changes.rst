@@ -10,12 +10,21 @@ Add support for following cloud storage:
 * Microsoft Azure Blobs Storage
 * Microsoft Azure Files Storage
 
+Deprecations:
+
+* Warn about Python 3.4 deprecation in next version.
+
 Fixes:
 
 * Fix root URL detection in some cases.
-* Fix too many returned result in ``io_system.SystemBase.list_objects``.
+* Fix too many returned result when listing objects with a count limit.
+* OSS: Fix error when listing objects in a not existing directory.
+* OSS: Fix read error if try to read after end of file.
+* OSS: Fix buffered write minimum buffer size.
+* OSS: Clean up multipart upload parts on failed uploads.
 * S3: Fix error when creating a bucket due to unspecified region.
 * S3: Fix unprocessed error in listing bucket content of an not existing bucket.
+* S3: Clean up multipart upload parts on failed uploads.
 
 1.2.0 (2018/10)
 ---------------

@@ -261,7 +261,7 @@ class _OSSSystem(_SystemBase):
                             **kwargs).object_list
                 else:
                     parent_list = None
-                if not parent_list:
+                if path not in [obj.key for obj in parent_list]:
                     raise _ObjectNotFoundError('Not found: %s' % path)
 
             for obj in response.object_list:
@@ -311,6 +311,10 @@ class OSSRawIO(_ObjectRawIOBase):
         # Get object bytes range
         try:
             with _handle_oss_error():
+                if start >= self._size:
+                    # Fix returning full data if start out of range
+                    return bytes()
+
                 response = self._bucket.get_object(key=self._key, headers=dict(
                     Range=self._http_range(
                         # Returns full file if end > size
@@ -364,6 +368,9 @@ class OSSBufferedIO(_ObjectBufferedIOBase):
 
     _RAW_CLASS = OSSRawIO
 
+    #: Minimal buffer_size in bytes (OSS multipart upload minimal part size)
+    MINIMUM_BUFFER_SIZE = 102400
+
     def __init__(self, *args, **kwargs):
         _ObjectBufferedIOBase.__init__(self, *args, **kwargs)
 
@@ -400,5 +407,12 @@ class OSSBufferedIO(_ObjectBufferedIOBase):
                  for future in self._write_futures]
 
         # Complete multipart upload
-        self._bucket.complete_multipart_upload(
-            key=self._key, upload_id=self._upload_id, parts=parts)
+        with _handle_oss_error():
+            try:
+                self._bucket.complete_multipart_upload(
+                    key=self._key, upload_id=self._upload_id, parts=parts)
+            except _OssError:
+                # Clean up failed upload
+                self._bucket.abort_multipart_upload(
+                    key=self._key, upload_id=self._upload_id)
+                raise

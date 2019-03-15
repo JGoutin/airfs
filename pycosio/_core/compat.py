@@ -7,6 +7,18 @@ import os as _os
 import shutil as _shutil
 from sys import version_info as _py
 
+
+def _deprecation_warning():
+    """
+    Warn user about deprecation of this Python version in next Pycosio
+    version.
+    """
+    import warnings
+    warnings.warn(
+        "Next Pycosio version will not support Python %d.%d." % (
+            _py[0], _py[1]), DeprecationWarning, stacklevel=2)
+
+
 # Python 2 compatibility
 if _py[0] == 2:
 
@@ -188,6 +200,8 @@ except ImportError:
 
 # Python 3.4 compatibility
 if _py[0] == 3 and _py[1] == 4:
+
+    _deprecation_warning()
 
     # "max_workers" as keyword argument for ThreadPoolExecutor
     class ThreadPoolExecutor(_futures.ThreadPoolExecutor):
