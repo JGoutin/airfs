@@ -93,7 +93,7 @@ def test_mocked_storage():
     class Bucket:
         """oss2.Bucket"""
 
-        def __init__(self, *_, bucket_name=None, **__):
+        def __init__(self, auth, endpoint, bucket_name=None, *_, **__):
             """oss2.Bucket.__init__"""
             self._bucket_name = bucket_name
 
