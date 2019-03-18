@@ -2,7 +2,6 @@
 """Microsoft Azure Blobs Storage"""
 from __future__ import absolute_import  # Python 2: Fix azure import
 
-from base64 import urlsafe_b64encode as _urlsafe_b64encode
 from io import BytesIO as _BytesIO
 import random
 import re as _re
@@ -339,14 +338,25 @@ class AzureBlobBufferedIO(_ObjectBufferedIOBase):
         if self._writable:
             self._blob_type = self._raw._blob_type
 
-            if self._blob_type == _BlobTypes.PageBlob and self._buffer_size % 512:
+            if (self._blob_type == _BlobTypes.PageBlob and
+                    self._buffer_size % 512):
                 raise ValueError('"buffer_size" must be multiple of 512 bytes')
             elif self._blob_type == _BlobTypes.BlockBlob:
                 self._blocks = []
 
     @staticmethod
     def _random_block_id(length):
-        return ''.join(random.choice(string.ascii_lowercase) for i in range(length))
+        """
+        Generate a random ID.
+
+        Args:
+            length (int): ID length.
+
+        Returns:
+            str: Random block ID.
+        """
+        return ''.join(random.choice(string.ascii_lowercase)
+                       for _ in range(length))
 
     def _flush(self):
         """
@@ -358,7 +368,8 @@ class AzureBlobBufferedIO(_ObjectBufferedIOBase):
             end_range = start_range + self._buffer_size
 
             self._write_futures.append(self._workers.submit(
-                self._client[self.blob_type].update_page, page=_BytesIO(self._get_buffer()),
+                self._client[self.blob_type].update_page,
+                page=_BytesIO(self._get_buffer()),
                 start_range=start_range, end_range=end_range,
                 **self._client_kwargs))
 
@@ -367,15 +378,15 @@ class AzureBlobBufferedIO(_ObjectBufferedIOBase):
             block_id = self._random_block_id(32)
             self._blocks.append(_BlobBlock(id=block_id))
             self._write_futures.append(self._workers.submit(
-                self._client[self._blob_type].put_block, block=_BytesIO(self._get_buffer()),
-                block_id=block_id,
-                **self._client_kwargs))
+                self._client[self._blob_type].put_block,
+                block=_BytesIO(self._get_buffer()),
+                block_id=block_id, **self._client_kwargs))
 
         # Append blob: Appends buffer as a block
         elif self._blob_type == _BlobTypes.AppendBlob:
             self._write_futures.append(self._workers.submit(
-                self._client[self._blob_type].put_block, block=_BytesIO(self._get_buffer()),
-                **self._client_kwargs))
+                self._client[self._blob_type].put_block,
+                block=_BytesIO(self._get_buffer()), **self._client_kwargs))
 
     def _close_writable(self):
         """
@@ -386,7 +397,8 @@ class AzureBlobBufferedIO(_ObjectBufferedIOBase):
 
         # Block blob: Commit put blocks to blob
         if self._blob_type == _BlobTypes.BlockBlob:
-            block_list = self._client[self._blob_type].get_block_list(**self._client_kwargs)
+            block_list = self._client[self._blob_type].get_block_list(
+                **self._client_kwargs)
 
             self._client[self._blob_type].put_block_list(
                 block_list=block_list.committed_blocks +
