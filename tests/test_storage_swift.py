@@ -3,6 +3,8 @@
 import pytest
 
 UNSUPPORTED_OPERATIONS = (
+    'symlink',
+
     # Not supported on some objects
     'getctime',
 )
@@ -98,14 +100,14 @@ def test_mocked_storage():
                     assert path.startswith(obj)
                     assert part['etag']
 
-                storage_mock.concat_objects(container, obj, parts)
+                header = storage_mock.concat_objects(container, obj, parts)
 
             # Single object upload
             else:
-                storage_mock.put_object(container, obj, contents)
+                header = storage_mock.put_object(container, obj, contents)
 
             # Return Etag
-            return '123'
+            return header['ETag']
 
         @staticmethod
         def delete_object(container, obj, **_):

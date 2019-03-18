@@ -3,6 +3,7 @@
 from contextlib import contextmanager as _contextmanager
 from copy import deepcopy as _deepcopy
 from time import time as _time
+from uuid import uuid4 as _uuid
 
 
 class ObjectStorageMock:
@@ -172,7 +173,7 @@ class ObjectStorageMock:
         except KeyError:
             self._raise_404()
 
-    def put_object(self, locator, path, content):
+    def put_object(self, locator, path, content, headers=None):
         """
         Put object.
 
@@ -180,23 +181,38 @@ class ObjectStorageMock:
             locator (str): locator name
             path (str): Object path.
             content (bytes like-object): File content.
+            headers (dict): Header to put with the file.
+
+        Returns:
+            dict: File header.
         """
         try:
+            # Existing file
             file = self._get_locator_content(locator)[path]
         except KeyError:
+            # New file
             file = dict(content=bytearray())
             self._get_locator_content(locator)[path] = file
+            file['ETag'] = str(_uuid())
 
             if self._header_ctime:
                 file[self._header_ctime] = self._format_date(_time())
 
+        # Update file
         file['content'][:] = content
+        if headers:
+            file.update(headers)
 
         if self._header_size:
             file[self._header_size] = len(file['content'])
 
         if self._header_mtime:
             file[self._header_mtime] = self._format_date(_time())
+
+        # Return Header
+        header = file.copy()
+        del header['content']
+        return header
 
     def concat_objects(self, locator, path, parts):
         """
@@ -206,11 +222,14 @@ class ObjectStorageMock:
             locator (str): locator name
             path (str): Object path.
             parts (iterable of str): Paths of objects to concatenate.
+
+        Returns:
+            dict: File header.
         """
         content = bytearray()
         for part in parts:
             content += self.get_object(locator, part)
-        self.put_object(locator, path, content)
+        return self.put_object(locator, path, content)
 
     def copy_object(self, src_path, dst_path, src_locator=None,
                     dst_locator=None):

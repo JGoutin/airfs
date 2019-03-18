@@ -10,6 +10,11 @@ Add support for following cloud storage:
 * Microsoft Azure Blobs Storage
 * Microsoft Azure Files Storage
 
+Improvements:
+
+* OSS: Copy objects between OSS buckets without copying data on client when
+  possible.
+
 Deprecations:
 
 * Warn about Python 3.4 deprecation in next version.
@@ -36,7 +41,7 @@ New standard library equivalent functions:
   ``os.stat``, ``os.unlink``, ``os.path.getctime``, ``os.path.islink``,
   ``shutil.copyfile``.
 
-Improvements
+Improvements:
 
 * Copy of objects from and to a same storage is performed directly on remote
   server if possible.
@@ -69,7 +74,7 @@ Backward incompatible change:
 * ``mount`` argument ``extra_url_prefix`` is renamed to more relevant and
   clearer ``extra_root``.
 
-Improvements
+Improvements:
 
 * No buffer copy when using ``io.BufferedIOBase.read`` with exactly
   buffer size. This may lead performance improvement.

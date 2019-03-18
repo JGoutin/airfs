@@ -3,6 +3,8 @@
 import pytest
 
 UNSUPPORTED_OPERATIONS = (
+    'symlink',
+
     # Not supported on some objects
     'getctime',
 )
@@ -165,7 +167,7 @@ def test_mocked_storage():
             parts = []
             for part in uploaded_parts:
                 parts.append(Key + str(part['PartNumber']))
-                assert part['ETag'] == 456
+                assert part['ETag']
 
             storage_mock.concat_objects(Bucket, Key, parts)
 
@@ -174,8 +176,8 @@ def test_mocked_storage():
                         Body=None, UploadId=None, **_):
             """boto3.client.upload_part"""
             assert UploadId == 123
-            storage_mock.put_object(Bucket, Key + str(PartNumber), Body)
-            return dict(ETag=456)
+            return storage_mock.put_object(
+                Bucket, Key + str(PartNumber), Body)
 
     class Session:
         """boto3.session.Session"""

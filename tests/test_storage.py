@@ -26,7 +26,7 @@ class StorageTester:
 
     def __init__(self, system=None, raw_io=None, buffered_io=None,
                  storage_mock=None, unsupported_operations=None,
-                 storage_info=None):
+                 storage_info=None, system_parameters=None):
 
         if system is None:
             system = storage_info['system_cached']
@@ -34,11 +34,10 @@ class StorageTester:
             raw_io = storage_info['raw']
         if buffered_io is None:
             buffered_io = storage_info['buffered']
-        if storage_info:
-            self._system_parameters = storage_info['system_parameters']
-        else:
-            self._system_parameters = dict()
+        if system_parameters is None and storage_info:
+            system_parameters = storage_info['system_parameters']
 
+        self._system_parameters = system_parameters or dict()
         self._system = system
         self._raw_io = raw_io
         self._buffered_io = buffered_io
@@ -324,8 +323,11 @@ class StorageTester:
 
         # Test: List objects, no objects found
         with _pytest.raises(ObjectNotFoundError):
-            print(1)
             list(system.list_objects(self.base_dir_path + 'dir_not_exists/'))
+
+        # Test: List objects on locator root, no objects found
+        with _pytest.raises(ObjectNotFoundError):
+            list(system.list_objects(self.locator + '/dir_not_exists/'))
 
         # Test: List objects, locator not found
         with _pytest.raises(ObjectNotFoundError):
@@ -354,6 +356,21 @@ class StorageTester:
         self._to_clean(dir_path1)
         assert dir_path1 in self._list_objects_names()
 
+        # Test: Listing empty directory
+        assert len(tuple(system.list_objects(dir_path0))) == 0
+
+        # Test: Normal file is not symlink
+        assert not system.islink(file_path)
+
+        # Test: Symlink
+        if self._is_supported('symlink'):
+            link_path = self.base_dir_path + 'symlink'
+            # TODO: Tests once create symlink implemented
+
+            # Test: Is symlink
+            #assert system.islink(link_path)
+            #assert system.islink(header=system.head(link_path)
+
         # Test: Remove file
         assert file_path in self._list_objects_names()
         system.remove(file_path)
@@ -369,6 +386,7 @@ class StorageTester:
         self._to_clean(file_path)
         with self._raw_io(
                 file_path, mode='w', **self._system_parameters) as file:
+            file.write(_urandom(20))
             file.flush()
 
         # Test: Read not block other exceptions

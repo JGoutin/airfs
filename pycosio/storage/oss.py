@@ -62,6 +62,23 @@ class _OSSSystem(_SystemBase):
         if self._unsecure:
             self._endpoint = self._endpoint.replace('https://', 'http://')
 
+    def copy(self, src, dst):
+        """
+        Copy object of the same storage.
+
+        Args:
+            src (str): Path or URL.
+            dst (str): Path or URL.
+        """
+        copy_source = self.get_client_kwargs(src)
+        copy_destination = self.get_client_kwargs(dst)
+        with _handle_oss_error():
+            bucket = self._get_bucket(copy_destination)
+            bucket.copy_object(
+                source_bucket_name=copy_source['bucket_name'],
+                source_key=copy_source['key'],
+                target_key=copy_destination['key'])
+
     def get_client_kwargs(self, path):
         """
         Get base keyword arguments for client for a
@@ -253,16 +270,9 @@ class _OSSSystem(_SystemBase):
                 response = bucket.list_objects(prefix=path, **kwargs)
 
             if not response.object_list:
-                # Must check if parent exits for empty directories
-                if path and '/' in path.strip('/'):
-                    with _handle_oss_error():
-                        parent_list = bucket.list_objects(
-                            prefix=path.strip('/').rsplit('/')[0],
-                            **kwargs).object_list
-                else:
-                    parent_list = None
-                if path not in [obj.key for obj in parent_list]:
-                    raise _ObjectNotFoundError('Not found: %s' % path)
+                # In case of empty dir, return empty dir path:
+                # if empty result, the dir do not exists.
+                raise _ObjectNotFoundError('Not found: %s' % path)
 
             for obj in response.object_list:
                 yield obj.key, self._model_to_dict(obj, ('key',))
@@ -308,24 +318,16 @@ class OSSRawIO(_ObjectRawIOBase):
         Returns:
             bytes: number of bytes read
         """
+        if start >= self._size:
+            # EOF. Do not detect using 416 (Out of range) error, 200 returned.
+            return bytes()
+
         # Get object bytes range
-        try:
-            with _handle_oss_error():
-                if start >= self._size:
-                    # Fix returning full data if start out of range
-                    return bytes()
-
-                response = self._bucket.get_object(key=self._key, headers=dict(
-                    Range=self._http_range(
-                        # Returns full file if end > size
-                        start, end if end <= self._size else self._size)))
-
-        # Check for end of file
-        except _OssError as exception:
-            if exception.status == 416:
-                # EOF
-                return bytes()
-            raise
+        with _handle_oss_error():
+            response = self._bucket.get_object(key=self._key, headers=dict(
+                Range=self._http_range(
+                    # Returns full file if end > size
+                    start, end if end <= self._size else self._size)))
 
         # Get object content
         return response.read()
