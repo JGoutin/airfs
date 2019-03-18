@@ -50,8 +50,9 @@ class StorageTester:
         # Defines randomized names for locator and objects
         self.locator = self._get_id()
         self.locator_url = '/'.join((root, self.locator))
-        self.base_dir_path = '%s/%s/' % (self.locator, self._get_id())
-        self.base_dir_url = '/'.join((root, self.base_dir_path))
+        self.base_dir_name = '%s/' % self._get_id()
+        self.base_dir_path = '%s/%s' % (self.locator, self.base_dir_name)
+        self.base_dir_url = root + self.base_dir_path
 
         # Run test sequence
         self._objects = set()
@@ -71,7 +72,7 @@ class StorageTester:
             self._objects.discard(obj)
             try:
                 self._system.remove(obj, relative=True)
-            except ObjectNotFoundError:
+            except (ObjectNotFoundError, _UnsupportedOperation):
                 continue
 
     def test_common(self):
@@ -116,24 +117,36 @@ class StorageTester:
         from os import SEEK_END
 
         size = 100
-        file_path = self.base_dir_path + 'sample_100B.dat'
+        file_name = 'sample_100B.dat'
+        file_path = self.base_dir_path + file_name
         self._to_clean(file_path)
         content = _urandom(size)
 
         # Open file in write mode
-        file = self._raw_io(file_path, 'wb', **self._system_parameters)
-        try:
-            # Test: Write
-            file.write(content)
+        if self._is_supported('write'):
+            file = self._raw_io(file_path, 'wb', **self._system_parameters)
+            try:
+                # Test: Write
+                file.write(content)
 
-            # Test: tell
-            assert file.tell() == size
+                # Test: tell
+                assert file.tell() == size
 
-            # Test: _flush
-            file.flush()
+                # Test: _flush
+                file.flush()
 
-        finally:
-            file.close()
+            finally:
+                file.close()
+
+        else:
+            # Test: Unsupported
+            with _pytest.raises(_UnsupportedOperation):
+                self._raw_io(file_path, 'wb', **self._system_parameters)
+
+            # Create pre-existing file
+            if self._storage_mock:
+                self._storage_mock.put_object(
+                    self.locator, self.base_dir_name + file_name, content)
 
         # Open file in read mode
         file = self._raw_io(file_path, **self._system_parameters)
@@ -188,33 +201,51 @@ class StorageTester:
             buffer_size = minimum_buffer_zize
 
         # Define data to write
-        file_path = self.base_dir_path + 'buffered_file.dat'
+        file_name = 'buffered_file.dat'
+        file_path = self.base_dir_path + file_name
         self._to_clean(file_path)
         size = int(4.5 * buffer_size)
-        data = _urandom(size)
+        content = _urandom(size)
 
         # Test: write data, not multiple of buffer
-        with self._buffered_io(file_path, 'wb', buffer_size=buffer_size,
-                               **self._system_parameters) as file:
-            file.write(data)
+        if self._is_supported('write'):
+            with self._buffered_io(file_path, 'wb', buffer_size=buffer_size,
+                                   **self._system_parameters) as file:
+                file.write(content)
+        else:
+            # Test: Unsupported
+            with _pytest.raises(_UnsupportedOperation):
+                self._buffered_io(file_path, 'wb', buffer_size=buffer_size,
+                                  **self._system_parameters)
+
+            # Create pre-existing file
+            if self._storage_mock:
+                self._storage_mock.put_object(
+                    self.locator, self.base_dir_name + file_name, content)
 
         # Test: Read data, not multiple of buffer
         with self._buffered_io(file_path, 'rb', buffer_size=buffer_size,
                                **self._system_parameters) as file:
-            assert data == file.read()
+            assert content == file.read()
 
         size = int(4.5 * buffer_size)
-        data = _urandom(size)
+        content = _urandom(size)
 
         # Test: write data, multiple of buffer
-        with self._buffered_io(file_path, 'wb', buffer_size=buffer_size,
-                               **self._system_parameters) as file:
-            file.write(data)
+        if self._is_supported('write'):
+            with self._buffered_io(file_path, 'wb', buffer_size=buffer_size,
+                                   **self._system_parameters) as file:
+                file.write(content)
+        else:
+            # Create pre-existing file
+            if self._storage_mock:
+                self._storage_mock.put_object(
+                    self.locator, self.base_dir_name + file_name, content)
 
         # Test: Read data, multiple of buffer
         with self._buffered_io(file_path, 'rb', buffer_size=buffer_size,
                                **self._system_parameters) as file:
-            assert data == file.read()
+            assert content == file.read()
 
     def _test_system_locator(self):
         """
@@ -223,26 +254,54 @@ class StorageTester:
         system = self._system
 
         # Test: Create locator
-        system.make_dir(self.locator_url)
+        if self._is_supported('mkdir'):
+            system.make_dir(self.locator_url)
+        else:
+            # Test: Unsupported
+            with _pytest.raises(_UnsupportedOperation):
+                system.make_dir(self.locator_url)
+
+            # Create a preexisting locator
+            if self._storage_mock:
+                self._storage_mock.put_locator(self.locator)
 
         # Test: Check locator listed
-        for name, header in system._list_locators():
-            if name == self.locator and isinstance(header, dict):
-                break
-        else:
-            _pytest.fail('Locator "%s" not found' % self.locator)
+        if self._is_supported('listdir'):
+            for name, header in system._list_locators():
+                if name == self.locator and isinstance(header, dict):
+                    break
+            else:
+                _pytest.fail('Locator "%s" not found' % self.locator)
 
-        # Test: Check locator header return a mapping
-        assert hasattr(system.head(path=self.locator), '__getitem__')
+            # Test: Check locator header return a mapping
+            assert hasattr(system.head(path=self.locator), '__getitem__')
+        else:
+            # Test: Unsupported
+            with _pytest.raises(_UnsupportedOperation):
+                system._list_locators()
 
         # Test: remove locator
         tmp_locator = self._get_id()
         self._to_clean(tmp_locator)
-        system.make_dir(tmp_locator)
-        assert tmp_locator in [name for name, _ in system._list_locators()]
+        if self._is_supported('mkdir'):
+            system.make_dir(tmp_locator)
+        elif self._storage_mock:
+            self._storage_mock.put_locator(tmp_locator)
 
-        system.remove(tmp_locator)
-        assert tmp_locator not in [name for name, _ in system._list_locators()]
+        if self._is_supported('remove'):
+            if self._is_supported('listdir'):
+                assert tmp_locator in [
+                    name for name, _ in system._list_locators()]
+
+            system.remove(tmp_locator)
+
+            if self._is_supported('listdir'):
+                assert tmp_locator not in [
+                    name for name, _ in system._list_locators()]
+        else:
+            # Test: Unsupported
+            with _pytest.raises(_UnsupportedOperation):
+                system.remove(tmp_locator)
 
     def _test_system_objects(self):
         """
@@ -260,23 +319,36 @@ class StorageTester:
         size = 16
         content = _urandom(size)
 
-        with self._raw_io(file_path, mode='w',
-                          **self._system_parameters) as file:
-            # Write content
-            file.write(content)
+        if self._is_supported('write'):
+            with self._raw_io(file_path, mode='w',
+                              **self._system_parameters) as file:
+                # Write content
+                file.write(content)
 
-            # Estimate creation time
-            create_time = _time()
+        elif self._storage_mock:
+            # Create pre-existing file
+            self._storage_mock.put_object(
+                self.locator, self.base_dir_name + file_name, content)
+
+        # Estimate creation time
+        create_time = _time()
 
         # Test: Check file header
         assert hasattr(system.head(path=file_path), '__getitem__')
 
         # Test: Check file size
-        assert system.getsize(file_path) == size
+        try:
+            assert system.getsize(file_path) == size
+        except _UnsupportedOperation:
+            # May not be supported on all files, if supported
+            if self._is_supported('getsize'):
+                raise
 
         # Test: Check file modification time
         try:
-            assert system.getmtime(file_path) == _pytest.approx(create_time, 2)
+            file_time = system.getmtime(file_path)
+            if self._is_supported('write'):
+                assert file_time == _pytest.approx(create_time, 2)
         except _UnsupportedOperation:
             # May not be supported on all files, if supported
             if self._is_supported('getmtime'):
@@ -284,7 +356,9 @@ class StorageTester:
 
         # Test: Check file creation time
         try:
-            assert system.getctime(file_path) == _pytest.approx(create_time, 2)
+            file_time = system.getctime(file_path)
+            if self._is_supported('write'):
+                assert file_time == _pytest.approx(create_time, 2)
         except _UnsupportedOperation:
             # May not be supported on all files, if supported
             if self._is_supported('getctime'):
@@ -301,37 +375,50 @@ class StorageTester:
         files = set()
         files.add(file_path)
         for i in range(10):
-            path = self.base_dir_path + 'file%d.dat' % i
+            file_name = 'file%d.dat' % i
+            path = self.base_dir_path + file_name
             files.add(path)
             self._to_clean(path)
-            with self._raw_io(
-                    path, mode='w', **self._system_parameters) as file:
-                file.flush()
+            if self._is_supported('write'):
+                with self._raw_io(
+                        path, mode='w', **self._system_parameters) as file:
+                    file.flush()
+            elif self._storage_mock:
+                # Create pre-existing file
+                self._storage_mock.put_object(
+                    self.locator, self.base_dir_name + file_name, b'')
 
         # Test: List objects
-        objects = tuple(system.list_objects(self.locator))
-        assert files == set(
-            '%s/%s' % (self.locator, name) for name, _ in objects)
-        for _, header in objects:
-            assert isinstance(header, dict)
+        if self._is_supported('listdir'):
+            objects = tuple(system.list_objects(self.locator))
+            assert files == set(
+                '%s/%s' % (self.locator, name) for name, _ in objects)
+            for _, header in objects:
+                assert isinstance(header, dict)
 
-        # Test: List objects, with limited output
-        max_request_entries = 5
-        entries = len(tuple(system.list_objects(
-            max_request_entries=max_request_entries)))
-        assert entries == max_request_entries
+            # Test: List objects, with limited output
+            max_request_entries = 5
+            entries = len(tuple(system.list_objects(
+                max_request_entries=max_request_entries)))
+            assert entries == max_request_entries
 
-        # Test: List objects, no objects found
-        with _pytest.raises(ObjectNotFoundError):
-            list(system.list_objects(self.base_dir_path + 'dir_not_exists/'))
+            # Test: List objects, no objects found
+            with _pytest.raises(ObjectNotFoundError):
+                list(system.list_objects(
+                    self.base_dir_path + 'dir_not_exists/'))
 
-        # Test: List objects on locator root, no objects found
-        with _pytest.raises(ObjectNotFoundError):
-            list(system.list_objects(self.locator + '/dir_not_exists/'))
+            # Test: List objects on locator root, no objects found
+            with _pytest.raises(ObjectNotFoundError):
+                list(system.list_objects(self.locator + '/dir_not_exists/'))
 
-        # Test: List objects, locator not found
-        with _pytest.raises(ObjectNotFoundError):
-            list(system.list_objects(self._get_id()))
+            # Test: List objects, locator not found
+            with _pytest.raises(ObjectNotFoundError):
+                list(system.list_objects(self._get_id()))
+
+        else:
+            # Test: Unsupported
+            with _pytest.raises(_UnsupportedOperation):
+                list(system.list_objects(self.base_dir_path))
 
         # Test: copy
         copy_path = file_path + '.copy'
@@ -340,24 +427,29 @@ class StorageTester:
             system.copy(file_path, copy_path)
             assert system.getsize(copy_path) == size
         else:
+            # Test: Unsupported
             with _pytest.raises(_UnsupportedOperation):
                 system.copy(file_path, copy_path)
 
         # Test: Make a directory (With trailing /)
-        dir_path0 = self.base_dir_path + 'directory0/'
-        system.make_dir(dir_path0)
-        self._to_clean(dir_path0)
-        assert dir_path0 in self._list_objects_names()
+        if self._is_supported('mkdir'):
+            dir_path0 = self.base_dir_path + 'directory0/'
+            system.make_dir(dir_path0)
+            self._to_clean(dir_path0)
+            if self._is_supported('listdir'):
+                assert dir_path0 in self._list_objects_names()
 
-        # Test: Make a directory (Without trailing /)
-        dir_path1 = self.base_dir_path + 'directory1'
-        system.make_dir(dir_path1)
-        dir_path1 += '/'
-        self._to_clean(dir_path1)
-        assert dir_path1 in self._list_objects_names()
+            # Test: Make a directory (Without trailing /)
+            dir_path1 = self.base_dir_path + 'directory1'
+            system.make_dir(dir_path1)
+            dir_path1 += '/'
+            self._to_clean(dir_path1)
 
-        # Test: Listing empty directory
-        assert len(tuple(system.list_objects(dir_path0))) == 0
+            if self._is_supported('listdir'):
+                assert dir_path1 in self._list_objects_names()
+
+                # Test: Listing empty directory
+                assert len(tuple(system.list_objects(dir_path0))) == 0
 
         # Test: Normal file is not symlink
         assert not system.islink(file_path)
@@ -372,22 +464,37 @@ class StorageTester:
             #assert system.islink(header=system.head(link_path)
 
         # Test: Remove file
-        assert file_path in self._list_objects_names()
-        system.remove(file_path)
-        assert file_path not in self._list_objects_names()
+        if self._is_supported('remove'):
+            if self._is_supported('listdir'):
+                assert file_path in self._list_objects_names()
+            system.remove(file_path)
+            if self._is_supported('listdir'):
+                assert file_path not in self._list_objects_names()
+        else:
+            # Test: Unsupported
+            with _pytest.raises(_UnsupportedOperation):
+                system.remove(file_path)
 
     def _test_mock_only(self):
         """
         Tests that can only be performed on mocks
         """
-        # Create a file
-        file_path = self.base_dir_path + 'mocked.dat'
+        file_name = 'mocked.dat'
 
+        # Create a file
+        file_path = self.base_dir_path + file_name
         self._to_clean(file_path)
-        with self._raw_io(
-                file_path, mode='w', **self._system_parameters) as file:
-            file.write(_urandom(20))
-            file.flush()
+        content = _urandom(20)
+
+        if self._is_supported('write'):
+            with self._raw_io(
+                    file_path, mode='w', **self._system_parameters) as file:
+                file.write(content)
+                file.flush()
+        elif self._storage_mock:
+            # Create pre-existing file
+            self._storage_mock.put_object(
+                self.locator, self.base_dir_name + file_name, content)
 
         # Test: Read not block other exceptions
         with self._storage_mock.raise_server_error():

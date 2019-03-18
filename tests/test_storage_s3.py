@@ -50,7 +50,7 @@ def test_mocked_storage():
     from tests.test_storage import StorageTester
     from tests.storage_mock import ObjectStorageMock
 
-    # Mocks boto3 client
+    # Mocks client
 
     def raise_404():
         """Raise 404 error"""

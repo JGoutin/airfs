@@ -1,13 +1,18 @@
 # coding=utf-8
 """Test pycosio.storage.http"""
-import io
-import time
-from wsgiref.handlers import format_date_time
-
 import pytest
 
-from tests.utilities import (
-    parse_range, check_head_methods, check_raw_read_methods)
+UNSUPPORTED_OPERATIONS = (
+    'copy',
+    'getmtime',
+    'getctime',
+    'getsize',
+    'mkdir',
+    'listdir',
+    'remove',
+    'symlink',
+    'write'
+)
 
 
 def test_handle_http_errors():
@@ -49,28 +54,54 @@ def test_handle_http_errors():
     assert response.raised
 
 
-def test_http_raw_io():
-    """Tests pycosio.http.HTTPRawIO and _HTTPSystem"""
-    from io import UnsupportedOperation
-    from pycosio.storage.http import HTTPRawIO, _HTTPSystem
+def test_mocked_storage():
+    """Tests pycosio.http with a mock"""
     import requests
+    from requests.exceptions import HTTPError
 
-    # Initializes some variables
-    m_time = time.time()
+    from pycosio.storage.http import HTTPRawIO, _HTTPSystem, HTTPBufferedIO
 
-    # Mocks requests
+    from tests.test_storage import StorageTester
+    from tests.storage_mock import ObjectStorageMock
+
+    # Mocks client
+    class HTTPException(Exception):
+        """HTTP Exception
+
+        Args:
+            status_code (int): HTTP status
+        """
+
+        def __init__(self, status_code):
+            self.status_code = status_code
+
+    def raise_404():
+        """Raise 404 error"""
+        raise HTTPException(404)
+
+    def raise_416():
+        """Raise 416 error"""
+        raise HTTPException(416)
+
+    def raise_500():
+        """Raise 500 error"""
+        raise HTTPException(500)
+
+    storage_mock = ObjectStorageMock(raise_404, raise_416, raise_500, HTTPError)
 
     class Response:
-        """Fake response"""
-
-        def __init__(self):
-            self.status_code = 200
-
+        """HTTP request response"""
+        status_code = 200
         reason = 'reason'
-        headers = {'Accept-Ranges': 'bytes',
-                   'Content-Length': '100',
-                   'Last-Modified':
-                       format_date_time(m_time)}
+
+        def __init__(self, **attributes):
+            for name, value in attributes.items():
+                setattr(self, name, value)
+
+        def raise_for_status(self):
+            """Raise for status"""
+            if self.status_code >= 300:
+                raise HTTPError(self.reason, response=self)
 
     class Session:
         """Fake Session"""
@@ -81,52 +112,46 @@ def test_http_raw_io():
         @staticmethod
         def request(method, url, headers=None, **_):
             """Check arguments and returns fake result"""
-            assert url
-            assert method in ('HEAD', 'GET')
-
-            response = Response()
-
-            if method == 'HEAD':
-                return response
-
+            # Remove scheme
             try:
-                response.content = parse_range(headers)
-            except ValueError:
-                response.status_code = 416
+                url = url.split('//')[1]
+            except IndexError:
+                pass
 
-            return response
+            # Split path and locator
+            locator, path = url.split('/', 1)
+
+            # Perform requests
+            try:
+                if method == 'HEAD':
+                    return Response(
+                        headers=storage_mock.head_object(locator, path))
+                elif method == 'GET':
+                    return Response(content=storage_mock.get_object(
+                        locator, path, header=headers))
+                else:
+                    raise ValueError('Unknown method: ' + method)
+
+            # Return exception as response with status_code
+            except HTTPException as exception:
+                return Response(status_code=exception.status_code)
 
     requests_session = requests.Session
     requests.Session = Session
 
     # Tests
     try:
-        http_object = HTTPRawIO('http://accelize.com')
+        # Init mocked system
+        system = _HTTPSystem()
+        storage_mock.attach_io_system(system)
 
-        # Tests head
-        check_head_methods(_HTTPSystem(), m_time)
+        # Tests
+        with StorageTester(
+                system, HTTPRawIO, HTTPBufferedIO, storage_mock,
+                unsupported_operations=UNSUPPORTED_OPERATIONS) as tester:
 
-        # Tests read
-        check_raw_read_methods(http_object)
-
-        # Test write
-        with pytest.raises(io.UnsupportedOperation):
-            HTTPRawIO('http://accelize.com', mode='w')
-
-        # Test not seekable
-        del Response.headers['Accept-Ranges']
-        http_object = HTTPRawIO('http://accelize.com')
-        assert not http_object.seekable()
-
-        # Test not implemented features
-        with pytest.raises(UnsupportedOperation):
-            _HTTPSystem().make_dir('path')
-        with pytest.raises(UnsupportedOperation):
-            _HTTPSystem().remove('path')
-        with pytest.raises(UnsupportedOperation):
-            _HTTPSystem()._list_locators()
-        with pytest.raises(UnsupportedOperation):
-            _HTTPSystem()._list_objects(dict(), '', None)
+            # Common tests
+            tester.test_common()
 
     # Restore mocked functions
     finally:

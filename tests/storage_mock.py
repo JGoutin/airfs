@@ -191,9 +191,11 @@ class ObjectStorageMock:
             file = self._get_locator_content(locator)[path]
         except KeyError:
             # New file
-            file = dict(content=bytearray())
-            self._get_locator_content(locator)[path] = file
-            file['ETag'] = str(_uuid())
+            self._get_locator_content(locator)[path] = file = {
+                'Accept-Ranges': 'bytes',
+                'ETag': str(_uuid()),
+                'content': bytearray()
+            }
 
             if self._header_ctime:
                 file[self._header_ctime] = self._format_date(_time())
