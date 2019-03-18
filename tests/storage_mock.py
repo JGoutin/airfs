@@ -2,6 +2,7 @@
 """Test pycosio.storage"""
 from contextlib import contextmanager as _contextmanager
 from copy import deepcopy as _deepcopy
+from threading import Lock as _Lock
 from time import time as _time
 from uuid import uuid4 as _uuid
 
@@ -23,6 +24,7 @@ class ObjectStorageMock:
 
     def __init__(self, raise_404, raise_416, raise_500, base_exception,
                  format_date=None):
+        self._put_lock = _Lock()
         self._system = None
         self._locators = {}
         self._header_size = None
@@ -76,8 +78,11 @@ class ObjectStorageMock:
         Args:
             locator (str): locator name
         """
-        self._locators[locator] = dict(
-            content=dict())
+        self._locators[locator] = locator = dict(_content=dict(),)
+        if self._header_ctime:
+            locator[self._header_ctime] = self._format_date(_time())
+        if self._header_mtime:
+            locator[self._header_mtime] = self._format_date(_time())
 
     def _get_locator(self, locator):
         """
@@ -111,7 +116,7 @@ class ObjectStorageMock:
         for name, header in self._get_locator_content(locator).items():
             if name.startswith(prefix):
                 headers[name] = header.copy()
-                del headers[name]['content']
+                del headers[name]['_content']
 
                 if len(headers) == limit:
                     break
@@ -131,7 +136,7 @@ class ObjectStorageMock:
         headers = dict()
         for name, header in self._locators.items():
             headers[name] = header.copy()
-            del headers[name]['content']
+            del headers[name]['_content']
 
         if not headers:
             self._raise_404()
@@ -148,7 +153,7 @@ class ObjectStorageMock:
         Returns:
             dict: objects names, objects with header.
         """
-        return self._get_locator(locator)['content']
+        return self._get_locator(locator)['_content']
 
     def head_locator(self, locator):
         """
@@ -158,8 +163,44 @@ class ObjectStorageMock:
             locator (str): locator name
         """
         header = self._get_locator(locator).copy()
-        del header['content']
+        del header['_content']
         return header
+
+    def get_locator_ctime(self, locator):
+        """
+        Get locator creation time.
+
+        Args:
+            locator (str): locator name
+
+        Returns:
+            object: Creation time.
+        """
+        return self._get_locator(locator)[self._header_ctime]
+
+    def get_locator_mtime(self, locator):
+        """
+        Get locator modification time.
+
+        Args:
+            locator (str): locator name
+
+        Returns:
+            object: Modification time.
+        """
+        return self._get_locator(locator)[self._header_mtime]
+
+    def get_locator_size(self, locator):
+        """
+        Get locator size.
+
+        Args:
+            locator (str): locator name
+
+        Returns:
+            int: Size.
+        """
+        return self._get_locator(locator)[self._header_size]
 
     def delete_locator(self, locator):
         """
@@ -173,7 +214,8 @@ class ObjectStorageMock:
         except KeyError:
             self._raise_404()
 
-    def put_object(self, locator, path, content, headers=None):
+    def put_object(self, locator, path, content=None, headers=None,
+                   data_range=None):
         """
         Put object.
 
@@ -182,38 +224,80 @@ class ObjectStorageMock:
             path (str): Object path.
             content (bytes like-object): File content.
             headers (dict): Header to put with the file.
+            data_range (tuple of int): Range of position of content.
 
         Returns:
             dict: File header.
         """
-        try:
-            # Existing file
-            file = self._get_locator_content(locator)[path]
-        except KeyError:
-            # New file
-            self._get_locator_content(locator)[path] = file = {
-                'Accept-Ranges': 'bytes',
-                'ETag': str(_uuid()),
-                'content': bytearray()
-            }
+        with self._put_lock:
+            try:
+                # Existing file
+                file = self._get_locator_content(locator)[path]
+            except KeyError:
+                # New file
+                self._get_locator_content(locator)[path] = file = {
+                    'Accept-Ranges': 'bytes',
+                    'ETag': str(_uuid()),
+                    '_content': bytearray(),
+                    '_pending_content': dict(),
+                    '_lock': _Lock()
+                }
 
-            if self._header_ctime:
-                file[self._header_ctime] = self._format_date(_time())
+                if self._header_size:
+                    file[self._header_size] = 0
+
+                if self._header_ctime:
+                    file[self._header_ctime] = self._format_date(_time())
 
         # Update file
-        file['content'][:] = content
-        if headers:
-            file.update(headers)
+        with file['_lock']:
+            if content:
+                file_content = file['_content']
 
-        if self._header_size:
-            file[self._header_size] = len(file['content'])
+                # Write full content
+                if not data_range or (
+                        data_range[0] is None and data_range[1] is None):
+                    file_content[:] = content
 
-        if self._header_mtime:
-            file[self._header_mtime] = self._format_date(_time())
+                # Write content range
+                else:
+                    # Define range
+                    start, end = data_range
+                    if start is None:
+                        start = 0
+                    if end is None:
+                        end = start + len(content)
+                    assert len(content) == end - start
 
-        # Return Header
-        header = file.copy()
-        del header['content']
+                    # Write pending range of content
+                    pending_content = file['_pending_content']
+                    for pending_start in sorted(tuple(pending_content)):
+                        if pending_start <= len(file_content):
+                            file_content[
+                            pending_start:pending_start + len(
+                                pending_content[pending_start])] = content
+                            del pending_content[pending_start]
+
+                    # Keep content range that cannot be written now as pending
+                    if start > len(file_content):
+                        pending_content[start] = content
+
+                    # Write content range now
+                    else:
+                        file_content[start:end] = content
+
+            if headers:
+                file.update(headers)
+
+            if self._header_size:
+                file[self._header_size] = len(file['_content'])
+
+            if self._header_mtime:
+                file[self._header_mtime] = self._format_date(_time())
+
+            # Return Header
+            header = file.copy()
+        del header['_content']
         return header
 
     def concat_objects(self, locator, path, parts):
@@ -250,7 +334,11 @@ class ObjectStorageMock:
         if dst_locator is None:
             dst_locator, dst_path = dst_path.split('/', 1)
 
-        file = _deepcopy(self._get_object(src_locator, src_path))
+        file = self._get_object(src_locator, src_path).copy()
+        del file['_lock']
+        file = _deepcopy(file)
+        file['_lock'] = _Lock()
+
         self._get_locator_content(dst_locator)[dst_path] = file
 
         if self._header_mtime:
@@ -291,7 +379,7 @@ class ObjectStorageMock:
             self._raise_500()
 
         # Read file
-        content = self._get_object(locator, path)['content']
+        content = self._get_object(locator, path)['_content']
         size = len(content)
 
         if header and header.get('Range'):
@@ -332,8 +420,47 @@ class ObjectStorageMock:
             dict: header.
         """
         header = self._get_object(locator, path).copy()
-        del header['content']
+        del header['_content']
         return header
+
+    def get_object_ctime(self, locator, path):
+        """
+        Get object creation time.
+
+        Args:
+            locator (str): locator name
+            path (str): Object path.
+
+        Returns:
+            object: Creation time.
+        """
+        return self._get_object(locator, path)[self._header_ctime]
+
+    def get_object_mtime(self, locator, path):
+        """
+        Get object modification time.
+
+        Args:
+            locator (str): locator name
+            path (str): Object path.
+
+        Returns:
+            object: Modification time.
+        """
+        return self._get_object(locator, path)[self._header_mtime]
+
+    def get_object_size(self, locator, path):
+        """
+        Get object size.
+
+        Args:
+            locator (str): locator name
+            path (str): Object path.
+
+        Returns:
+            int: Size.
+        """
+        return self._get_object(locator, path)[self._header_size]
 
     def delete_object(self, locator, path):
         """

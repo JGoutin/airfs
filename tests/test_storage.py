@@ -26,7 +26,7 @@ class StorageTester:
 
     def __init__(self, system=None, raw_io=None, buffered_io=None,
                  storage_mock=None, unsupported_operations=None,
-                 storage_info=None, system_parameters=None):
+                 storage_info=None, system_parameters=None, root=None):
 
         if system is None:
             system = storage_info['system_cached']
@@ -45,7 +45,8 @@ class StorageTester:
         self._unsupported_operations = unsupported_operations or tuple()
 
         # Get storage root
-        root = system.roots[0]
+        if not root:
+            root = system.roots[0]
 
         # Defines randomized names for locator and objects
         self.locator = self._get_id()
