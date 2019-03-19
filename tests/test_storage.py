@@ -204,14 +204,13 @@ class StorageTester:
         if buffer_size < minimum_buffer_zize:
             buffer_size = minimum_buffer_zize
 
-        # Define data to write
-        file_name = 'buffered_file.dat'
+        # Test: write data, not multiple of buffer
+        file_name = 'buffered_file0.dat'
         file_path = self.base_dir_path + file_name
         self._to_clean(file_path)
         size = int(4.5 * buffer_size)
         content = _urandom(size)
 
-        # Test: write data, not multiple of buffer
         if self._is_supported('write'):
             with self._buffered_io(file_path, 'wb', buffer_size=buffer_size,
                                    **self._system_parameters) as file:
@@ -232,10 +231,13 @@ class StorageTester:
                                **self._system_parameters) as file:
             assert content == file.read()
 
-        size = int(4.5 * buffer_size)
+        # Test: write data, multiple of buffer
+        file_name = 'buffered_file1.dat'
+        file_path = self.base_dir_path + file_name
+        self._to_clean(file_path)
+        size = int(5 * buffer_size)
         content = _urandom(size)
 
-        # Test: write data, multiple of buffer
         if self._is_supported('write'):
             with self._buffered_io(file_path, 'wb', buffer_size=buffer_size,
                                    **self._system_parameters) as file:

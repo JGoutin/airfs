@@ -115,3 +115,30 @@ def test_get_time():
 
     with pytest.raises(UnsupportedOperation):
         _get_time({}, ('last_modified',), 'gettime')
+
+
+def get_storage_mock():
+    """
+    Return storage mock configured for Azure.
+
+    Returns:
+        tests.storage_mock.ObjectStorageMock: Mocked storage
+    """
+    from azure.common import AzureHttpError
+    from tests.storage_mock import ObjectStorageMock
+
+    def raise_404():
+        """Raise 404 error"""
+        raise AzureHttpError(message='', status_code=404)
+
+    def raise_416():
+        """Raise 416 error"""
+        raise AzureHttpError(message='', status_code=416)
+
+    def raise_500():
+        """Raise 500 error"""
+        raise AzureHttpError(message='', status_code=500)
+
+    return ObjectStorageMock(
+        raise_404, raise_416, raise_500, AzureHttpError,
+        format_date=datetime.fromtimestamp)

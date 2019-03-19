@@ -13,6 +13,7 @@ from azure.storage.blob import (
     AppendBlobService as _AppendBlobService,
     BlobBlock as _BlobBlock)
 from azure.storage.blob.models import _BlobTypes
+from azure.common import AzureHttpError as _AzureHttpError
 
 from pycosio.storage.azure import (
     _handle_azure_exception, _update_storage_parameters, _get_time,
@@ -41,6 +42,17 @@ class _AzureBlobSystem(_SystemBase):
     _MTIME_KEYS = ('last_modified',)
     _SIZE_KEYS = ('content_length',)
 
+    def __init__(self, *args, **kwargs):
+        _SystemBase.__init__(self, *args, **kwargs)
+
+        # Update parameters with unsecure argument
+        self._storage_parameters = _update_storage_parameters(
+            self._storage_parameters, self._unsecure)
+
+        # Get default blob type
+        self._default_blob_type = self._storage_parameters.pop(
+            'blob_type', _BlobTypes.PageBlob)
+
     def copy(self, src, dst):
         """
         Copy object of the same storage.
@@ -61,10 +73,7 @@ class _AzureBlobSystem(_SystemBase):
             dict of azure.storage.blob.baseblobservice.BaseBlobService subclass:
             Service
         """
-        parameters = _update_storage_parameters(
-            self._storage_parameters, self._unsecure)
-
-        # Block blob
+        parameters = self._storage_parameters
         return {
             _BlobTypes.PageBlob: _PageBlobService(**parameters),
             _BlobTypes.BlockBlob: _BlockBlobService(**parameters),
@@ -197,8 +206,8 @@ class _AzureBlobSystem(_SystemBase):
         with _handle_azure_exception():
             # Blob
             if 'blob_name' in client_kwargs:
-                return self._client_block.create_blob_from_stream(
-                    stream=_BytesIO(), **client_kwargs)
+                return self._client_block.create_blob_from_bytes(
+                    blob=b'', **client_kwargs)
 
             # Container
             return self._client_block.create_container(**client_kwargs)
@@ -232,8 +241,11 @@ class AzureBlobRawIO(_ObjectRawIOBase):
             information.
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
+        blob_type (str): Blob type to use on new file creation.
+            Possibles values: PageBlob (default), AppendBlob, BlockBlob.
     """
     _SYSTEM_CLASS = _AzureBlobSystem
+    _SUPPORT_RANDOM_WRITE = None
 
     def __init__(self, *args, **kwargs):
         _ObjectRawIOBase.__init__(self, *args, **kwargs)
@@ -242,22 +254,24 @@ class AzureBlobRawIO(_ObjectRawIOBase):
         try:
             self._blob_type = self._head().get('blob_type', 'PageBlob')
         except _ObjectNotFoundError:
-            self._blob_type = _BlobTypes.PageBlob
+            self._blob_type = kwargs.get(
+                'blob_type', self._system._default_blob_type)
+
+        # Page blob support random write
+        if self._blob_type == _BlobTypes.PageBlob:
+            self._SUPPORT_RANDOM_WRITE = True
+
+        # Other blob types require to load file content
+        elif 'a' in self.mode:
+            self._init_append()
 
         # Creates blob on write mode
         if 'x' in self.mode or 'w' in self.mode:
-            if isinstance(self._client, _BlockBlobService):
-                args = self._client_kwargs.copy()
-                args.update({'blob': b''})
-                self._client.create_blob_from_bytes(**args)
+            if self._blob_type == _BlobTypes.BlockBlob:
+                self._client.create_blob_from_bytes(
+                    blob=b'', **self._client_kwargs)
             else:
                 self._client.create_blob(**self._client_kwargs)
-
-    def _init_append(self):
-        """
-        Initializes data on 'a' mode
-        """
-        # Supported by default
 
     @property
     @_memoizedmethod
@@ -283,10 +297,19 @@ class AzureBlobRawIO(_ObjectRawIOBase):
             bytes: number of bytes read
         """
         stream = _BytesIO()
-        with _handle_azure_exception():
-            self._client.get_blob_to_stream(
-                stream=stream, start_range=start,
-                end_range=end if end else None, **self._client_kwargs)
+        try:
+            with _handle_azure_exception():
+                self._client.get_blob_to_stream(
+                    stream=stream, start_range=start,
+                    end_range=end if end else None, **self._client_kwargs)
+
+        # Check for end of file
+        except _AzureHttpError as exception:
+            if exception.status_code == 416:
+                # EOF
+                return bytes()
+            raise
+
         return stream.getvalue()
 
     def _readall(self):
@@ -302,16 +325,28 @@ class AzureBlobRawIO(_ObjectRawIOBase):
                 stream=stream, **self._client_kwargs)
         return stream.getvalue()
 
-    def _flush(self, buffer, *_):
+    def _flush(self, buffer, start, end):
         """
         Flush the write buffer of the stream if applicable.
 
         Args:
             buffer (memoryview): Buffer content.
+            start (int): Start of buffer position to flush.
+                Supported only with page blobs.
+            end (int): End of buffer position to flush.
+                Supported only with page blobs.
         """
         with _handle_azure_exception():
-            self._client.create_blob_from_stream(
-                stream=_BytesIO(buffer), **self._client_kwargs)
+            # Page blob: Support Random write access
+            if self._blob_type == _BlobTypes.PageBlob:
+                self._client.update_page(
+                    page=buffer, start_range=start, end_range=end,
+                    **self._client_kwargs)
+
+            # Other blobs: Write entire file at once
+            else:
+                self._client.create_blob_from_bytes(
+                    blob=buffer, **self._client_kwargs)
 
 
 class AzureBlobBufferedIO(_ObjectBufferedIOBase):
@@ -331,6 +366,7 @@ class AzureBlobBufferedIO(_ObjectBufferedIOBase):
             information.
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
+        blob_type (str): Blob type to use on new file creation.
     """
     _RAW_CLASS = AzureBlobRawIO
 
@@ -348,7 +384,7 @@ class AzureBlobBufferedIO(_ObjectBufferedIOBase):
                 self._blocks = []
 
     @staticmethod
-    def _random_block_id(length):
+    def _get_random_block_id(length):
         """
         Generate a random ID.
 
@@ -361,48 +397,64 @@ class AzureBlobBufferedIO(_ObjectBufferedIOBase):
         return ''.join(random.choice(string.ascii_lowercase)
                        for _ in range(length))
 
+    @property
+    @_memoizedmethod
+    def _client(self):
+        """
+        Returns client instance.
+
+        Returns:
+            client
+        """
+        return self._raw._system.client[self._blob_type]
+
     def _flush(self):
         """
         Flush the write buffer of the stream.
         """
+        buffer = self._get_buffer()
+
         # Page blob: Writes buffer as range of bytes
         if self._blob_type == _BlobTypes.PageBlob:
-            start_range = self._buffer_size * self._seek
-            end_range = start_range + self._buffer_size
+            start_range = self._buffer_size * (self._seek - 1)
+            end_range = start_range + len(buffer)
 
             self._write_futures.append(self._workers.submit(
-                self._client[self.blob_type].update_page,
-                page=_BytesIO(self._get_buffer()),
+                self._client.update_page, page=buffer,
                 start_range=start_range, end_range=end_range,
                 **self._client_kwargs))
 
         # Block blob: Writes buffer as a block
         elif self._blob_type == _BlobTypes.BlockBlob:
-            block_id = self._random_block_id(32)
-            self._blocks.append(_BlobBlock(id=block_id))
+            block_id = self._get_random_block_id(32)
+
+            # Upload block with workers
             self._write_futures.append(self._workers.submit(
-                self._client[self._blob_type].put_block,
-                block=_BytesIO(self._get_buffer()),
+                self._client.put_block, block=buffer,
                 block_id=block_id, **self._client_kwargs))
 
+            # Save block information
+            self._blocks.append(_BlobBlock(id=block_id))
+
         # Append blob: Appends buffer as a block
+        # Note: Can't be done asynchronously, always append at end of existing
         elif self._blob_type == _BlobTypes.AppendBlob:
-            self._write_futures.append(self._workers.submit(
-                self._client[self._blob_type].put_block,
-                block=_BytesIO(self._get_buffer()), **self._client_kwargs))
+            self._client.append_block(block=buffer, **self._client_kwargs)
 
     def _close_writable(self):
         """
         Close the object in write mode.
         """
+        if self._blob_type == _BlobTypes.AppendBlob:
+            return
+
         for future in self._write_futures:
             future.result()
 
         # Block blob: Commit put blocks to blob
         if self._blob_type == _BlobTypes.BlockBlob:
-            block_list = self._client[self._blob_type].get_block_list(
-                **self._client_kwargs)
+            block_list = self._client.get_block_list(**self._client_kwargs)
 
-            self._client[self._blob_type].put_block_list(
-                block_list=block_list.committed_blocks +
-                self._blocks, **self._client_kwargs)
+            self._client.put_block_list(
+                block_list=block_list.committed_blocks + self._blocks,
+                **self._client_kwargs)

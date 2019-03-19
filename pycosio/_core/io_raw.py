@@ -34,7 +34,10 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
     # System I/O class
     _SYSTEM_CLASS = SystemBase
 
-    # Natively support Random write access
+    # Natively support Random write access:
+    # - True if supported
+    # - False if unsupported
+    # - None if unspecified at start
     _SUPPORT_RANDOM_WRITE = False
 
     def __init__(self, name, mode='r', storage_parameters=None, **kwargs):
@@ -67,8 +70,7 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
 
             # Initializes starting data
             if 'a' in mode:
-
-                if not self._SUPPORT_RANDOM_WRITE:
+                if self._SUPPORT_RANDOM_WRITE is False:
                     # By default, since appending is not supported by a majority
                     # of cloud storage, reads existing file content in write
                     # buffer

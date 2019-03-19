@@ -12,238 +12,170 @@ UNSUPPORTED_OPERATIONS = (
 
 def test_mocked_storage():
     """Tests pycosio.azure_file with a mock"""
-    # TODO: Implement
-
-
-def test_azure_blob_raw_io():
-    """Tests pycosio.storage.azure_blob.AzureBlobRawIO"""
-    # TODO: Deprecate
     import pytest
-    pytest.skip('Deprecated')
-
-    from datetime import datetime
-    import time
-    from pycosio.storage.azure_blob import AzureBlobRawIO, _AzureBlobSystem
-    from pycosio._core.exceptions import ObjectNotFoundError
-    import pycosio.storage.azure_blob as azure_blob
+    pytest.skip('Work in progress')
     from azure.storage.blob.models import (
-        BlobProperties, ContainerProperties, Blob, Container)
+        BlobProperties, ContainerProperties, Blob, Container, BlobBlockList,
+        _BlobTypes)
 
-    BYTE = b'0'
-    SIZE = 100
+    import pycosio.storage.azure_blob as azure_blob
+    from pycosio.storage.azure_blob import (
+        AzureBlobRawIO, _AzureBlobSystem, AzureBlobBufferedIO)
 
-    def check_head_methods(system, m_time, c_time=None, path=None):
-        """
-        Tests head methods.
+    from tests.test_storage import StorageTester
+    from tests.test_storage_azure import get_storage_mock
 
-        args:
-            io_object (pycosio._core.io_system.SystemBase subclass):
-                Object to test
-        """
-        path = path or 'directory/file'
-        assert system.getmtime(path) == pytest.approx(m_time, 1)
-        if c_time:
-            assert system.getctime(path) == pytest.approx(c_time, 1)
-        assert system.getsize(path) == SIZE
-
-    def check_raw_read_methods(io_object):
-        """
-        Tests read methods.
-
-        args:
-            io_object (pycosio.io_base.ObjectIOBase subclass):
-                Object to test
-        """
-
-        # Tests _read_all
-        assert io_object.readall() == SIZE * BYTE
-        assert io_object.tell() == SIZE
-
-        assert io_object.seek(10) == 10
-        assert io_object.readall() == (SIZE - 10) * BYTE
-        assert io_object.tell() == SIZE
-
-        # Tests _read_range
-        assert io_object.seek(0) == 0
-        buffer = bytearray(40)
-        assert io_object.readinto(buffer) == 40
-        assert bytes(buffer) == 40 * BYTE
-        assert io_object.tell() == 40
-
-        buffer = bytearray(40)
-        assert io_object.readinto(buffer) == 40
-        assert bytes(buffer) == 40 * BYTE
-        assert io_object.tell() == 80
-
-        buffer = bytearray(40)
-        assert io_object.readinto(buffer) == 20
-        assert bytes(buffer) == 20 * BYTE + b'\x00' * 20
-        assert io_object.tell() == SIZE
-
-        buffer = bytearray(40)
-        assert io_object.readinto(buffer) == 0
-        assert bytes(buffer) == b'\x00' * 40
-        assert io_object.tell() == SIZE
-
-    # Initializes some variables
-    container_name = 'container'
-    blob_name = 'blob'
-    container_client_args = dict(container_name=container_name)
-    blob_client_args = dict(container_name=container_name, blob_name=blob_name)
-    account_name = 'account'
-    root = 'http://%s.blob.core.windows.net' % account_name
-    container_url = '/'.join((root, container_name))
-    blob_path = '/'.join((container_name, blob_name))
-    blob_url = '/'.join((root, container_name, blob_name))
-    m_time = time.time()
-    create_container_called = []
-    delete_container_called = []
-    delete_blob_called = []
-    copy_blob_called = []
-    create_blob_called = []
-    write_blob_called = []
-    blob_not_exists = False
-
-    # Mocks Azure service client
+    # Mocks client
+    storage_mock = get_storage_mock()
 
     class BlobService:
-        """Dummy BlobService"""
+        """azure.storage.blob.baseblobservice.BaseBlobService"""
+        BLOB_TYPE = None
 
         def __init__(self, *_, **__):
-            """Do nothing"""
+            """azure.storage.blob.baseblobservice.BaseBlobService.__init__"""
 
         @staticmethod
-        def copy_blob(**kwargs):
-            """Do nothing"""
-            assert kwargs['container_name'] == container_name
-            assert kwargs['blob_name'] == blob_name
-            assert kwargs['copy_source'] == blob_url
-            copy_blob_called.append(1)
+        def copy_blob(container_name=None, blob_name=None, copy_source=None,
+                      **_):
+            """azure.storage.blob.baseblobservice.BaseBlobService.copy_blob"""
+            storage_mock.copy_object(
+                src_path=copy_source, dst_locator=container_name,
+                dst_path=blob_name)
 
-        @staticmethod
-        def get_blob_properties(**kwargs):
-            """Checks arguments and returns fake result"""
-            assert kwargs['container_name'] == container_name
-            assert kwargs['blob_name'] == blob_name
-            if blob_not_exists:
-                raise ObjectNotFoundError
+        def get_blob_properties(self, container_name=None, blob_name=None):
+            """azure.storage.blob.baseblobservice.BaseBlobService.
+            get_blob_properties"""
+            args = container_name, blob_name
             props = BlobProperties()
-            props.last_modified = datetime.fromtimestamp(m_time)
-            props.content_length = SIZE
-            props.blob_type = 'BlockBlob'
-            return Blob(props=props, metadata=blob_name)
+            props.last_modified = storage_mock.get_object_mtime(*args)
+            props.content_length = storage_mock.get_object_size(*args)
+            props.blob_type = self.BLOB_TYPE
+            return Blob(props=props, name=blob_name)
 
         @staticmethod
-        def get_container_properties(**kwargs):
-            """Checks arguments and returns fake result"""
-            assert kwargs['container_name'] == container_name
-            assert 'blob_name' not in kwargs
+        def get_container_properties(container_name=None, **_):
+            """azure.storage.blob.baseblobservice.BaseBlobService.
+            get_container_properties"""
             props = ContainerProperties()
-            props.last_modified = datetime.fromtimestamp(m_time)
-            return Container(props=props, metadata=container_name)
+            props.last_modified = storage_mock.get_locator_mtime(container_name)
+            return Container(props=props, name=container_name)
 
         @staticmethod
-        def list_containers():
-            """Returns fake result"""
-            props = ContainerProperties()
-            props.last_modified = datetime.fromtimestamp(m_time)
-            return [Container(props=props, name=container_name)]
+        def list_containers(**_):
+            """azure.storage.blob.baseblobservice.BaseBlobService.
+            list_containers"""
+            containers = []
+            for container_name in storage_mock.get_locators():
+                props = ContainerProperties()
+                props.last_modified = storage_mock.get_locator_mtime(
+                    container_name)
+                containers.append(Container(props=props, name=container_name))
+            return containers
 
         @staticmethod
-        def list_blobs(**kwargs):
-            """Checks arguments and returns fake result"""
-            assert kwargs['container_name'] == container_name
-            assert kwargs['prefix'] == ''
-            assert 'blob_name' not in kwargs
-            props = BlobProperties()
-            props.last_modified = datetime.fromtimestamp(m_time)
-            props.content_length = SIZE
-            return [Blob(props=props, name=blob_name)]
+        def list_blobs(container_name=None, prefix=None, num_results=None, **_):
+            """azure.storage.blob.baseblobservice.BaseBlobService.list_blobs"""
+            blobs = []
+            for blob_name in storage_mock.get_locator(
+                    container_name, prefix=prefix, limit=num_results):
+                props = BlobProperties()
+                props.last_modified = storage_mock.get_object_mtime(
+                    container_name, blob_name)
+                props.content_length = storage_mock.get_object_size(
+                    container_name, blob_name)
+                blobs.append(Blob(props=props, name=blob_name))
+            return blobs
 
         @staticmethod
-        def create_container(**kwargs):
-            """Checks arguments"""
-            assert kwargs['container_name'] == container_name
-            assert 'blob_name' not in kwargs
-            create_container_called.append(1)
+        def create_container(container_name=None, **_):
+            """azure.storage.blob.baseblobservice.BaseBlobService.
+            create_container"""
+            storage_mock.put_locator(container_name)
 
         @staticmethod
-        def create_blob(**kwargs):
-            """Checks arguments"""
-            assert kwargs['container_name'] == container_name
-            assert kwargs['blob_name'] == blob_name
-            create_blob_called.append(1)
+        def create_blob(container_name=None, blob_name=None, **_):
+            """azure.storage.blob.baseblobservice.BaseBlobService.create_blob"""
+            storage_mock.put_object(container_name, blob_name)
 
         @staticmethod
-        def create_blob_from_bytes(**kwargs):
-            """Checks arguments"""
-            assert kwargs['container_name'] == container_name
-            assert kwargs['blob_name'] == blob_name
-            create_blob_called.append(1)
+        def create_blob_from_bytes(
+                container_name=None, blob_name=None, blob=None, **_):
+            """azure.storage.blob.baseblobservice.BaseBlobService.
+            create_blob_from_bytes"""
+            storage_mock.put_object(container_name, blob_name, blob)
 
         @staticmethod
-        def create_blob_from_stream(**kwargs):
-            """Checks arguments"""
-            assert kwargs['container_name'] == container_name
-            assert kwargs['blob_name'].strip('/') == blob_name
-            stream = kwargs['stream']
-            stream.seek(0)
-            content = stream.read()
-            if kwargs['blob_name'][-1] == '/':
-                assert content == b''
-            else:
-                assert content == 50 * BYTE
-                write_blob_called.append(1)
+        def delete_container(container_name=None, **_):
+            """azure.storage.blob.baseblobservice.BaseBlobService.
+            delete_container"""
+            storage_mock.delete_locator(container_name)
 
         @staticmethod
-        def delete_container(**kwargs):
-            """Checks arguments"""
-            assert kwargs['container_name'] == container_name
-            assert 'blob_name' not in kwargs
-            delete_container_called.append(1)
+        def delete_blob(container_name=None, blob_name=None, **_):
+            """azure.storage.blob.baseblobservice.BaseBlobService.delete_blob"""
+            storage_mock.delete_object(container_name, blob_name)
 
         @staticmethod
-        def delete_blob(**kwargs):
-            """Checks arguments"""
-            assert kwargs['container_name'] == container_name
-            assert kwargs['blob_name'] == blob_name
-            delete_blob_called.append(1)
-
-        @staticmethod
-        def get_blob_to_stream(**kwargs):
-            """Checks arguments and returns fake result"""
-            assert kwargs['container_name'] == container_name
-            assert kwargs['blob_name'] == blob_name
-            stream = kwargs['stream']
-            end_range = kwargs.get('end_range') or SIZE
-            if end_range > SIZE:
-                end_range = SIZE
-            start_range = kwargs.get('start_range') or 0
-            stream.write(BYTE * (end_range - start_range))
+        def get_blob_to_stream(
+                container_name=None, blob_name=None, stream=None,
+                start_range=None, end_range=None, **_):
+            """azure.storage.blob.baseblobservice.BaseBlobService.
+            get_blob_to_stream"""
+            stream.write(storage_mock.get_object(
+                container_name, blob_name, data_range=(start_range, end_range)))
 
     class PageBlobService(BlobService):
+        """azure.storage.blob.pageblobservice.PageBlobService"""
+        BLOB_TYPE = 'PageBlob'
+
         @staticmethod
-        def get_blob_properties(**kwargs):
-            """Checks arguments and returns fake result"""
-            blob = BlobService.get_blob_properties(**kwargs)
-            blob.properties.blob_type = 'PageBlob'
-            return blob
+        def update_page(container_name=None, blob_name=None,
+                        page=None, start_range=None, end_range=None, **_):
+            """azure.storage.blob.pageblobservice.PageBlobService.update_page"""
+            storage_mock.put_object(
+                container_name, blob_name, content=page,
+                data_range=(start_range, end_range))
 
     class BlockBlobService(BlobService):
+        """azure.storage.blob.blockblobservice.BlockBlobService"""
+        BLOB_TYPE = 'BlockBlob'
+
         @staticmethod
-        def get_blob_properties(**kwargs):
-            """Checks arguments and returns fake result"""
-            blob = BlobService.get_blob_properties(**kwargs)
-            blob.properties.blob_type = 'BlockBlob'
-            return blob
+        def put_block(container_name=None, blob_name=None, block=None,
+                      block_id=None, **_):
+            """azure.storage.blob.blockblobservice.BlockBlobService.put_block"""
+            storage_mock.put_object(
+                container_name, '%s:%s' % (blob_name, block_id), content=block)
+
+        @staticmethod
+        def put_block_list(container_name=None, blob_name=None,
+                           block_list=None, **_):
+            """azure.storage.blob.blockblobservice.BlockBlobService.
+            put_block_list"""
+            blocks = []
+            for block in block_list:
+                blocks.append('%s:%s' % (blob_name, block.id))
+            storage_mock.concat_objects(container_name, blob_name, blocks)
+
+        @staticmethod
+        def get_block_list(**_):
+            """azure.storage.blob.blockblobservice.BlockBlobService.
+            get_block_list"""
+            return BlobBlockList()
 
     class AppendBlobService(BlobService):
+        """azure.storage.blob.appendblobservice.AppendBlobService."""
+        BLOB_TYPE = 'AppendBlob'
+
         @staticmethod
-        def get_blob_properties(**kwargs):
-            """Checks arguments and returns fake result"""
-            blob = BlobService.get_blob_properties(**kwargs)
-            blob.properties.blob_type = 'AppendBlob'
-            return blob
+        def append_block(container_name=None, blob_name=None, block=None, **_):
+            """azure.storage.blob.appendblobservice.AppendBlobService.
+            append_block"""
+            start = storage_mock.get_object_size(container_name, blob_name)
+            storage_mock.put_object(
+                container_name, blob_name, content=block,
+                data_range=(start, start + len(block)))
 
     azure_storage_block_blob_service = azure_blob._BlockBlobService
     azure_storage_append_blob_service = azure_blob._AppendBlobService
@@ -251,87 +183,67 @@ def test_azure_blob_raw_io():
     azure_blob._BlockBlobService = BlockBlobService
     azure_blob._AppendBlobService = AppendBlobService
     azure_blob._PageBlobService = PageBlobService
+
     # Tests
     try:
-        azure_system = _AzureBlobSystem(
-            storage_parameters=dict(account_name=account_name))
+        # Init mocked system
+        storage_parameters = dict(account_name='account')
+        system_parameters = dict(storage_parameters=storage_parameters)
+        tester_kwargs = dict(
+            raw_io=AzureBlobRawIO,
+            buffered_io=AzureBlobBufferedIO, storage_mock=storage_mock,
+            unsupported_operations=UNSUPPORTED_OPERATIONS,
+            system_parameters=system_parameters,
+            root='https://account.blob.core.windows.net')
 
-        # Tests head
-        check_head_methods(azure_system, m_time, path=blob_url)
-        assert azure_system.head(
-            path=blob_url)['metadata'] == blob_name
-        assert azure_system.head(
-            path=container_url)['metadata'] == container_name
+        # Page blobs tests (Default)
+        blob_type = _BlobTypes.BlockBlob
+        system = _AzureBlobSystem(**system_parameters)
+        storage_mock.attach_io_system(system)
+        with StorageTester(system, **tester_kwargs) as tester:
 
-        # Tests create directory
-        azure_system.make_dir(container_url)
-        assert len(create_container_called) == 1
-        azure_system.make_dir(blob_url)
-        assert len(create_container_called) == 1
+            # Common tests
+            tester.test_common()
 
-        # Tests remove
-        azure_system.remove(container_url)
-        assert len(delete_container_called) == 1
-        azure_system.remove(blob_url)
-        assert len(delete_blob_called) == 1
+            # Tests blob type
+            assert system._default_blob_type == blob_type
+            with AzureBlobRawIO(tester.base_dir_path + 'file0.dat',
+                                **tester._system_parameters) as file:
+                assert file._blob_type == blob_type
 
-        # Tests copy
-        azure_system.copy(blob_url, blob_url)
-        assert len(copy_blob_called) == 1
+        # Block blobs tests
+        blob_type = _BlobTypes.BlockBlob
+        storage_parameters['blob_type'] = blob_type
+        system = _AzureBlobSystem(**system_parameters)
+        storage_mock.attach_io_system(system)
 
-        # Tests _list_locator
-        assert list(azure_system._list_locators()) == [
-            (container_name, dict(
-                last_modified=datetime.fromtimestamp(m_time)))]
+        with StorageTester(system, **tester_kwargs) as tester:
 
-        # Tests _list_objects
-        assert list(azure_system._list_objects(
-            container_client_args, '', None)) == [
-            (blob_name, dict(last_modified=datetime.fromtimestamp(m_time),
-                             content_length=SIZE))]
+            # Common tests
+            tester.test_common()
 
-        # Tests path and URL handling
-        print("\n\n", azure_blob._BlockBlobService, "\n\n")
-        azure_object = AzureBlobRawIO(
-            blob_url, storage_parameters=dict(account_name=account_name))
-        assert azure_object._client_kwargs == blob_client_args
-        assert azure_object.name == blob_url
-        assert azure_object._blob_type == 'BlockBlob'
+            # Tests blob type
+            assert system._default_blob_type == blob_type
+            with AzureBlobRawIO(tester.base_dir_path + 'file0.dat',
+                                **tester._system_parameters) as file:
+                assert file._blob_type == blob_type
 
-        azure_object = AzureBlobRawIO(
-            blob_path, storage_parameters=dict(account_name=account_name))
-        assert azure_object._client_kwargs == blob_client_args
-        assert azure_object.name == blob_path
+        # Append blobs tests
+        blob_type = _BlobTypes.AppendBlob
+        storage_parameters['blob_type'] = blob_type
+        system = _AzureBlobSystem(**system_parameters)
+        storage_mock.attach_io_system(system)
 
-        # Tests read
-        check_raw_read_methods(azure_object)
+        with StorageTester(system, **tester_kwargs) as tester:
 
-        # Tests create page blob
-        azure_blob._BlockBlobService = PageBlobService
-        page_blob_not_exists = True
-        len_create_blob_called = len(create_blob_called)
-        azure_object = AzureBlobRawIO(
-            blob_url, mode='w',
-            storage_parameters=dict(account_name=account_name))
-        assert azure_object._blob_type == 'PageBlob'
-        assert len(create_blob_called) == len_create_blob_called + 1
-        page_blob_not_exists = False
+            # Common tests
+            tester.test_common()
 
-        # Tests create block blob
-        azure_blob._BlockBlobService = BlockBlobService
-        block_blob_not_exists = True
-        len_create_blob_called = len(create_blob_called)
-        azure_object = AzureBlobRawIO(
-            blob_url, mode='w',
-            storage_parameters=dict(account_name=account_name))
-        assert azure_object._blob_type == 'BlockBlob'
-        assert len(create_blob_called) == len_create_blob_called + 1
-        block_blob_not_exists = False
-
-        # Tests _flush
-        azure_object.write(50 * BYTE)
-        azure_object.flush()
-        assert len(write_blob_called) == 1
+            # Tests blob type
+            assert system._default_blob_type == blob_type
+            with AzureBlobRawIO(tester.base_dir_path + 'file0.dat',
+                                **tester._system_parameters) as file:
+                assert file._blob_type == blob_type
 
     # Restore mocked class
     finally:

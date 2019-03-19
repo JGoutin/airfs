@@ -12,9 +12,6 @@ UNSUPPORTED_OPERATIONS = (
 
 def test_mocked_storage():
     """Tests pycosio.azure_file with a mock"""
-    from datetime import datetime
-
-    from azure.common import AzureHttpError
     from azure.storage.file.models import (
         Share, File, Directory, ShareProperties, FileProperties,
         DirectoryProperties)
@@ -24,25 +21,10 @@ def test_mocked_storage():
         AzureFileRawIO, _AzureFileSystem, AzureFileBufferedIO)
 
     from tests.test_storage import StorageTester
-    from tests.storage_mock import ObjectStorageMock
+    from tests.test_storage_azure import get_storage_mock
 
     # Mocks client
-
-    def raise_404():
-        """Raise 404 error"""
-        raise AzureHttpError(message='', status_code=404)
-
-    def raise_416():
-        """Raise 416 error"""
-        raise AzureHttpError(message='', status_code=416)
-
-    def raise_500():
-        """Raise 500 error"""
-        raise AzureHttpError(message='', status_code=500)
-
-    storage_mock = ObjectStorageMock(
-        raise_404, raise_416, raise_500, AzureHttpError,
-        format_date=datetime.fromtimestamp)
+    storage_mock = get_storage_mock()
 
     def join(directory_name=None, file_name=None):
         """
@@ -122,16 +104,16 @@ def test_mocked_storage():
             azure.storage.file.fileservice.FileService.
             list_directories_and_files
             """
-            objects = []
-            for obj in storage_mock.get_locator(share_name, prefix=prefix,
-                                                limit=num_results):
+            files = []
+            for file_name in storage_mock.get_locator(
+                    share_name, prefix=prefix, limit=num_results):
                 props = FileProperties()
                 props.last_modified = storage_mock.get_object_mtime(
-                    share_name, obj)
+                    share_name, file_name)
                 props.content_length = storage_mock.get_object_size(
-                    share_name, obj)
-                objects.append(File(props=props, name=obj))
-            return objects
+                    share_name, file_name)
+                files.append(File(props=props, name=file_name))
+            return files
 
         @staticmethod
         def create_directory(share_name=None, directory_name=None, **_):
