@@ -2,20 +2,88 @@
 """Test pycosio.storage.azure_file"""
 from __future__ import absolute_import  # Python 2: Fix azure import
 
-from datetime import datetime
-import time
+UNSUPPORTED_OPERATIONS = (
+    'symlink',
 
-from tests.utilities import (
-    BYTE, SIZE, check_head_methods, check_raw_read_methods)
+    # Not supported on some objects
+    'getctime',
+)
+
+
+def test_mocked_storage():
+    """Tests pycosio.azure_file with a mock"""
+    # TODO: Implement
 
 
 def test_azure_blob_raw_io():
     """Tests pycosio.storage.azure_blob.AzureBlobRawIO"""
+    # TODO: Deprecate
+    import pytest
+    pytest.skip('Deprecated')
+
+    from datetime import datetime
+    import time
     from pycosio.storage.azure_blob import AzureBlobRawIO, _AzureBlobSystem
     from pycosio._core.exceptions import ObjectNotFoundError
     import pycosio.storage.azure_blob as azure_blob
     from azure.storage.blob.models import (
         BlobProperties, ContainerProperties, Blob, Container)
+
+    BYTE = b'0'
+    SIZE = 100
+
+    def check_head_methods(system, m_time, c_time=None, path=None):
+        """
+        Tests head methods.
+
+        args:
+            io_object (pycosio._core.io_system.SystemBase subclass):
+                Object to test
+        """
+        path = path or 'directory/file'
+        assert system.getmtime(path) == pytest.approx(m_time, 1)
+        if c_time:
+            assert system.getctime(path) == pytest.approx(c_time, 1)
+        assert system.getsize(path) == SIZE
+
+    def check_raw_read_methods(io_object):
+        """
+        Tests read methods.
+
+        args:
+            io_object (pycosio.io_base.ObjectIOBase subclass):
+                Object to test
+        """
+
+        # Tests _read_all
+        assert io_object.readall() == SIZE * BYTE
+        assert io_object.tell() == SIZE
+
+        assert io_object.seek(10) == 10
+        assert io_object.readall() == (SIZE - 10) * BYTE
+        assert io_object.tell() == SIZE
+
+        # Tests _read_range
+        assert io_object.seek(0) == 0
+        buffer = bytearray(40)
+        assert io_object.readinto(buffer) == 40
+        assert bytes(buffer) == 40 * BYTE
+        assert io_object.tell() == 40
+
+        buffer = bytearray(40)
+        assert io_object.readinto(buffer) == 40
+        assert bytes(buffer) == 40 * BYTE
+        assert io_object.tell() == 80
+
+        buffer = bytearray(40)
+        assert io_object.readinto(buffer) == 20
+        assert bytes(buffer) == 20 * BYTE + b'\x00' * 20
+        assert io_object.tell() == SIZE
+
+        buffer = bytearray(40)
+        assert io_object.readinto(buffer) == 0
+        assert bytes(buffer) == b'\x00' * 40
+        assert io_object.tell() == SIZE
 
     # Initializes some variables
     container_name = 'container'

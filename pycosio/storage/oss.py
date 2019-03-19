@@ -342,13 +342,15 @@ class OSSRawIO(_ObjectRawIOBase):
         with _handle_oss_error():
             return self._bucket.get_object(key=self._key).read()
 
-    def _flush(self):
+    def _flush(self, buffer, *_):
         """
         Flush the write buffers of the stream if applicable.
+
+        Args:
+            buffer (memoryview): Buffer content.
         """
         with _handle_oss_error():
-            self._bucket.put_object(
-                key=self._key, data=self._get_buffer().tobytes())
+            self._bucket.put_object(key=self._key, data=buffer.tobytes())
 
 
 class OSSBufferedIO(_ObjectBufferedIOBase):

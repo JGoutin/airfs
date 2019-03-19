@@ -12,6 +12,7 @@ Add support for following cloud storage:
 
 Improvements:
 
+* ``io.RawIOBase`` can now be used for storage that support random write access.
 * OSS: Copy objects between OSS buckets without copying data on client when
   possible.
 

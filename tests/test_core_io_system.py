@@ -6,8 +6,6 @@ from wsgiref.handlers import format_date_time
 
 import pytest
 
-from tests.utilities import SIZE, check_head_methods
-
 
 def test_system_base():
     """Tests pycosio._core.io_system.SystemBase"""
@@ -18,13 +16,14 @@ def test_system_base():
     from stat import S_ISDIR, S_ISREG, S_ISLNK
 
     # Mocks subclass
+    size = 100
     m_time = time.time()
     dummy_client_kwargs = {'arg1': 1, 'arg2': 2}
     client = 'client'
     roots = re.compile('root2://'), 'root://', '://',
     storage_parameters = {'arg3': 3, 'arg4': 4}
     raise_not_exists_exception = False
-    object_header = {'Content-Length': str(SIZE),
+    object_header = {'Content-Length': str(size),
                      'Last-Modified': format_date_time(m_time),
                      'ETag': '123456'}
     locators = ('locator', 'locator_no_access')
@@ -95,7 +94,8 @@ def test_system_base():
     assert storage_parameters == system.storage_parameters
 
     # Tests head
-    check_head_methods(system, m_time)
+    assert system.getmtime('path') == pytest.approx(m_time, 1)
+    assert system.getsize('path') == size
 
     with pytest.raises(UnsupportedOperation):
         system.getctime('path')
@@ -179,7 +179,7 @@ def test_system_base():
     stat_result = system.stat('root://locator/path/')
     assert S_ISDIR(stat_result.st_mode)
 
-    object_header['Content-Length'] = str(SIZE)
+    object_header['Content-Length'] = str(size)
     stat_result = system.stat('root://locator/path')
     assert S_ISREG(stat_result.st_mode)
     assert stat_result.st_ino == 0
@@ -187,7 +187,7 @@ def test_system_base():
     assert stat_result.st_nlink == 0
     assert stat_result.st_uid == 0
     assert stat_result.st_gid == 0
-    assert stat_result.st_size == SIZE
+    assert stat_result.st_size == size
     assert stat_result.st_atime == 0
     assert stat_result.st_mtime == pytest.approx(m_time, 1)
     assert stat_result.st_ctime == 0

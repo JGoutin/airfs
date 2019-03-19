@@ -260,13 +260,16 @@ class SwiftRawIO(_ObjectRawIOBase):
         with _handle_client_exception():
             return self._client.get_object(*self._client_args)[1]
 
-    def _flush(self):
+    def _flush(self, buffer, *_):
         """
         Flush the write buffers of the stream if applicable.
+
+        Args:
+            buffer (memoryview): Buffer content.
         """
         container, obj = self._client_args
         with _handle_client_exception():
-            self._client.put_object(container, obj, self._get_buffer())
+            self._client.put_object(container, obj, buffer)
 
 
 class SwiftBufferedIO(_ObjectBufferedIOBase):

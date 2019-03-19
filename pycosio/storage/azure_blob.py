@@ -302,13 +302,16 @@ class AzureBlobRawIO(_ObjectRawIOBase):
                 stream=stream, **self._client_kwargs)
         return stream.getvalue()
 
-    def _flush(self):
+    def _flush(self, buffer, *_):
         """
-        Flush the write buffers of the stream if applicable.
+        Flush the write buffer of the stream if applicable.
+
+        Args:
+            buffer (memoryview): Buffer content.
         """
         with _handle_azure_exception():
             self._client.create_blob_from_stream(
-                stream=_BytesIO(self._write_buffer), **self._client_kwargs)
+                stream=_BytesIO(buffer), **self._client_kwargs)
 
 
 class AzureBlobBufferedIO(_ObjectBufferedIOBase):
@@ -360,7 +363,7 @@ class AzureBlobBufferedIO(_ObjectBufferedIOBase):
 
     def _flush(self):
         """
-        Flush the write buffers of the stream.
+        Flush the write buffer of the stream.
         """
         # Page blob: Writes buffer as range of bytes
         if self._blob_type == _BlobTypes.PageBlob:

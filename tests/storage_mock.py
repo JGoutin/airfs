@@ -269,22 +269,17 @@ class ObjectStorageMock:
                         end = start + len(content)
                     assert len(content) == end - start
 
-                    # Write pending range of content
+                    # Add to pending content
                     pending_content = file['_pending_content']
+                    pending_content[start] = content
+
+                    # Write all pending range of content
                     for pending_start in sorted(tuple(pending_content)):
                         if pending_start <= len(file_content):
                             file_content[
-                            pending_start:pending_start + len(
-                                pending_content[pending_start])] = content
+                                pending_start:pending_start + len(
+                                    pending_content[pending_start])] = content
                             del pending_content[pending_start]
-
-                    # Keep content range that cannot be written now as pending
-                    if start > len(file_content):
-                        pending_content[start] = content
-
-                    # Write content range now
-                    else:
-                        file_content[start:end] = content
 
             if headers:
                 file.update(headers)

@@ -84,6 +84,7 @@ class StorageTester:
         self._test_system_objects()
         self._test_raw_io()
         self._test_buffered_io()
+        # TODO: Add pycosio public functions tests
 
         # Only if mocked
         if self._storage_mock is not None:
@@ -115,6 +116,8 @@ class StorageTester:
         """
         Tests raw IO.
         """
+        # TODO: Add: modes tests('a', 'x'), Random write access test.
+
         from os import SEEK_END
 
         size = 100

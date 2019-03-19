@@ -365,13 +365,16 @@ class S3RawIO(_ObjectRawIOBase):
         with _handle_client_error():
             return self._client.get_object(**self._client_kwargs)['Body'].read()
 
-    def _flush(self):
+    def _flush(self, buffer, *_):
         """
         Flush the write buffers of the stream if applicable.
+
+        Args:
+            buffer (memoryview): Buffer content.
         """
         with _handle_client_error():
-            self._client.put_object(Body=self._get_buffer().tobytes(),
-                                    **self._client_kwargs)
+            self._client.put_object(
+                Body=buffer.tobytes(), **self._client_kwargs)
 
 
 class S3BufferedIO(_ObjectBufferedIOBase):

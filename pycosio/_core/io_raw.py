@@ -34,6 +34,9 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
     # System I/O class
     _SYSTEM_CLASS = SystemBase
 
+    # Natively support Random write access
+    _SUPPORT_RANDOM_WRITE = False
+
     def __init__(self, name, mode='r', storage_parameters=None, **kwargs):
 
         RawIOBase.__init__(self)
@@ -65,7 +68,11 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
             # Initializes starting data
             if 'a' in mode:
 
-                self._init_append()
+                if not self._SUPPORT_RANDOM_WRITE:
+                    # By default, since appending is not supported by a majority
+                    # of cloud storage, reads existing file content in write
+                    # buffer
+                    self._init_append()
                 self._seek = self._size
 
             # Checks if object exists,
@@ -86,10 +93,8 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
 
     def _init_append(self):
         """
-        Initializes data on 'a' mode
+        Initializes data on 'a' mode with full file content.
         """
-        # By default, since appending is not supported by a majority or cloud
-        # storage, reads existing file content in write buffer
         self._write_buffer[:] = self.readall()
 
     @property
@@ -108,8 +113,7 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         close the object.
         """
         if self._writable and not self._is_raw_of_buffered:
-            with self._seek_lock:
-                self._flush()
+            self.flush()
 
     def flush(self):
         """
@@ -117,13 +121,36 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         save the object on the cloud.
         """
         if self._writable:
+            with self._seek_lock:
+                buffer = self._get_buffer()
+
+                # Random write: Buffer is a part of the file
+                if self._SUPPORT_RANDOM_WRITE:
+                    # Flush that part of the file
+                    end = self._seek
+                    start = end - len(buffer)
+
+                    # Clear buffer
+                    self._write_buffer = bytearray()
+
+                # No random write: Buffer is the entire file content
+                else:
+                    start = end = None
+
             with handle_os_exceptions():
-                self._flush()
+                self._flush(buffer, start, end)
 
     @abstractmethod
-    def _flush(self):
+    def _flush(self, buffer, start, end):
         """
         Flush the write buffers of the stream if applicable.
+
+        Args:
+            buffer (memoryview): Buffer content.
+            start (int): Start of buffer position to flush.
+                Supported only if random write supported.
+            end (int): End of buffer position to flush.
+                Supported only if random write supported.
         """
 
     def _get_buffer(self):
@@ -287,6 +314,10 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         """
         if not self._seekable:
             raise UnsupportedOperation('seek')
+
+        if self._SUPPORT_RANDOM_WRITE:
+            # Flush before moving position
+            self.flush()
 
         with self._seek_lock:
             if whence == SEEK_SET:

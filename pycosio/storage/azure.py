@@ -12,10 +12,6 @@ from pycosio._core.exceptions import (
     ObjectNotFoundError as _ObjectNotFoundError,
     ObjectPermissionError as _ObjectPermissionError)
 
-# TODO:
-# - Proper "Truncate" support
-# - Proper random write support
-
 #: 'azure' can be used to mount following storage at once with pycosio.mount
 MOUNT_REDIRECT = ('azure_blob', 'azure_file')
 

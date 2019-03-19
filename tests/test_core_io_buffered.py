@@ -5,8 +5,6 @@ import time
 
 import pytest
 
-from tests.utilities import BYTE
-
 
 def test_object_buffered_base_io():
     """Tests pycosio._core.io_buffered.ObjectBufferedIOBase"""
@@ -58,13 +56,13 @@ def test_object_buffered_base_io():
         """Dummy IO"""
         _SYSTEM_CLASS = DummySystem
 
-        def _flush(self):
+        def _flush(self, buffer, *_):
             """Do nothing"""
-            raw_flushed.extend(self._write_buffer)
+            raw_flushed.extend(buffer)
 
         def _read_range(self, start, end=0):
             """Read fake bytes"""
-            return ((size if end > size else end) - start) * BYTE
+            return ((size if end > size else end) - start) * b'0'
 
     class DummyBufferedIO(ObjectBufferedIOBase):
         """Dummy buffered IO"""
@@ -99,20 +97,20 @@ def test_object_buffered_base_io():
     assert object_io._size == object_io.raw._size
 
     assert object_io.raw.tell() == 0
-    assert object_io.peek(10) == 10 * BYTE
+    assert object_io.peek(10) == 10 * b'0'
     assert object_io.raw.tell() == 0
 
-    assert object_io.read1(10) == 10 * BYTE
+    assert object_io.read1(10) == 10 * b'0'
     assert object_io.raw.tell() == 10
 
     buffer = bytearray(10)
     assert object_io.readinto1(buffer) == 10
-    assert bytes(buffer) == 10 * BYTE
+    assert bytes(buffer) == 10 * b'0'
     assert object_io.raw.tell() == 20
 
     # Tests: Read until end
     object_io = DummyBufferedIO(name)
-    assert object_io.read() == size * BYTE
+    assert object_io.read() == size * b'0'
 
     # Tests: Read when already at end
     assert object_io.read() == b''
@@ -122,28 +120,28 @@ def test_object_buffered_base_io():
     assert object_io._max_buffers == size // buffer_size
 
     object_io = DummyBufferedIO(name, max_buffers=5)
-    assert object_io.read(100) == 100 * BYTE
+    assert object_io.read(100) == 100 * b'0'
 
     # Tests: Read by parts
     assert sorted(object_io._read_queue) == list(range(
         100, 100 + buffer_size * 5, buffer_size))
     assert object_io._seek == 100
-    assert object_io.read(150) == 150 * BYTE
+    assert object_io.read(150) == 150 * b'0'
     assert sorted(object_io._read_queue) == list(range(
         200, 200 + buffer_size * 5, buffer_size))
     assert object_io._seek == 250
-    assert object_io.read(50) == 50 * BYTE
+    assert object_io.read(50) == 50 * b'0'
     assert sorted(object_io._read_queue) == list(range(
         300, 300 + buffer_size * 5, buffer_size))
     assert object_io._seek == 300
-    assert object_io.read() == (size - 300) * BYTE
+    assert object_io.read() == (size - 300) * b'0'
     assert not object_io._read_queue
 
     # Tests: Read small parts
     part = buffer_size // 10
     object_io.seek(0)
     for index in range(1, 15):
-        assert object_io.read(part) == part * BYTE
+        assert object_io.read(part) == part * b'0'
         assert object_io._seek == part * index
 
     # Tests: Read, change seek
@@ -162,10 +160,10 @@ def test_object_buffered_base_io():
 
     # Tests: Read buffer size (No copy mode)
     object_io.seek(0)
-    assert object_io.read(buffer_size) == buffer_size * BYTE
+    assert object_io.read(buffer_size) == buffer_size * b'0'
 
     object_io.seek(size - buffer_size // 2)
-    assert object_io.read(buffer_size) == BYTE * (buffer_size // 2)
+    assert object_io.read(buffer_size) == b'0' * (buffer_size // 2)
     object_io._seek = size
 
     # Tests: Read, EOF before theoretical EOF
@@ -180,20 +178,20 @@ def test_object_buffered_base_io():
     # Tests write (with auto flush)
     assert bytes(flushed) == b''
     object_io = DummyBufferedIO(name, mode='w')
-    assert object_io.write(250 * BYTE) == 250
+    assert object_io.write(250 * b'0') == 250
     object_io.ensure_ready()
     assert object_io._buffer_seek == 50
-    assert bytes(object_io._write_buffer) == 50 * BYTE + 50 * b'\x00'
-    assert object_io._get_buffer().tobytes() == 50 * BYTE
+    assert bytes(object_io._write_buffer) == 50 * b'0' + 50 * b'\x00'
+    assert object_io._get_buffer().tobytes() == 50 * b'0'
     assert object_io._seek == 2
     assert len(flushed) == 200
-    assert bytes(flushed) == 200 * BYTE
+    assert bytes(flushed) == 200 * b'0'
 
     # Tests manual flush
     object_io.flush()
     object_io.ensure_ready()
     assert object_io._seek == 3
-    assert bytes(flushed) == 250 * BYTE
+    assert bytes(flushed) == 250 * b'0'
     assert object_io._buffer_seek == 0
 
     # Tests write, only buffered should flush
@@ -203,7 +201,7 @@ def test_object_buffered_base_io():
     assert bytes(raw_flushed) == b''
 
     with DummyBufferedIO(name, mode='w') as object_io:
-        assert object_io.write(150 * BYTE) == 150
+        assert object_io.write(150 * b'0') == 150
         object_io.ensure_ready()
         assert len(flushed) == 100
         assert object_io._buffer_seek == 50
@@ -215,14 +213,14 @@ def test_object_buffered_base_io():
 
     # Tests write small data flushed by raw
     object_io = DummyBufferedIO(name, mode='w')
-    assert object_io.write(10 * BYTE) == 10
+    assert object_io.write(10 * b'0') == 10
     object_io.close()
-    assert bytes(raw_flushed) == 10 * BYTE
+    assert bytes(raw_flushed) == 10 * b'0'
 
     # Test max buffer
     object_io = DummyBufferedIO(name, mode='w', max_buffers=2)
     flush_sleep = object_io._FLUSH_WAIT
-    assert object_io.write(1000 * BYTE) == 1000
+    assert object_io.write(1000 * b'0') == 1000
     flush_sleep = 0
 
     # Test read in write mode
@@ -238,7 +236,7 @@ def test_object_buffered_base_io():
     # Test write in read mode
     object_io = DummyBufferedIO(name)
     with pytest.raises(io.UnsupportedOperation):
-        object_io.write(BYTE)
+        object_io.write(b'0')
 
     # Test buffer size
     object_io = DummyBufferedIO(name, mode='w')

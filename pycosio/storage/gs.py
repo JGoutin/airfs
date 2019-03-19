@@ -281,12 +281,15 @@ class GSRawIO(_ObjectRawIOBase):
             self._download_to_file(file_obj=file_obj)
         return file_obj.getvalue()
 
-    def _flush(self):
+    def _flush(self, buffer, *_):
         """
         Flush the write buffers of the stream if applicable.
+
+        Args:
+            buffer (memoryview): Buffer content.
         """
         with _handle_google_exception():
-            self._upload_from_file(file_obj=_BytesIO(self._write_buffer))
+            self._upload_from_file(file_obj=_BytesIO(buffer))
 
 
 class GSBufferedIO(_ObjectBufferedIOBase):

@@ -6,6 +6,7 @@ from io import BytesIO as _BytesIO
 import re as _re
 
 from azure.storage.file import FileService as _FileService
+from azure.common import AzureHttpError as _AzureHttpError
 
 from pycosio.storage.azure import (
     _handle_azure_exception, _update_storage_parameters, _get_time,
@@ -29,6 +30,7 @@ class _AzureFileSystem(_SystemBase):
     """
     _MTIME_KEYS = ('last_modified',)
     _SIZE_KEYS = ('content_length',)
+    _SUPPORT_RANDOM_WRITE = True
 
     def copy(self, src, dst):
         """
@@ -244,12 +246,6 @@ class AzureFileRawIO(_ObjectRawIOBase):
         if 'x' in self.mode or 'w' in self.mode:
             self._client.create_file(**self._client_kwargs)
 
-    def _init_append(self):
-        """
-        Initializes data on 'a' mode
-        """
-        # Supported by default
-
     def _read_range(self, start, end=0):
         """
         Read a range of bytes in stream.
@@ -263,10 +259,19 @@ class AzureFileRawIO(_ObjectRawIOBase):
             bytes: number of bytes read
         """
         stream = _BytesIO()
-        with _handle_azure_exception():
-            self._client.get_file_to_stream(
-                stream=stream, start_range=start,
-                end_range=end if end else None, **self._client_kwargs)
+        try:
+            with _handle_azure_exception():
+                self._client.get_file_to_stream(
+                    stream=stream, start_range=start,
+                    end_range=end if end else None, **self._client_kwargs)
+
+        # Check for end of file
+        except _AzureHttpError as exception:
+            if exception.status_code == 416:
+                # EOF
+                return bytes()
+            raise
+
         return stream.getvalue()
 
     def _readall(self):
@@ -282,16 +287,18 @@ class AzureFileRawIO(_ObjectRawIOBase):
                 stream=stream, **self._client_kwargs)
         return stream.getvalue()
 
-    def _flush(self):
+    def _flush(self, buffer, start, end):
         """
         Flush the write buffers of the stream if applicable.
+
+        Args:
+            buffer (memoryview): Buffer content.
+            start (int): Start of buffer position to flush.
+            end (int): End of buffer position to flush.
         """
         with _handle_azure_exception():
-            self._client.update_range(
-                data=self._get_buffer(),
-                # Append at end
-                start_range=self._size - len(self._get_buffer()),
-                end_range=self._size, **self._client_kwargs)
+            self._client.update_range(data=buffer, start_range=start,
+                                      end_range=end, **self._client_kwargs)
 
 
 class AzureFileBufferedIO(_ObjectBufferedIOBase):
@@ -313,15 +320,20 @@ class AzureFileBufferedIO(_ObjectBufferedIOBase):
     """
     _RAW_CLASS = AzureFileRawIO
 
+    # TODO: Since Raw IO support random write and this use sames methods,
+    # make a default implementation in _ObjectBufferedIOBase and ensure proper
+    # seek/append support.
+
     def _flush(self):
         """
         Flush the write buffers of the stream.
         """
-        start_range = self._buffer_size * self._seek
-        end_range = start_range + self._buffer_size
+        buffer = self._get_buffer()
+        start_range = self._buffer_size * (self._seek - 1)
+        end_range = start_range + len(buffer)
 
         self._write_futures.append(self._workers.submit(
-            self._client.update_range, data=self._get_buffer(),
+            self._client.update_range, data=buffer,
             start_range=start_range, end_range=end_range,
             **self._client_kwargs))
 
