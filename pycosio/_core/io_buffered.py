@@ -2,6 +2,7 @@
 """Cloud storage abstract buffered IO class"""
 from __future__ import division  # Python 2:  Enable "type(int / int) == float"
 
+from concurrent.futures import as_completed
 from functools import partial
 from io import BufferedIOBase, UnsupportedOperation
 from math import ceil
@@ -9,7 +10,7 @@ from os import SEEK_SET
 from threading import Lock
 from time import sleep
 
-from pycosio._core.compat import ThreadPoolExecutor
+from pycosio._core.compat import ThreadPoolExecutor, file_not_found_error
 from pycosio._core.io_base import ObjectIOBase
 from pycosio._core.io_raw import ObjectRawIOBase
 from pycosio._core.exceptions import handle_os_exceptions
@@ -142,7 +143,7 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
         complete the object writing on the cloud.
         """
         # Default implementation only wait for tasks termination
-        for future in self._write_futures:
+        for future in as_completed(self._write_futures):
             future.result()
 
     def flush(self):
@@ -222,7 +223,7 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
                 self._size_synched = True
                 try:
                     self._size = self.raw._size
-                except (FileNotFoundError, UnsupportedOperation):
+                except (file_not_found_error, UnsupportedOperation):
                     self._size = 0
 
         # It is not possible to flush a part if start > size:

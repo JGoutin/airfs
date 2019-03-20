@@ -129,7 +129,7 @@ def test_mocked_storage():
 
     class PageBlobService(BlobService):
         """azure.storage.blob.pageblobservice.PageBlobService"""
-        BLOB_TYPE = 'PageBlob'
+        BLOB_TYPE = _BlobTypes.PageBlob
 
         @staticmethod
         def update_page(container_name=None, blob_name=None,
@@ -141,14 +141,14 @@ def test_mocked_storage():
 
     class BlockBlobService(BlobService):
         """azure.storage.blob.blockblobservice.BlockBlobService"""
-        BLOB_TYPE = 'BlockBlob'
+        BLOB_TYPE = _BlobTypes.BlockBlob
 
         @staticmethod
         def put_block(container_name=None, blob_name=None, block=None,
                       block_id=None, **_):
             """azure.storage.blob.blockblobservice.BlockBlobService.put_block"""
             storage_mock.put_object(
-                container_name, '%s:%s' % (blob_name, block_id), content=block)
+                container_name, '%s.%s' % (blob_name, block_id), content=block)
 
         @staticmethod
         def put_block_list(container_name=None, blob_name=None,
@@ -157,7 +157,7 @@ def test_mocked_storage():
             put_block_list"""
             blocks = []
             for block in block_list:
-                blocks.append('%s:%s' % (blob_name, block.id))
+                blocks.append('%s.%s' % (blob_name, block.id))
             storage_mock.concat_objects(container_name, blob_name, blocks)
 
         @staticmethod
@@ -168,7 +168,7 @@ def test_mocked_storage():
 
     class AppendBlobService(BlobService):
         """azure.storage.blob.appendblobservice.AppendBlobService."""
-        BLOB_TYPE = 'AppendBlob'
+        BLOB_TYPE = _BlobTypes.AppendBlob
 
         @staticmethod
         def append_block(container_name=None, blob_name=None, block=None, **_):

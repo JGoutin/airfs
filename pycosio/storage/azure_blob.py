@@ -3,9 +3,9 @@
 from __future__ import absolute_import  # Python 2: Fix azure import
 
 from io import BytesIO as _BytesIO
-import random
+from random import choice as _choice
 import re as _re
-import string
+from string import ascii_lowercase as _ascii_lowercase
 
 from azure.storage.blob import (
     PageBlobService as _PageBlobService,
@@ -404,8 +404,7 @@ class AzureBlobBufferedIO(_ObjectBufferedIOBase):
         Returns:
             str: Random block ID.
         """
-        return ''.join(random.choice(string.ascii_lowercase)
-                       for _ in range(length))
+        return ''.join(_choice(_ascii_lowercase) for _ in range(length))
 
     @property
     @_memoizedmethod
