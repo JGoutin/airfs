@@ -63,9 +63,6 @@ class StorageTester:
         return self
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
-        self.__del__()
-
-    def __del__(self):
         from pycosio._core.exceptions import ObjectNotFoundError
 
         # Remove objects, and once empty the locator

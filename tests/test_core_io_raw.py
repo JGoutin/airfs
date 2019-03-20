@@ -28,6 +28,8 @@ def test_object_raw_base_io():
         @staticmethod
         def getsize(*_, **__):
             """Returns fake result"""
+            if raise_not_exists_exception:
+                raise ObjectNotFoundError
             return size
 
         @staticmethod
@@ -57,6 +59,8 @@ def test_object_raw_base_io():
 
         def _read_range(self, start, end=0):
             """Read fake bytes"""
+            if raise_not_exists_exception:
+                raise ObjectNotFoundError
             if end == 0:
                 end = size
             return ((size if end > size else end) - start) * b'0'
@@ -146,6 +150,12 @@ def test_object_raw_base_io():
     object_io = DummyIO(name, mode='a')
     assert object_io.tell() == size
     assert bytes(object_io._write_buffer) == size * b'0'
+
+    # Test append on non existing file
+    raise_not_exists_exception = True
+    object_io = DummyIO(name, mode='a')
+    assert object_io.tell() == 0
+    raise_not_exists_exception = False
 
     # Test exclusive creation
     with pytest.raises(OSError):

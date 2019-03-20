@@ -12,8 +12,6 @@ UNSUPPORTED_OPERATIONS = (
 
 def test_mocked_storage():
     """Tests pycosio.azure_file with a mock"""
-    import pytest
-    pytest.skip('Work in progress')
     from azure.storage.blob.models import (
         BlobProperties, ContainerProperties, Blob, Container, BlobBlockList,
         _BlobTypes)
@@ -50,7 +48,8 @@ def test_mocked_storage():
             props = BlobProperties()
             props.last_modified = storage_mock.get_object_mtime(*args)
             props.content_length = storage_mock.get_object_size(*args)
-            props.blob_type = self.BLOB_TYPE
+            props.blob_type = storage_mock.head_object(
+                container_name, blob_name)['blob_type']
             return Blob(props=props, name=blob_name)
 
         @staticmethod
@@ -84,6 +83,8 @@ def test_mocked_storage():
                     container_name, blob_name)
                 props.content_length = storage_mock.get_object_size(
                     container_name, blob_name)
+                props.blob_type = storage_mock.head_object(
+                    container_name, blob_name)['blob_type']
                 blobs.append(Blob(props=props, name=blob_name))
             return blobs
 
@@ -93,17 +94,18 @@ def test_mocked_storage():
             create_container"""
             storage_mock.put_locator(container_name)
 
-        @staticmethod
-        def create_blob(container_name=None, blob_name=None, **_):
+        def create_blob(self, container_name=None, blob_name=None, **_):
             """azure.storage.blob.baseblobservice.BaseBlobService.create_blob"""
-            storage_mock.put_object(container_name, blob_name)
+            storage_mock.put_object(container_name, blob_name, headers=dict(
+                blob_type=self.BLOB_TYPE))
 
-        @staticmethod
         def create_blob_from_bytes(
-                container_name=None, blob_name=None, blob=None, **_):
+                self, container_name=None, blob_name=None, blob=None, **_):
             """azure.storage.blob.baseblobservice.BaseBlobService.
             create_blob_from_bytes"""
-            storage_mock.put_object(container_name, blob_name, blob)
+            storage_mock.put_object(
+                container_name, blob_name, blob, headers=dict(
+                    blob_type=self.BLOB_TYPE))
 
         @staticmethod
         def delete_container(container_name=None, **_):
@@ -197,7 +199,7 @@ def test_mocked_storage():
             root='https://account.blob.core.windows.net')
 
         # Page blobs tests (Default)
-        blob_type = _BlobTypes.BlockBlob
+        blob_type = _BlobTypes.PageBlob
         system = _AzureBlobSystem(**system_parameters)
         storage_mock.attach_io_system(system)
         with StorageTester(system, **tester_kwargs) as tester:

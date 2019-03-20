@@ -42,17 +42,6 @@ class _AzureBlobSystem(_SystemBase):
     _MTIME_KEYS = ('last_modified',)
     _SIZE_KEYS = ('content_length',)
 
-    def __init__(self, *args, **kwargs):
-        _SystemBase.__init__(self, *args, **kwargs)
-
-        # Update parameters with unsecure argument
-        self._storage_parameters = _update_storage_parameters(
-            self._storage_parameters, self._unsecure)
-
-        # Get default blob type
-        self._default_blob_type = self._storage_parameters.pop(
-            'blob_type', _BlobTypes.PageBlob)
-
     def copy(self, src, dst):
         """
         Copy object of the same storage.
@@ -73,7 +62,15 @@ class _AzureBlobSystem(_SystemBase):
             dict of azure.storage.blob.baseblobservice.BaseBlobService subclass:
             Service
         """
-        parameters = self._storage_parameters
+        parameters = _update_storage_parameters(
+            self._storage_parameters, self._unsecure).copy()
+
+        # Parameter added by pycosio and unsupported by blob services.
+        try:
+            del parameters['blob_type']
+        except KeyError:
+            pass
+
         return {
             _BlobTypes.PageBlob: _PageBlobService(**parameters),
             _BlobTypes.BlockBlob: _BlockBlobService(**parameters),
@@ -105,6 +102,17 @@ class _AzureBlobSystem(_SystemBase):
             client
         """
         return self.client[_BlobTypes.BlockBlob]
+
+    @property
+    @_memoizedmethod
+    def _default_blob_type(self):
+        """
+        Return default blob type to use when creating objects.
+
+        Returns:
+            str: Blob type.
+        """
+        return self._storage_parameters.get('blob_type', _BlobTypes.PageBlob)
 
     def get_client_kwargs(self, path):
         """
@@ -252,8 +260,8 @@ class AzureBlobRawIO(_ObjectRawIOBase):
 
         # Detects blob type to use
         try:
-            self._blob_type = self._head().get('blob_type', 'PageBlob')
-        except _ObjectNotFoundError:
+            self._blob_type = self._head()['blob_type']
+        except (_ObjectNotFoundError, KeyError):
             self._blob_type = kwargs.get(
                 'blob_type', self._system._default_blob_type)
 
@@ -373,7 +381,6 @@ class AzureBlobBufferedIO(_ObjectBufferedIOBase):
     def __init__(self, *args, **kwargs):
         _ObjectBufferedIOBase.__init__(self, *args, **kwargs)
 
-        # Pages must be 512 bytes aligned
         if self._writable:
             self._blob_type = self._raw._blob_type
 
@@ -382,6 +389,9 @@ class AzureBlobBufferedIO(_ObjectBufferedIOBase):
                 raise ValueError('"buffer_size" must be multiple of 512 bytes')
             elif self._blob_type == _BlobTypes.BlockBlob:
                 self._blocks = []
+            elif self._blob_type == _BlobTypes.AppendBlob:
+                # Can't upload in parallel, always add data at end.
+                self._workers_count = 1
 
     @staticmethod
     def _get_random_block_id(length):
@@ -437,17 +447,14 @@ class AzureBlobBufferedIO(_ObjectBufferedIOBase):
             self._blocks.append(_BlobBlock(id=block_id))
 
         # Append blob: Appends buffer as a block
-        # Note: Can't be done asynchronously, always append at end of existing
-        elif self._blob_type == _BlobTypes.AppendBlob:
-            self._client.append_block(block=buffer, **self._client_kwargs)
+        else:
+            self._write_futures.append(self._workers.submit(
+                self._client.append_block, block=buffer, **self._client_kwargs))
 
     def _close_writable(self):
         """
         Close the object in write mode.
         """
-        if self._blob_type == _BlobTypes.AppendBlob:
-            return
-
         for future in self._write_futures:
             future.result()
 

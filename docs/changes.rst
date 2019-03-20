@@ -22,8 +22,10 @@ Deprecations:
 
 Fixes:
 
+* Fix file closed twice when using context manager.
 * Fix root URL detection in some cases.
 * Fix too many returned result when listing objects with a count limit.
+* Fix error when trying to append on a not existing file.
 * OSS: Fix error when listing objects in a not existing directory.
 * OSS: Fix read error if try to read after end of file.
 * OSS: Fix buffered write minimum buffer size.

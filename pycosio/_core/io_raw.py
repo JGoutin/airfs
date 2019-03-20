@@ -70,12 +70,16 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
 
             # Initializes starting data
             if 'a' in mode:
-                if self._SUPPORT_RANDOM_WRITE is False:
-                    # By default, since appending is not supported by a majority
-                    # of cloud storage, reads existing file content in write
-                    # buffer
-                    self._init_append()
-                self._seek = self._size
+                try:
+                    if self._SUPPORT_RANDOM_WRITE is False:
+                        # By default, since appending is not supported by a
+                        # majority of cloud storage, reads existing file content
+                        # in write buffer
+                        self._init_append()
+                    self._seek = self._size
+
+                except ObjectNotFoundError:
+                    pass
 
             # Checks if object exists,
             # and raise if it is the case
@@ -114,7 +118,8 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         Flush the write buffers of the stream if applicable and
         close the object.
         """
-        if self._writable and not self._is_raw_of_buffered:
+        if self._writable and not self._is_raw_of_buffered and not self._closed:
+            self._closed = True
             self.flush()
 
     def flush(self):

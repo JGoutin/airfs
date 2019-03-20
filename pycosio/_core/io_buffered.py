@@ -106,7 +106,8 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
         Flush the write buffers of the stream if applicable and
         close the object.
         """
-        if self._writable:
+        if self._writable and not self._closed:
+            self._closed = True
             with self._seek_lock:
                 # Flush on close only if bytes written
                 # This avoid no required process/thread

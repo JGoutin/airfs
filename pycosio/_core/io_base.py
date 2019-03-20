@@ -30,6 +30,9 @@ class ObjectIOBase(IOBase):
         # Cache for values
         self._cache = {}
 
+        # Set to True once file is closed
+        self._closed = False
+
         # Select supported features based on mode
         self._writable = False
         self._readable = False

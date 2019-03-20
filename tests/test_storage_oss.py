@@ -199,7 +199,7 @@ def test_mocked_storage():
     # Tests
     try:
         # Init mocked system
-        endpoint = 'https://oss-cn-hangzhou.aliyuncs.com'
+        endpoint = 'https://oss-region.aliyuncs.com'
         system_parameters = dict(storage_parameters=dict(endpoint=endpoint))
         system = _OSSSystem(**system_parameters)
         storage_mock.attach_io_system(system)
