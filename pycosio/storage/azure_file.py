@@ -30,7 +30,6 @@ class _AzureFileSystem(_SystemBase):
     """
     _MTIME_KEYS = ('last_modified',)
     _SIZE_KEYS = ('content_length',)
-    _SUPPORT_RANDOM_WRITE = True
 
     def copy(self, src, dst):
         """
@@ -238,6 +237,7 @@ class AzureFileRawIO(_ObjectRawIOBase):
             transfer performance. But makes connection unsecure.
     """
     _SYSTEM_CLASS = _AzureFileSystem
+    _SUPPORT_RANDOM_WRITE = True
 
     def __init__(self, *args, **kwargs):
         _ObjectRawIOBase.__init__(self, *args, **kwargs)
@@ -319,27 +319,3 @@ class AzureFileBufferedIO(_ObjectBufferedIOBase):
             transfer performance. But makes connection unsecure.
     """
     _RAW_CLASS = AzureFileRawIO
-
-    # TODO: Since Raw IO support random write and this use sames methods,
-    # make a default implementation in _ObjectBufferedIOBase and ensure proper
-    # seek/append support.
-
-    def _flush(self):
-        """
-        Flush the write buffers of the stream.
-        """
-        buffer = self._get_buffer()
-        start_range = self._buffer_size * (self._seek - 1)
-        end_range = start_range + len(buffer)
-
-        self._write_futures.append(self._workers.submit(
-            self._client.update_range, data=buffer,
-            start_range=start_range, end_range=end_range,
-            **self._client_kwargs))
-
-    def _close_writable(self):
-        """
-        Close the object in write mode.
-        """
-        for future in self._write_futures:
-            future.result()

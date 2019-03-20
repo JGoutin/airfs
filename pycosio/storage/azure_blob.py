@@ -426,13 +426,7 @@ class AzureBlobBufferedIO(_ObjectBufferedIOBase):
 
         # Page blob: Writes buffer as range of bytes
         if self._blob_type == _BlobTypes.PageBlob:
-            start_range = self._buffer_size * (self._seek - 1)
-            end_range = start_range + len(buffer)
-
-            self._write_futures.append(self._workers.submit(
-                self._client.update_page, page=buffer,
-                start_range=start_range, end_range=end_range,
-                **self._client_kwargs))
+            _ObjectBufferedIOBase._flush(self)
 
         # Block blob: Writes buffer as a block
         elif self._blob_type == _BlobTypes.BlockBlob:

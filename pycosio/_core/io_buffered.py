@@ -2,10 +2,11 @@
 """Cloud storage abstract buffered IO class"""
 from __future__ import division  # Python 2:  Enable "type(int / int) == float"
 
-from abc import abstractmethod
+from functools import partial
 from io import BufferedIOBase, UnsupportedOperation
 from math import ceil
 from os import SEEK_SET
+from threading import Lock
 from time import sleep
 
 from pycosio._core.compat import ThreadPoolExecutor
@@ -80,6 +81,13 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
             self._write_buffer = bytearray(self._buffer_size)
             self._seekable = False
             self._write_futures = []
+            self._raw_flush = self._raw._flush
+
+            # Size used only with random write access
+            # Value will be lazy evaluated latter if needed.
+            self._size_synched = False
+            self._size = 0
+            self._size_lock = Lock()
 
         # Initialize read mode
         else:
@@ -126,7 +134,6 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
                     self._raw._seek = self._buffer_seek
                     self._raw.flush()
 
-    @abstractmethod
     def _close_writable(self):
         """
         Closes the object in write mode.
@@ -134,6 +141,9 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
         Performs any finalization operation required to
         complete the object writing on the cloud.
         """
+        # Default implementation only wait for tasks termination
+        for future in self._write_futures:
+            future.result()
 
     def flush(self):
         """
@@ -154,13 +164,75 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
                 self._write_buffer = bytearray(self._buffer_size)
                 self._buffer_seek = 0
 
-    @abstractmethod
     def _flush(self):
         """
         Flush the write buffers of the stream if applicable.
 
         In write mode, send the buffer content to the cloud object.
         """
+        if not self._raw._SUPPORT_RANDOM_WRITE:
+            # No random write access: This function must be implemented.
+            raise NotImplementedError('No default flushing function.')
+
+        # Flush buffer to specified range
+        buffer = self._get_buffer()
+        start = self._buffer_size * (self._seek - 1)
+        end = start + len(buffer)
+
+        future = self._workers.submit(
+            self._flush_range, buffer=buffer, start=start, end=end)
+        self._write_futures.append(future)
+        future.add_done_callback(partial(self._update_size, end))
+
+    def _update_size(self, size, future):
+        """
+        Keep track of the file size during writing.
+
+        If specified size value is greater than the current size, update the
+        current size using specified value.
+
+        Used as callback in default "_flush" implementation for files supporting
+        random write access.
+
+        Args:
+            size (int): Size value.
+            future (concurrent.futures._base.Future): future.
+        """
+        with self._size_lock:
+            # Update value
+            if size > self._size and future.done:
+                self._size = size
+
+    def _flush_range(self, buffer, start, end):
+        """
+        Flush a buffer to a range of the file. Can only be used on files that
+        support random write access.
+
+        Meant to be used asynchronously, used to provides parallel flushing of
+        file parts when applicable.
+
+        Args:
+            buffer (memoryview): Buffer content.
+            start (int): Start of buffer position to flush.
+            end (int): End of buffer position to flush.
+        """
+        # On first call, Get file size if exists
+        with self._size_lock:
+            if not self._size_synched:
+                self._size_synched = True
+                try:
+                    self._size = self.raw._size
+                except (FileNotFoundError, UnsupportedOperation):
+                    self._size = 0
+
+        # It is not possible to flush a part if start > size:
+        # If it is the case, wait that previous parts are flushed before
+        # flushing this one
+        while start > self._size:
+            sleep(0.01)
+
+        # Flush buffer using RAW IO
+        self._raw_flush(buffer, start, end)
 
     def _get_buffer(self):
         """
