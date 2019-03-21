@@ -519,7 +519,7 @@ class StorageTester:
                    for name, _ in self._system.list_objects(self.locator))
 
 
-def test_user_storage(storage):
+def test_user_storage(storage_test_kwargs):
     """
     Test specified storage.
 
@@ -527,11 +527,12 @@ def test_user_storage(storage):
     see "tests.conftest.pytest_generate_tests"
 
     Args:
-        storage (dict): Storage information.
+        storage_test_kwargs (dict): Storage test keyword arguments.
     """
     # Get list of unsupported operations
     from importlib import import_module
-    module = import_module('tests.test_storage_%s' % storage['storage'])
+    module = import_module('tests.test_storage_%s' %
+                           storage_test_kwargs['storage_info']['storage'])
     try:
         unsupported_operations = module.UNSUPPORTED_OPERATIONS
     except AttributeError:
@@ -539,6 +540,6 @@ def test_user_storage(storage):
 
     # Run tests
     with StorageTester(
-            storage_info=storage,
-            unsupported_operations=unsupported_operations) as tester:
+            unsupported_operations=unsupported_operations,
+            **storage_test_kwargs) as tester:
         tester.test_common()
