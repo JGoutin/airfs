@@ -177,6 +177,16 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         """
         return self._system.getsize(header=self._head().copy())
 
+    def _reset_head(self):
+        """
+        Reset memoized head and associated values.
+        """
+        for key in ('_size', '_head'):
+            try:
+                del self._cache[key]
+            except KeyError:
+                continue
+
     @memoizedmethod
     def _head(self):
         """

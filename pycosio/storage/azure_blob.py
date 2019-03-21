@@ -30,6 +30,7 @@ from pycosio.io import (
 _APPEND = _BlobTypes.AppendBlob
 _BLOCK = _BlobTypes.BlockBlob
 _PAGE = _BlobTypes.PageBlob
+_MAX_PAGE_SIZE = _PageBlobService.MAX_PAGE_SIZE
 
 
 class _AzureBlobSystem(_SystemBase):
@@ -434,15 +435,6 @@ class AzurePageBlobRawIO(AzureBlobRawIO):
     _SUPPORT_PART_FLUSH = True
     _DEFAULT_CLASS = False
 
-    def __init__(self, *args, **kwargs):
-        _ObjectRawIOBase.__init__(self, *args, **kwargs)
-
-        # Creates blob on write mode
-        if ('x' in self.mode or 'w' in self.mode or
-                ('a' in self.mode and not self._exists())):
-            with _handle_azure_exception():
-                self._client.create_blob(content_length=0, **self._client_kwargs)
-
     @property
     @_memoizedmethod
     def _client(self):
@@ -465,9 +457,71 @@ class AzurePageBlobRawIO(AzureBlobRawIO):
             end (int): End of buffer position to flush.
                 Supported only with page blobs.
         """
+        # Buffer must be aligned on pages
+        end_page_diff = end % 512
+        start_page_diff = start % 512
+
+        if end_page_diff or start_page_diff:
+            # Create a new aligned buffer
+            end_page_diff = 512 - end_page_diff
+
+            end += end_page_diff
+            start -= start_page_diff
+
+            unaligned_buffer = buffer
+            buffer = memoryview(bytearray(end - start))
+
+            # If exists, Get aligned range from current file
+            if self._exists():
+                buffer[:] = memoryview(self._read_range(start, end))
+
+            # Update with current buffer
+            buffer[start_page_diff:-end_page_diff] = unaligned_buffer
+
+        # Creates blob on write mode
+        if (start == 0 and ('a' not in self.mode or
+                            ('a' in self.mode and not self._exists()))):
+
+            with _handle_azure_exception():
+                # Create a new file with buffer as content
+                buffer_size = len(buffer)
+
+                if buffer_size:
+
+                    if buffer_size > _MAX_PAGE_SIZE:
+                        # Can't send more at once, require to perform extra
+                        # "update_page" steps
+                        initial_buffer = buffer[:_MAX_PAGE_SIZE]
+                        buffer = buffer[_MAX_PAGE_SIZE:]
+                        start = _MAX_PAGE_SIZE
+                    else:
+                        initial_buffer = buffer
+
+                    self._client.create_blob_from_bytes(
+                        blob=initial_buffer.tobytes(), **self._client_kwargs)
+                    self._reset_head()
+
+                    if not start:
+                        # No more data to flush
+                        return
+
+                # Initialize an empty file
+                else:
+                    self._client.create_blob(
+                        content_length=0, **self._client_kwargs)
+                    return
+
+        # Require to resize the blob if note enough space
+        if end > self._size:
+            with _handle_azure_exception():
+                self._client.resize_blob(
+                    content_length=end, **self._client_kwargs)
+            self._reset_head()
+
+        # Write page
         with _handle_azure_exception():
             self._client.update_page(
-                page=buffer, start_range=start, end_range=end,
+                page=buffer.tobytes(), start_range=start, end_range=end - 1,
                 **self._client_kwargs)
 
 
@@ -499,8 +553,7 @@ class AzureAppendBlobRawIO(AzureBlobRawIO):
             if ('x' in self.mode or 'w' in self.mode or
                     ('a' in self.mode and not self._exists())):
                 with _handle_azure_exception():
-                    self._client.create_blob(
-                        content_length=0, **self._client_kwargs)
+                    self._client.create_blob(**self._client_kwargs)
 
     @property
     @_memoizedmethod
@@ -526,7 +579,10 @@ class AzureAppendBlobRawIO(AzureBlobRawIO):
         """
         with _handle_azure_exception():
             # Append mode: Append block at file end
-            self._client.append_block(block=buffer, **self._client_kwargs)
+            # Can't append an empty buffer
+            if len(buffer):
+                self._client.append_block(
+                    block=buffer.tobytes(), **self._client_kwargs)
 
 
 _AZURE_RAW = {
@@ -654,12 +710,18 @@ class AzurePageBlobBufferedIO(AzureBlobBufferedIO):
     """
     _RAW_CLASS = AzurePageBlobRawIO
     _DEFAULT_CLASS = False
+    MAXIMUM_BUFFER_SIZE = _MAX_PAGE_SIZE
 
     def __init__(self, *args, **kwargs):
         _ObjectBufferedIOBase.__init__(self, *args, **kwargs)
 
-        if self._writable and self._buffer_size % 512:
-            raise ValueError('"buffer_size" must be multiple of 512 bytes')
+        if self._writable:
+            page_diff = self._buffer_size % 512
+            if page_diff:
+                # Round buffer size if not multiple of page size
+                self._buffer_size = min(
+                    self._buffer_size + 512 - page_diff,
+                    self.MAXIMUM_BUFFER_SIZE)
 
 
 class AzureAppendBlobBufferedIO(AzureBlobBufferedIO):
@@ -695,7 +757,7 @@ class AzureAppendBlobBufferedIO(AzureBlobBufferedIO):
         Flush the write buffer of the stream.
         """
         self._write_futures.append(self._workers.submit(
-            self._client.append_block, block=self._get_buffer(),
+            self._client.append_block, block=self._get_buffer().tobytes(),
             **self._client_kwargs))
 
 
