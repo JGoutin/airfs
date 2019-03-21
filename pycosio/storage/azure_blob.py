@@ -47,6 +47,10 @@ class _AzureBlobSystem(_SystemBase):
     _MTIME_KEYS = ('last_modified',)
     _SIZE_KEYS = ('content_length',)
 
+    def __init__(self, *args, **kwargs):
+        self._endpoint = None
+        _SystemBase.__init__(self, *args, **kwargs)
+
     def copy(self, src, dst):
         """
         Copy object of the same storage.
@@ -55,6 +59,10 @@ class _AzureBlobSystem(_SystemBase):
             src (str): Path or URL.
             dst (str): Path or URL.
         """
+        # Path is relative, require an absolute path.
+        if self.relpath(src) == src:
+            src = '%s/%s' % (self._endpoint, src)
+
         with _handle_azure_exception():
             self._client_block.copy_blob(
                 copy_source=src, **self.get_client_kwargs(dst))
@@ -149,9 +157,10 @@ class _AzureBlobSystem(_SystemBase):
         # - https://<account>.blob.core.windows.net/<container>/<blob>
 
         # Note: "core.windows.net" may be replaced by another "endpoint_suffix"
-
-        return _re.compile(
-            r'https?://%s\.blob\.%s' % _get_endpoint(self._storage_parameters)),
+        account, suffix, endpoint = _get_endpoint(
+            self._storage_parameters, self._unsecure, 'blob')
+        self._endpoint = endpoint
+        return _re.compile(r'https?://%s\.blob\.%s' % (account, suffix)),
 
     def _head(self, client_kwargs):
         """
@@ -202,10 +211,15 @@ class _AzureBlobSystem(_SystemBase):
         client_kwargs = _update_listing_client_kwargs(
             client_kwargs, max_request_entries)
 
+        blob = None
         with _handle_azure_exception():
             for blob in self._client_block.list_blobs(
                     prefix=path, **client_kwargs):
                 yield blob.name, _model_to_dict(blob)
+
+        # None only if path don't exists
+        if blob is None:
+            raise _ObjectNotFoundError
 
     def _make_dir(self, client_kwargs):
         """
@@ -323,7 +337,7 @@ class AzureBlobRawIO(_ObjectRawIOBase):
             with _handle_azure_exception():
                 self._client.get_blob_to_stream(
                     stream=stream, start_range=start,
-                    end_range=end if end else None, **self._client_kwargs)
+                    end_range=(end - 1) if end else None, **self._client_kwargs)
 
         # Check for end of file
         except _AzureHttpError as exception:
@@ -363,6 +377,7 @@ class AzureBlockBlobRawIO(AzureBlobRawIO):
             transfer performance. But makes connection unsecure.
     """
     _SUPPORT_PART_FLUSH = False
+    _DEFAULT_CLASS = False
 
     def __init__(self, *args, **kwargs):
         _ObjectRawIOBase.__init__(self, *args, **kwargs)
@@ -370,7 +385,9 @@ class AzureBlockBlobRawIO(AzureBlobRawIO):
         # Creates blob on write mode
         if ('x' in self.mode or 'w' in self.mode or
                 ('a' in self.mode and not self._exists())):
-            self._client.create_blob_from_bytes(blob=b'', **self._client_kwargs)
+            with _handle_azure_exception():
+                self._client.create_blob_from_bytes(
+                    blob=b'', **self._client_kwargs)
 
     @property
     @_memoizedmethod
@@ -397,7 +414,7 @@ class AzureBlockBlobRawIO(AzureBlobRawIO):
         with _handle_azure_exception():
             # Write entire file at once
             self._client.create_blob_from_bytes(
-                blob=buffer, **self._client_kwargs)
+                blob=buffer.tobytes(), **self._client_kwargs)
 
 
 class AzurePageBlobRawIO(AzureBlobRawIO):
@@ -415,6 +432,7 @@ class AzurePageBlobRawIO(AzureBlobRawIO):
             transfer performance. But makes connection unsecure.
     """
     _SUPPORT_PART_FLUSH = True
+    _DEFAULT_CLASS = False
 
     def __init__(self, *args, **kwargs):
         _ObjectRawIOBase.__init__(self, *args, **kwargs)
@@ -422,7 +440,8 @@ class AzurePageBlobRawIO(AzureBlobRawIO):
         # Creates blob on write mode
         if ('x' in self.mode or 'w' in self.mode or
                 ('a' in self.mode and not self._exists())):
-            self._client.create_blob(**self._client_kwargs)
+            with _handle_azure_exception():
+                self._client.create_blob(content_length=0, **self._client_kwargs)
 
     @property
     @_memoizedmethod
@@ -467,6 +486,7 @@ class AzureAppendBlobRawIO(AzureBlobRawIO):
             transfer performance. But makes connection unsecure.
     """
     _SUPPORT_PART_FLUSH = True
+    _DEFAULT_CLASS = False
 
     def __init__(self, *args, **kwargs):
         _ObjectRawIOBase.__init__(self, *args, **kwargs)
@@ -478,7 +498,9 @@ class AzureAppendBlobRawIO(AzureBlobRawIO):
             # Creates blob on write mode
             if ('x' in self.mode or 'w' in self.mode or
                     ('a' in self.mode and not self._exists())):
-                self._client.create_blob(**self._client_kwargs)
+                with _handle_azure_exception():
+                    self._client.create_blob(
+                        content_length=0, **self._client_kwargs)
 
     @property
     @_memoizedmethod
@@ -565,6 +587,7 @@ class AzureBlockBlobBufferedIO(AzureBlobBufferedIO):
             transfer performance. But makes connection unsecure.
     """
     _RAW_CLASS = AzureBlockBlobRawIO
+    _DEFAULT_CLASS = False
 
     def __init__(self, *args, **kwargs):
         _ObjectBufferedIOBase.__init__(self, *args, **kwargs)
@@ -592,7 +615,7 @@ class AzureBlockBlobBufferedIO(AzureBlobBufferedIO):
 
         # Upload block with workers
         self._write_futures.append(self._workers.submit(
-            self._client.put_block, block=self._get_buffer(),
+            self._client.put_block, block=self._get_buffer().tobytes(),
             block_id=block_id, **self._client_kwargs))
 
         # Save block information
@@ -630,6 +653,7 @@ class AzurePageBlobBufferedIO(AzureBlobBufferedIO):
             transfer performance. But makes connection unsecure.
     """
     _RAW_CLASS = AzurePageBlobRawIO
+    _DEFAULT_CLASS = False
 
     def __init__(self, *args, **kwargs):
         _ObjectBufferedIOBase.__init__(self, *args, **kwargs)
@@ -657,6 +681,7 @@ class AzureAppendBlobBufferedIO(AzureBlobBufferedIO):
             transfer performance. But makes connection unsecure.
     """
     _RAW_CLASS = AzureAppendBlobRawIO
+    _DEFAULT_CLASS = False
 
     def __init__(self, *args, **kwargs):
         _ObjectBufferedIOBase.__init__(self, *args, **kwargs)

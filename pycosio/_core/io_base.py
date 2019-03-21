@@ -16,6 +16,8 @@ class ObjectIOBase(IOBase):
         mode (str): The mode can be 'r', 'w', 'a', 'x'
             for reading (default), writing or appending
     """
+    # Is the default class for this storage
+    _DEFAULT_CLASS = True
 
     def __init__(self, name, mode='r'):
         IOBase.__init__(self)

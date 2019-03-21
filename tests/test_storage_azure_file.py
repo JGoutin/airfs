@@ -25,6 +25,7 @@ def test_mocked_storage():
 
     # Mocks client
     storage_mock = get_storage_mock()
+    root = '//account.file.core.windows.net'
 
     def join(directory_name=None, file_name=None):
         """
@@ -53,6 +54,7 @@ def test_mocked_storage():
         def copy_file(share_name=None, directory_name=None, file_name=None,
                       copy_source=None, **_):
             """azure.storage.file.fileservice.FileService.copy_file"""
+            copy_source = copy_source.split(root + '/')[1]
             storage_mock.copy_object(
                 src_path=copy_source, dst_locator=share_name,
                 dst_path=join(directory_name, file_name))
@@ -180,8 +182,7 @@ def test_mocked_storage():
         with StorageTester(
                 system, AzureFileRawIO, AzureFileBufferedIO, storage_mock,
                 unsupported_operations=UNSUPPORTED_OPERATIONS,
-                system_parameters=system_parameters,
-                root='//account.file.core.windows.net') as tester:
+                system_parameters=system_parameters, root=root) as tester:
 
             # Common tests
             tester.test_common()

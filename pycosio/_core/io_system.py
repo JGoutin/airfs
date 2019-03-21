@@ -26,6 +26,8 @@ class SystemBase(ABC):
             transfer performance. But makes connection unsecure.
         roots (tuple): Tuple of roots to force use.
     """
+    _DEFAULT_CLASS = True
+
     # By default, assumes that information are in a standard HTTP header
     _SIZE_KEYS = ('Content-Length',)
     _CTIME_KEYS = ()

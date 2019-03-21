@@ -151,8 +151,10 @@ def mount(storage=None, name='', storage_parameters=None,
         member = getattr(module, member_name)
         for cls_name, cls in classes_items:
             try:
-                if issubclass(member, cls) and member is not cls:
+                if (issubclass(member, cls) and member is not cls and
+                        getattr(member, '_DEFAULT_CLASS')):
                     storage_info[cls_name] = member
+                    break
             except TypeError:
                 continue
 

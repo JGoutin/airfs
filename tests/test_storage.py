@@ -66,7 +66,7 @@ class StorageTester:
         from pycosio._core.exceptions import ObjectNotFoundError
 
         # Remove objects, and once empty the locator
-        for obj in list(self._objects) + [self.locator]:
+        for obj in reversed(sorted(self._objects, key=str.lower)):
             self._objects.discard(obj)
             try:
                 self._system.remove(obj, relative=True)
@@ -263,6 +263,7 @@ class StorageTester:
         # Test: Create locator
         if self._is_supported('mkdir'):
             system.make_dir(self.locator_url)
+            self._to_clean(self.locator)
         else:
             # Test: Unsupported
             with _pytest.raises(_UnsupportedOperation):
@@ -318,12 +319,38 @@ class StorageTester:
 
         system = self._system
 
+        if self._is_supported('mkdir'):
+            # Create parent directory
+            system.make_dir(self.base_dir_path)
+            self._to_clean(self.base_dir_path)
+
+            # Test: Make a directory (With trailing /)
+            dir_name0 = 'directory0/'
+            dir_path0 = self.base_dir_path + dir_name0
+            system.make_dir(dir_path0)
+            self._to_clean(dir_path0)
+            if self._is_supported('listdir'):
+                assert dir_path0 in self._list_objects_names()
+
+            # Test: Make a directory (Without trailing /)
+            dir_name1 = 'directory1'
+            dir_path1 = self.base_dir_path + dir_name1
+            system.make_dir(dir_path1)
+            dir_path1 += '/'
+            self._to_clean(dir_path1)
+
+            if self._is_supported('listdir'):
+                assert dir_path1 in self._list_objects_names()
+
+                # Test: Listing empty directory
+                assert len(tuple(system.list_objects(dir_path0))) == 0
+
         # Write a sample file
-        file_name = 'sample_16B.dat'
+        file_name = 'sample_1K.dat'
         file_path = self.base_dir_path + file_name
         self._to_clean(file_path)
         file_url = self.base_dir_url + file_name
-        size = 16
+        size = 1024
         content = _urandom(size)
 
         if self._is_supported('write'):
@@ -398,8 +425,10 @@ class StorageTester:
         # Test: List objects
         if self._is_supported('listdir'):
             objects = tuple(system.list_objects(self.locator))
-            assert files == set(
+            objects_list = set(
                 '%s/%s' % (self.locator, name) for name, _ in objects)
+            for file in files:
+                assert file in objects_list
             for _, header in objects:
                 assert isinstance(header, dict)
 
@@ -437,26 +466,6 @@ class StorageTester:
             # Test: Unsupported
             with _pytest.raises(_UnsupportedOperation):
                 system.copy(file_path, copy_path)
-
-        # Test: Make a directory (With trailing /)
-        if self._is_supported('mkdir'):
-            dir_path0 = self.base_dir_path + 'directory0/'
-            system.make_dir(dir_path0)
-            self._to_clean(dir_path0)
-            if self._is_supported('listdir'):
-                assert dir_path0 in self._list_objects_names()
-
-            # Test: Make a directory (Without trailing /)
-            dir_path1 = self.base_dir_path + 'directory1'
-            system.make_dir(dir_path1)
-            dir_path1 += '/'
-            self._to_clean(dir_path1)
-
-            if self._is_supported('listdir'):
-                assert dir_path1 in self._list_objects_names()
-
-                # Test: Listing empty directory
-                assert len(tuple(system.list_objects(dir_path0))) == 0
 
         # Test: Normal file is not symlink
         assert not system.islink(file_path)

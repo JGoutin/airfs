@@ -77,15 +77,18 @@ def _update_listing_client_kwargs(client_kwargs, max_request_entries):
     return client_kwargs
 
 
-def _get_endpoint(storage_parameters):
+def _get_endpoint(storage_parameters, unsecure, sub_domain):
     """
     Get endpoint information from storage parameters.
 
     Args:
         storage_parameters (dict): Azure service keyword arguments.
+        unsecure (bool): If True, disables TLS/SSL to improves
+            transfer performance. But makes connection unsecure.
+        sub_domain (str): Azure storage sub-domain.
 
     Returns:
-        tuple of str: account_name, endpoint_suffix
+        tuple of str: account_name, endpoint_suffix, endpoint URL
     """
     storage_parameters = storage_parameters or dict()
     account_name = storage_parameters.get('account_name')
@@ -93,8 +96,12 @@ def _get_endpoint(storage_parameters):
     if not account_name:
         raise ValueError('"account_name" is required for Azure storage')
 
-    return account_name, storage_parameters.get(
-            'endpoint_suffix', 'core.windows.net').replace('.', r'\.')
+    suffix = storage_parameters.get(
+            'endpoint_suffix', 'core.windows.net')
+
+    return (
+        account_name, suffix.replace('.', r'\.'), 'http%s://%s.%s.%s' % (
+            '' if unsecure else 's', account_name, sub_domain, suffix))
 
 
 def _properties_model_to_dict(properties):

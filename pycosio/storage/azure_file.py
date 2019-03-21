@@ -31,6 +31,10 @@ class _AzureFileSystem(_SystemBase):
     _MTIME_KEYS = ('last_modified',)
     _SIZE_KEYS = ('content_length',)
 
+    def __init__(self, *args, **kwargs):
+        self._endpoint = None
+        _SystemBase.__init__(self, *args, **kwargs)
+
     def copy(self, src, dst):
         """
         Copy object of the same storage.
@@ -39,6 +43,10 @@ class _AzureFileSystem(_SystemBase):
             src (str): Path or URL.
             dst (str): Path or URL.
         """
+        # Path is relative, require an absolute path.
+        if self.relpath(src) == src:
+            src = '%s/%s' % (self._endpoint, src)
+
         with _handle_azure_exception():
             self.client.copy_file(
                 copy_source=src, **self.get_client_kwargs(dst))
@@ -119,9 +127,11 @@ class _AzureFileSystem(_SystemBase):
         # - https://<account>.file.core.windows.net/<share>/<file>
 
         # Note: "core.windows.net" may be replaced by another endpoint
-
-        return _re.compile(r'(https?://|smb://|//|\\)%s\.file\.%s' %
-                           _get_endpoint(self._storage_parameters)),
+        account, suffix, endpoint = _get_endpoint(
+            self._storage_parameters, self._unsecure, 'file')
+        self._endpoint = endpoint
+        return _re.compile(
+            r'(https?://|smb://|//|\\)%s\.file\.%s' % (account, suffix)),
 
     def _head(self, client_kwargs):
         """
@@ -244,7 +254,9 @@ class AzureFileRawIO(_ObjectRawIOBase):
 
         # Creates blob on write mode
         if 'x' in self.mode or 'w' in self.mode:
-            self._client.create_file(**self._client_kwargs)
+            with _handle_azure_exception():
+                self._client.create_file(
+                    content_length=0, **self._client_kwargs)
 
     def _read_range(self, start, end=0):
         """
@@ -297,7 +309,7 @@ class AzureFileRawIO(_ObjectRawIOBase):
             end (int): End of buffer position to flush.
         """
         with _handle_azure_exception():
-            self._client.update_range(data=buffer, start_range=start,
+            self._client.update_range(data=buffer.tobytes(), start_range=start,
                                       end_range=end, **self._client_kwargs)
 
 

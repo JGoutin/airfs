@@ -26,6 +26,7 @@ def test_mocked_storage():
 
     # Mocks client
     storage_mock = get_storage_mock()
+    root = 'https://account.blob.core.windows.net'
 
     class BlobService:
         """azure.storage.blob.baseblobservice.BaseBlobService"""
@@ -38,6 +39,7 @@ def test_mocked_storage():
         def copy_blob(container_name=None, blob_name=None, copy_source=None,
                       **_):
             """azure.storage.blob.baseblobservice.BaseBlobService.copy_blob"""
+            copy_source = copy_source.split(root + '/')[1]
             storage_mock.copy_object(
                 src_path=copy_source, dst_locator=container_name,
                 dst_path=blob_name)
@@ -125,6 +127,8 @@ def test_mocked_storage():
                 start_range=None, end_range=None, **_):
             """azure.storage.blob.baseblobservice.BaseBlobService.
             get_blob_to_stream"""
+            if end_range is not None:
+                end_range += 1
             stream.write(storage_mock.get_object(
                 container_name, blob_name, data_range=(start_range, end_range)))
 
@@ -196,8 +200,7 @@ def test_mocked_storage():
             raw_io=AzureBlobRawIO,
             buffered_io=AzureBlobBufferedIO, storage_mock=storage_mock,
             unsupported_operations=UNSUPPORTED_OPERATIONS,
-            system_parameters=system_parameters,
-            root='https://account.blob.core.windows.net')
+            system_parameters=system_parameters, root=root)
 
         # Block blobs tests (Default)
         blob_type = _BlobTypes.BlockBlob
