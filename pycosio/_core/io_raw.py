@@ -34,11 +34,8 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
     # System I/O class
     _SYSTEM_CLASS = SystemBase
 
-    # Natively support Random write access:
-    # - True if supported
-    # - False if unsupported
-    # - None if unspecified at start
-    _SUPPORT_RANDOM_WRITE = False
+    # Can flush parts of files (Instead of full file content at once)
+    _SUPPORT_PART_FLUSH = False
 
     def __init__(self, name, mode='r', storage_parameters=None, **kwargs):
 
@@ -57,6 +54,14 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
             self._system = self._SYSTEM_CLASS(
                 storage_parameters=storage_parameters, **kwargs)
 
+        # Checks for cached head dict
+        try:
+            # Try to get cached system
+            self._cache['_head'] = storage_parameters.pop(
+                'pycosio.raw_io._head')
+        except (AttributeError, KeyError):
+            pass
+
         # Gets storage local path from URL
         self._path = self._system.relpath(name)
         self._client_kwargs = self._system.get_client_kwargs(name)
@@ -69,27 +74,18 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
             self._write_buffer = bytearray()
 
             # Initializes starting data
-            if 'a' in mode:
-                try:
-                    if self._SUPPORT_RANDOM_WRITE is False:
-                        # By default, since appending is not supported by a
-                        # majority of cloud storage, reads existing file content
-                        # in write buffer
-                        self._init_append()
-                    self._seek = self._size
-
-                except ObjectNotFoundError:
-                    pass
+            if 'a' in mode and self._exists():
+                if not self._SUPPORT_PART_FLUSH:
+                    # By default, since appending is not supported by a
+                    # majority of cloud storage, reads existing file content
+                    # in write buffer
+                    self._init_append()
+                self._seek = self._size
 
             # Checks if object exists,
             # and raise if it is the case
-            elif 'x' in mode:
-                try:
-                    self._head()
-                except ObjectNotFoundError:
-                    pass
-                else:
-                    raise file_exits_error
+            elif 'x' in mode and self._exists():
+                raise file_exits_error
 
         # Configure read mode
         else:
@@ -132,7 +128,7 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
                 buffer = self._get_buffer()
 
                 # Random write: Buffer is a part of the file
-                if self._SUPPORT_RANDOM_WRITE:
+                if self._SUPPORT_PART_FLUSH:
                     # Flush that part of the file
                     end = self._seek
                     start = end - len(buffer)
@@ -190,6 +186,20 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
             dict: header.
         """
         return self._system.head(client_kwargs=self._client_kwargs)
+
+    @memoizedmethod
+    def _exists(self):
+        """
+        Checks if file exists.
+
+        Returns:
+            bool: True if file exists.
+        """
+        try:
+            self._head()
+            return True
+        except ObjectNotFoundError:
+            return False
 
     @staticmethod
     def _http_range(start=0, end=0):
@@ -322,7 +332,7 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         if not self._seekable:
             raise UnsupportedOperation('seek')
 
-        if self._SUPPORT_RANDOM_WRITE:
+        if self._SUPPORT_PART_FLUSH:
             # Flush before moving position
             self.flush()
 

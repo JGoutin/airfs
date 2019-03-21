@@ -237,7 +237,7 @@ class AzureFileRawIO(_ObjectRawIOBase):
             transfer performance. But makes connection unsecure.
     """
     _SYSTEM_CLASS = _AzureFileSystem
-    _SUPPORT_RANDOM_WRITE = True
+    _SUPPORT_PART_FLUSH = True
 
     def __init__(self, *args, **kwargs):
         _ObjectRawIOBase.__init__(self, *args, **kwargs)

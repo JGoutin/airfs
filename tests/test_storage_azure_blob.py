@@ -18,7 +18,8 @@ def test_mocked_storage():
 
     import pycosio.storage.azure_blob as azure_blob
     from pycosio.storage.azure_blob import (
-        AzureBlobRawIO, _AzureBlobSystem, AzureBlobBufferedIO)
+        _AzureBlobSystem, AzureBlobRawIO, AzureBlockBlobRawIO,
+        AzurePageBlobRawIO, AzureAppendBlobRawIO, AzureBlobBufferedIO)
 
     from tests.test_storage import StorageTester
     from tests.test_storage_azure import get_storage_mock
@@ -198,8 +199,8 @@ def test_mocked_storage():
             system_parameters=system_parameters,
             root='https://account.blob.core.windows.net')
 
-        # Page blobs tests (Default)
-        blob_type = _BlobTypes.PageBlob
+        # Block blobs tests (Default)
+        blob_type = _BlobTypes.BlockBlob
         system = _AzureBlobSystem(**system_parameters)
         storage_mock.attach_io_system(system)
         with StorageTester(system, **tester_kwargs) as tester:
@@ -211,10 +212,10 @@ def test_mocked_storage():
             assert system._default_blob_type == blob_type
             with AzureBlobRawIO(tester.base_dir_path + 'file0.dat',
                                 **tester._system_parameters) as file:
-                assert file._blob_type == blob_type
+                assert isinstance(file, AzureBlockBlobRawIO)
 
-        # Block blobs tests
-        blob_type = _BlobTypes.BlockBlob
+        # Page blobs tests
+        blob_type = _BlobTypes.PageBlob
         storage_parameters['blob_type'] = blob_type
         system = _AzureBlobSystem(**system_parameters)
         storage_mock.attach_io_system(system)
@@ -228,7 +229,7 @@ def test_mocked_storage():
             assert system._default_blob_type == blob_type
             with AzureBlobRawIO(tester.base_dir_path + 'file0.dat',
                                 **tester._system_parameters) as file:
-                assert file._blob_type == blob_type
+                assert isinstance(file, AzurePageBlobRawIO)
 
         # Append blobs tests
         blob_type = _BlobTypes.AppendBlob
@@ -245,7 +246,7 @@ def test_mocked_storage():
             assert system._default_blob_type == blob_type
             with AzureBlobRawIO(tester.base_dir_path + 'file0.dat',
                                 **tester._system_parameters) as file:
-                assert file._blob_type == blob_type
+                assert isinstance(file, AzureAppendBlobRawIO)
 
     # Restore mocked class
     finally:

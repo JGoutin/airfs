@@ -68,7 +68,7 @@ def test_object_raw_base_io():
     class DummyIORandomWrite(DummyIO):
         """Dummy IO with random write support"""
 
-        _SUPPORT_RANDOM_WRITE = True
+        _SUPPORT_PART_FLUSH = True
 
         def _flush(self, buffer, start, stop):
             """Flush in a buffer"""
@@ -131,7 +131,7 @@ def test_object_raw_base_io():
 
     # Test write
     object_io = DummyIO(name, mode='w')
-    assert not object_io._SUPPORT_RANDOM_WRITE
+    assert not object_io._SUPPORT_PART_FLUSH
     assert object_io.write(10 * b'0') == 10
     assert object_io.tell() == 10
     assert object_io.write(10 * b'0') == 10
@@ -172,7 +172,7 @@ def test_object_raw_base_io():
     object_io = DummyIORandomWrite(name, mode='w')
     flushed[:] = b''
     assert not len(flushed)
-    assert object_io._SUPPORT_RANDOM_WRITE
+    assert object_io._SUPPORT_PART_FLUSH
     assert object_io.write(100 * b'0') == 100
     object_io.seek(50)
     assert len(flushed) == len(100 * b'0')

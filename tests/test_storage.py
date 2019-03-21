@@ -131,7 +131,11 @@ class StorageTester:
                 file.write(content)
 
                 # Test: tell
-                assert file.tell() == size
+                if file.seekable():
+                    assert file.tell() == size
+                else:
+                    with _pytest.raises(_UnsupportedOperation):
+                        file.tell()
 
                 # Test: _flush
                 file.flush()

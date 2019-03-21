@@ -43,6 +43,9 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
     #: Minimal buffer_size value in bytes
     MINIMUM_BUFFER_SIZE = 1
 
+    #: Maximum buffer_size value in bytes (0 for no limit)
+    MAXIMUM_BUFFER_SIZE = 0
+
     # Time to wait before try a new flush
     # if number of buffer currently in flush > max_buffer
     _FLUSH_WAIT = 0.01
@@ -72,6 +75,9 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
             self._buffer_size = self.DEFAULT_BUFFER_SIZE
         elif buffer_size < self.MINIMUM_BUFFER_SIZE:
             self._buffer_size = self.MINIMUM_BUFFER_SIZE
+        elif (self.MAXIMUM_BUFFER_SIZE and
+              buffer_size > self.MAXIMUM_BUFFER_SIZE):
+            self._buffer_size = self.MAXIMUM_BUFFER_SIZE
         else:
             self._buffer_size = buffer_size
 
@@ -108,7 +114,7 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
         Returns:
             client
         """
-        return self._raw._system.client
+        return self._raw._client
 
     def close(self):
         """
@@ -171,7 +177,7 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
 
         In write mode, send the buffer content to the cloud object.
         """
-        if not self._raw._SUPPORT_RANDOM_WRITE:
+        if not self._raw._SUPPORT_PART_FLUSH:
             # No random write access: This function must be implemented.
             raise NotImplementedError('No default flushing function.')
 
