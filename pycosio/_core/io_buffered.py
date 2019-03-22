@@ -13,7 +13,7 @@ from time import sleep
 from pycosio._core.compat import ThreadPoolExecutor, file_not_found_error
 from pycosio._core.io_base import ObjectIOBase
 from pycosio._core.io_raw import ObjectRawIOBase
-from pycosio._core.exceptions import handle_os_exceptions
+from pycosio._core.exceptions import handle_os_exceptions, ObjectNotFoundError
 
 
 class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
@@ -229,7 +229,7 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
                 self._size_synched = True
                 try:
                     self._size = self.raw._size
-                except (file_not_found_error, UnsupportedOperation):
+                except (ObjectNotFoundError, UnsupportedOperation):
                     self._size = 0
 
         # It is not possible to flush a part if start > size:
