@@ -12,10 +12,6 @@ UNSUPPORTED_OPERATIONS = (
 
 def test_mocked_storage():
     """Tests pycosio.azure_file with a mock"""
-    # TODO: Fix tests
-    import pytest
-    pytest.xfail('Need to be fixed with last modifications')
-
     from azure.storage.blob.models import (
         BlobProperties, ContainerProperties, Blob, Container, BlobBlockList,
         _BlobTypes)
@@ -101,19 +97,6 @@ def test_mocked_storage():
             create_container"""
             storage_mock.put_locator(container_name)
 
-        def create_blob(self, container_name=None, blob_name=None, **_):
-            """azure.storage.blob.baseblobservice.BaseBlobService.create_blob"""
-            storage_mock.put_object(container_name, blob_name, headers=dict(
-                blob_type=self.BLOB_TYPE))
-
-        def create_blob_from_bytes(
-                self, container_name=None, blob_name=None, blob=None, **_):
-            """azure.storage.blob.baseblobservice.BaseBlobService.
-            create_blob_from_bytes"""
-            storage_mock.put_object(
-                container_name, blob_name, blob, headers=dict(
-                    blob_type=self.BLOB_TYPE))
-
         @staticmethod
         def delete_container(container_name=None, **_):
             """azure.storage.blob.baseblobservice.BaseBlobService.
@@ -140,10 +123,58 @@ def test_mocked_storage():
         """azure.storage.blob.pageblobservice.PageBlobService"""
         BLOB_TYPE = _BlobTypes.PageBlob
 
+        def create_blob(self, container_name=None, blob_name=None,
+                        content_length=None, **_):
+            """azure.storage.blob.pageblobservice.PageBlobService.create_blob"""
+            if content_length:
+                # Must be page aligned
+                assert not content_length % 512
+
+                # Create null pages
+                content = b'\x00' * content_length
+            else:
+                content = None
+
+            storage_mock.put_object(
+                container_name, blob_name, content=content, headers=dict(
+                    blob_type=self.BLOB_TYPE))
+
+        def create_blob_from_bytes(
+                self, container_name=None, blob_name=None, blob=None, **_):
+            """azure.storage.blob.pageblobservice.PageBlobService.
+            create_blob_from_bytes"""
+            # Must be page aligned
+            assert not len(blob) % 512
+
+            storage_mock.put_object(
+                container_name, blob_name, content=blob, headers=dict(
+                    blob_type=self.BLOB_TYPE))
+
+        def resize_blob(self, container_name=None, blob_name=None,
+                        content_length=None, **_):
+            """azure.storage.blob.pageblobservice.PageBlobService.
+            resize_blob"""
+            # Must be page aligned
+            assert not content_length % 512
+
+            # Add padding to resize blob
+            size = storage_mock.get_object_size(container_name, blob_name)
+            padding = content_length - size
+            storage_mock.put_object(
+                container_name, blob_name, content=b'\x00' * padding,
+                data_range=(content_length - padding, content_length))
+
         @staticmethod
         def update_page(container_name=None, blob_name=None,
                         page=None, start_range=None, end_range=None, **_):
             """azure.storage.blob.pageblobservice.PageBlobService.update_page"""
+            # Don't use pythonic indexation
+            end_range += 1
+
+            # Must be page aligned
+            assert not start_range % 512
+            assert not end_range % 512
+
             storage_mock.put_object(
                 container_name, blob_name, content=page,
                 data_range=(start_range, end_range))
@@ -151,6 +182,14 @@ def test_mocked_storage():
     class BlockBlobService(BlobService):
         """azure.storage.blob.blockblobservice.BlockBlobService"""
         BLOB_TYPE = _BlobTypes.BlockBlob
+
+        def create_blob_from_bytes(
+                self, container_name=None, blob_name=None, blob=None, **_):
+            """azure.storage.blob.blockblobservice.BlockBlobService.
+            create_blob_from_bytes"""
+            storage_mock.put_object(
+                container_name, blob_name, blob, headers=dict(
+                    blob_type=self.BLOB_TYPE))
 
         @staticmethod
         def put_block(container_name=None, blob_name=None, block=None,
@@ -179,6 +218,12 @@ def test_mocked_storage():
         """azure.storage.blob.appendblobservice.AppendBlobService."""
         BLOB_TYPE = _BlobTypes.AppendBlob
 
+        def create_blob(self, container_name=None, blob_name=None, **_):
+            """azure.storage.blob.appendblobservice.AppendBlobService.
+            create_blob"""
+            storage_mock.put_object(container_name, blob_name, headers=dict(
+                blob_type=self.BLOB_TYPE))
+
         @staticmethod
         def append_block(container_name=None, blob_name=None, block=None, **_):
             """azure.storage.blob.appendblobservice.AppendBlobService.
@@ -188,12 +233,12 @@ def test_mocked_storage():
                 container_name, blob_name, content=block,
                 data_range=(start, start + len(block)))
 
-    azure_storage_block_blob_service = azure_blob._BlockBlobService
-    azure_storage_append_blob_service = azure_blob._AppendBlobService
-    azure_storage_page_blob_service = azure_blob._PageBlobService
-    azure_blob._BlockBlobService = BlockBlobService
-    azure_blob._AppendBlobService = AppendBlobService
-    azure_blob._PageBlobService = PageBlobService
+    azure_block_blob_service = azure_blob._system.BlockBlobService
+    azure_append_blob_service = azure_blob._system.AppendBlobService
+    azure_page_blob_service = azure_blob._system.PageBlobService
+    azure_blob._system.BlockBlobService = BlockBlobService
+    azure_blob._system.AppendBlobService = AppendBlobService
+    azure_blob._system.PageBlobService = PageBlobService
 
     # Tests
     try:
@@ -257,6 +302,6 @@ def test_mocked_storage():
 
     # Restore mocked class
     finally:
-        azure_blob._BlockBlobService = azure_storage_block_blob_service
-        azure_blob._AppendBlobService = azure_storage_append_blob_service
-        azure_blob._PageBlobService = azure_storage_page_blob_service
+        azure_blob._system.BlockBlobService = azure_block_blob_service
+        azure_blob._system.AppendBlobService = azure_append_blob_service
+        azure_blob._system.PageBlobService = azure_page_blob_service

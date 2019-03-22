@@ -1,5 +1,5 @@
 # coding=utf-8
-"""Microsoft Azure Blobs Storage"""
+"""Microsoft Azure Blobs Storage: Pages blobs"""
 from __future__ import absolute_import  # Python 2: Fix azure import
 
 from os import SEEK_SET, SEEK_END

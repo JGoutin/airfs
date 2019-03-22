@@ -1,5 +1,5 @@
 # coding=utf-8
-"""Microsoft Azure Blobs Storage"""
+"""Microsoft Azure Blobs Storage: Block blobs"""
 from __future__ import absolute_import  # Python 2: Fix azure import
 
 from random import choice
