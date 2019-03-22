@@ -6,6 +6,7 @@ from json import dumps as _dumps
 import swiftclient as _swift
 from swiftclient.exceptions import ClientException as _ClientException
 
+from pycosio._core.io_base import memoizedmethod as _memoizedmethod
 from pycosio._core.exceptions import (
     ObjectNotFoundError as _ObjectNotFoundError,
     ObjectPermissionError as _ObjectPermissionError)
@@ -218,14 +219,17 @@ class SwiftRawIO(_ObjectRawIOBase):
     """
     _SYSTEM_CLASS = _SwiftSystem
 
-    def __init__(self, *args, **kwargs):
+    @property
+    @_memoizedmethod
+    def _client_args(self):
+        """
+        Client arguments as tuple.
 
-        # Initializes storage
-        _ObjectRawIOBase.__init__(self, *args, **kwargs)
-
-        # Prepares Swift I/O functions and common arguments
-        self._client_args = (
-            self._client_kwargs['container'], self._client_kwargs['obj'])
+        Returns:
+            tuple of str: Client args.
+        """
+        return (self._client_kwargs['container'],
+                self._client_kwargs['obj'])
 
     def _read_range(self, start, end=0):
         """

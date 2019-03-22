@@ -36,7 +36,8 @@ class SystemBase(ABC):
     # Caches compiled regular expression
     _CHAR_FILTER = compile(r'[^a-z0-9]*')
 
-    def __init__(self, storage_parameters=None, unsecure=False, roots=None):
+    def __init__(self, storage_parameters=None, unsecure=False, roots=None,
+                 **_):
         # Save storage parameters
         self._storage_parameters = storage_parameters or dict()
         self._unsecure = unsecure

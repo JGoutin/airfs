@@ -208,6 +208,7 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
         with self._size_lock:
             # Update value
             if size > self._size and future.done:
+                # Size can be lower if seek down on an 'a' mode open file.
                 self._size = size
 
     def _flush_range(self, buffer, start, end):

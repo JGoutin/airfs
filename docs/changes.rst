@@ -30,10 +30,12 @@ Fixes:
 * OSS: Fix read error if try to read after end of file.
 * OSS: Fix buffered write minimum buffer size.
 * OSS: Clean up multipart upload parts on failed uploads.
+* OSS: Fix error when opening existing file in 'a' mode.
 * S3: Fix error when creating a bucket due to unspecified region.
 * S3: Fix unprocessed error in listing bucket content of an not existing bucket.
 * S3: Clean up multipart upload parts on failed uploads.
 * S3: Fix missing transfer acceleration endpoints.
+* Swift: Fix error when opening existing file in 'a' mode.
 
 1.2.0 (2018/10)
 ---------------

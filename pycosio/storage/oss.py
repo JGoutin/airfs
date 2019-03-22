@@ -7,6 +7,7 @@ import oss2 as _oss
 from oss2.models import PartInfo as _PartInfo
 from oss2.exceptions import OssError as _OssError
 
+from pycosio._core.io_base import memoizedmethod as _memoizedmethod
 from pycosio._core.exceptions import (
     ObjectNotFoundError as _ObjectNotFoundError,
     ObjectPermissionError as _ObjectPermissionError)
@@ -299,12 +300,27 @@ class OSSRawIO(_ObjectRawIOBase):
     """
     _SYSTEM_CLASS = _OSSSystem
 
-    def __init__(self, *args, **kwargs):
-        _ObjectRawIOBase.__init__(self, *args, **kwargs)
+    @property
+    @_memoizedmethod
+    def _bucket(self):
+        """
+        Bucket client.
 
-        # Initializes oss2.Bucket object
-        self._bucket = self._system._get_bucket(self._client_kwargs)
-        self._key = self._client_kwargs['key']
+        Returns:
+            oss2.Bucket: Client.
+        """
+        return self._system._get_bucket(self._client_kwargs)
+
+    @property
+    @_memoizedmethod
+    def _key(self):
+        """
+        Object key.
+
+        Returns:
+            str: key.
+        """
+        return self._client_kwargs['key']
 
     def _read_range(self, start, end=0):
         """

@@ -19,7 +19,8 @@ def test_mocked_storage():
     import pycosio.storage.azure_blob as azure_blob
     from pycosio.storage.azure_blob import (
         _AzureBlobSystem, AzureBlobRawIO, AzureBlockBlobRawIO,
-        AzurePageBlobRawIO, AzureAppendBlobRawIO, AzureBlobBufferedIO)
+        AzurePageBlobRawIO, AzureAppendBlobRawIO, AzureBlobBufferedIO,
+        AzurePageBlobBufferedIO)
 
     from tests.test_storage import StorageTester
     from tests.test_storage_azure import get_storage_mock
@@ -80,7 +81,8 @@ def test_mocked_storage():
             """azure.storage.blob.baseblobservice.BaseBlobService.list_blobs"""
             blobs = []
             for blob_name in storage_mock.get_locator(
-                    container_name, prefix=prefix, limit=num_results):
+                    container_name, prefix=prefix, limit=num_results,
+                    raise_404_if_empty=False):
                 props = BlobProperties()
                 props.last_modified = storage_mock.get_object_mtime(
                     container_name, blob_name)
@@ -260,7 +262,7 @@ def test_mocked_storage():
             # Common tests
             tester.test_common()
 
-            # Tests blob type
+            # Test blob type
             assert system._default_blob_type == blob_type
             with AzureBlobRawIO(tester.base_dir_path + 'file0.dat',
                                 **tester._system_parameters) as file:
@@ -277,11 +279,67 @@ def test_mocked_storage():
             # Common tests
             tester.test_common()
 
-            # Tests blob type
+            # Test blob type
+            file_path = tester.base_dir_path + 'file0.dat'
             assert system._default_blob_type == blob_type
-            with AzureBlobRawIO(tester.base_dir_path + 'file0.dat',
-                                **tester._system_parameters) as file:
+            with AzureBlobRawIO(file_path, **tester._system_parameters) as file:
                 assert isinstance(file, AzurePageBlobRawIO)
+
+            # Test pre-allocating pages with page aligned content length
+            with AzureBlobRawIO(file_path, 'wb', content_length=1024,
+                                **tester._system_parameters):
+                pass
+
+            with AzureBlobRawIO(file_path, ignore_padding=False,
+                                **tester._system_parameters) as file:
+                assert file.readall() == b'\x00' * 1024
+
+            # Test pre-allocating pages with page unaligned content length
+            with AzureBlobRawIO(file_path, 'wb', content_length=1234,
+                                **tester._system_parameters):
+                pass
+
+            with AzureBlobRawIO(file_path, ignore_padding=False,
+                                **tester._system_parameters) as file:
+                assert file.readall() == b'\x00' * 1536
+
+            # Test increase already existing blob size
+            with AzureBlobRawIO(file_path, 'ab', content_length=2345,
+                                **tester._system_parameters):
+                pass
+
+            with AzureBlobRawIO(file_path, ignore_padding=False,
+                                **tester._system_parameters) as file:
+                assert file.readall() == b'\x00' * 2560
+
+            # Test not truncate already existing blob with specified content
+            # length
+            with AzureBlobRawIO(file_path, 'ab', content_length=1024,
+                                **tester._system_parameters):
+                pass
+
+            with AzureBlobRawIO(file_path, ignore_padding=False,
+                                **tester._system_parameters) as file:
+                assert file.readall() == b'\x00' * 2560
+
+            # Test Buffered IO: Page unaligned buffer size rounding
+            with AzurePageBlobBufferedIO(file_path, 'wb', buffer_size=1234,
+                                         **tester._system_parameters) as file:
+                assert file._buffer_size == 1536
+
+            # Test Buffered IO: initialization to one buffer size
+            with AzureBlobRawIO(file_path, ignore_padding=False,
+                                **tester._system_parameters) as file:
+                assert file.readall() == b'\x00' * 1536
+
+            # Test Buffered IO: not truncate when initializing to one buffer
+            with AzurePageBlobBufferedIO(file_path, 'ab', buffer_size=1024,
+                                         **tester._system_parameters):
+                pass
+
+            with AzureBlobRawIO(file_path, ignore_padding=False,
+                                **tester._system_parameters) as file:
+                assert file.readall() == b'\x00' * 1536
 
         # Append blobs tests
         blob_type = _BlobTypes.AppendBlob
@@ -294,7 +352,7 @@ def test_mocked_storage():
             # Common tests
             tester.test_common()
 
-            # Tests blob type
+            # Test blob type
             assert system._default_blob_type == blob_type
             with AzureBlobRawIO(tester.base_dir_path + 'file0.dat',
                                 **tester._system_parameters) as file:

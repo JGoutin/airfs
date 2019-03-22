@@ -9,7 +9,7 @@ from azure.storage.blob import PageBlobService
 from azure.storage.blob.models import _BlobTypes
 
 from pycosio.storage.azure import _handle_azure_exception
-from pycosio._core.io_base import memoizedmethod as _memoizedmethod
+from pycosio._core.io_base import memoizedmethod
 from pycosio.io import ObjectBufferedIOBase
 from pycosio.storage.azure_blob._base_blob import (
     AzureBlobRawIO, AzureBlobBufferedIO, AZURE_RAW, AZURE_BUFFERED)
@@ -35,9 +35,9 @@ class AzurePageBlobRawIO(AzureBlobRawIO):
             creation. This is not mandatory, and file will be resized on needs
             but this allow to improve performance when file size is known in
             advance. Any value will be rounded to be page aligned. Default to 0.
-        null_strip (bool): If True, strip null chars from end of read data to
-            remove page padding when reading, and ignore trailing null chars
-            on last page when seeking from end. Default to True.
+        ignore_padding (bool): If True, strip null chars padding from end of
+            read data and ignore padding on last page when seeking from end.
+            Default to True.
     """
     _SUPPORT_PART_FLUSH = True
     _DEFAULT_CLASS = False
@@ -45,9 +45,13 @@ class AzurePageBlobRawIO(AzureBlobRawIO):
     def __init__(self, *args, **kwargs):
         AzureBlobRawIO.__init__(self, *args, **kwargs)
 
-        self._null_strip = kwargs.get('null_strip', True)
+        self._ignore_padding = kwargs.get('ignore_padding', True)
 
         if self._writable:
+
+            # If ignore padding, seek to real end of blob
+            if self._ignore_padding and self._exists and 'a' in self._mode:
+                self._seek_ignore_padding(self._size)
 
             # Create lock for resizing
             self._size_lock = _Lock()
@@ -84,7 +88,7 @@ class AzurePageBlobRawIO(AzureBlobRawIO):
                     content_length=content_length, **self._client_kwargs)
 
     @property
-    @_memoizedmethod
+    @memoizedmethod
     def _client(self):
         """
         Returns client instance.
@@ -108,7 +112,7 @@ class AzurePageBlobRawIO(AzureBlobRawIO):
         """
         data = AzureBlobRawIO._read_range(self, start, end)
 
-        if (null_strip is None and self._null_strip) or null_strip:
+        if (null_strip is None and self._ignore_padding) or null_strip:
             # Remove trailing Null chars (Empty page end)
             return data.rstrip(b'\x00')
 
@@ -122,7 +126,7 @@ class AzurePageBlobRawIO(AzureBlobRawIO):
             bytes: Object content
         """
         data = AzureBlobRawIO._readall(self)
-        if self._null_strip:
+        if self._ignore_padding:
             # Remove trailing Null chars (Empty page end)
             return data.rstrip(b'\x00')
         return data
@@ -149,15 +153,33 @@ class AzurePageBlobRawIO(AzureBlobRawIO):
         seek = AzureBlobRawIO.seek(self, offset, whence)
 
         # In case of end seek, adjust to real blob end and not padded page end
-        if whence == SEEK_END and self._null_strip:
-            # Read last page
-            page_end = seek - offset
-            last_page = memoryview(self._read_range(
-                page_end - 512, page_end - 1, null_strip=True))[:offset]
+        if whence == SEEK_END and self._ignore_padding:
+            seek = self._seek_ignore_padding(seek, offset)
 
-            # Move seek to last not null byte
-            self._seek = seek = page_end - 512 + len(last_page)
+        return seek
 
+    def _seek_ignore_padding(self, seek, offset=0):
+        """
+        Seek to end of blob ignoring null padding.
+
+        Args:
+            seek (int): End of page to seek.
+            offset (int): relative position to seek based on seek.
+
+        Returns:
+            int: seek value with ignored padding.
+        """
+        # Read last page
+        page_end = seek - offset
+        last_page = self._read_range(
+            page_end - 512, page_end - 1, null_strip=True)
+
+        # Apply offset
+        if offset:
+            last_page = memoryview(last_page)[:offset]
+
+        # Move seek to last not null byte
+        self._seek = seek = page_end - 512 + len(last_page)
         return seek
 
     def _flush(self, buffer, start, end):
@@ -189,7 +211,7 @@ class AzurePageBlobRawIO(AzureBlobRawIO):
                 buffer = memoryview(bytearray(buffer_size))
 
                 # If exists, Get aligned range from current file
-                if self._exists():
+                if self._exists() and start < self._size:
                     buffer[:] = memoryview(self._read_range(
                         start, end, null_strip=False))
 

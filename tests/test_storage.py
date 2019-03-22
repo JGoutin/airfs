@@ -167,8 +167,7 @@ class StorageTester:
                     self.locator, self.base_dir_name + file_name, content)
 
         # Open file in read mode
-        file = self._raw_io(file_path, **self._system_parameters)
-        try:
+        with self._raw_io(file_path, **self._system_parameters) as file:
             # Test: _read_all
             assert file.readall() == content
             assert file.tell() == size
@@ -205,8 +204,14 @@ class StorageTester:
             assert bytes(buffer) == content[90:] + b'\x00' * 10
             assert file.tell() == size
 
-        finally:
-            file.close()
+        # Open file in append mode
+        if self._is_supported('write'):
+            with self._raw_io(file_path, mode='ab',
+                              **self._system_parameters) as file:
+                file.write(content)
+
+            with self._raw_io(file_path, **self._system_parameters) as file:
+                assert file.readall() == content + content
 
     def _test_buffered_io(self):
         """
