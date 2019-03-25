@@ -104,7 +104,8 @@ def test_mocked_storage():
 
             # Single object upload
             else:
-                header = storage_mock.put_object(container, obj, contents)
+                header = storage_mock.put_object(container, obj, contents,
+                                                 new_file=True)
 
             # Return Etag
             return header['ETag']

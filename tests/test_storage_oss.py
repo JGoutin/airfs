@@ -109,7 +109,7 @@ def test_mocked_storage():
 
         def put_object(self, key=None, data=None, **_):
             """oss2.Bucket.put_object"""
-            storage_mock.put_object(self._bucket_name, key, data)
+            storage_mock.put_object(self._bucket_name, key, data, new_file=True)
 
         def delete_object(self, key=None, **_):
             """oss2.Bucket.delete_object"""

@@ -191,6 +191,34 @@ def test_mocked_storage():
             # Common tests
             tester.test_common()
 
+            # Test: Unsecure mode
+            file_path = tester.base_dir_path + 'file0.dat'
+            with AzureFileRawIO(file_path, unsecure=True,
+                                **tester._system_parameters) as file:
+                assert file._client.kwargs['protocol'] == 'http'
+
+            # Test: Copy source formatted to use URL
+            rel_path = '/container/file'
+            assert (system._format_src_url(
+                'smb://account.file.core.windows.net' + rel_path, system) ==
+                    'https://account.file.core.windows.net' + rel_path)
+
+            # Test: Cross account copy source URL with SAS token
+            sas_token = 'sas_token'
+            other_system = _AzureFileSystem(storage_parameters=dict(
+                account_name='other', sas_token=sas_token))
+            assert (other_system._format_src_url(
+                'smb://other.file.core.windows.net' + rel_path, system) ==
+                    'https://other.file.core.windows.net%s?%s' % (
+                        rel_path, sas_token))
+
+            # Test: Cross account copy source URL with no SAS token
+            other_system = _AzureFileSystem(storage_parameters=dict(
+                account_name='other'))
+            assert (other_system._format_src_url(
+                'smb://other.file.core.windows.net' + rel_path, system) ==
+                    'https://other.file.core.windows.net' + rel_path)
+
     # Restore mocked class
     finally:
         azure_file._FileService = azure_storage_file_file_service

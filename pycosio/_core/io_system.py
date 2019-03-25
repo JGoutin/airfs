@@ -77,22 +77,28 @@ class SystemBase(ABC):
             self._client = self._get_client()
         return self._client
 
-    def copy(self, src, dst):
+    def copy(self, src, dst, other_system=None):
         """
         Copy object of the same storage.
 
         Args:
             src (str): Path or URL.
             dst (str): Path or URL.
+            other_system (pycosio._core.io_system.SystemBase subclass):
+                Other storage system. May be required for some storage.
         """
         # This method is intended to copy objects to and from a same storage
 
         # It is possible to define methods to copy from a different storage
         # by creating a "copy_from_<src_storage>" method for the target storage
         # and, vice versa, to copy to a different storage by creating a
-        # "copy_to_<src_storage>" method.
+        # "copy_to_<dst_storage>" method.
 
         # Theses methods must have the same signature as "copy".
+        # "other_system" is optional and will be:
+        # - The destination storage system with "copy_to_<src_storage>" method.
+        # - The source storage system with "copy_from_<src_storage>" method.
+        # - None elsewhere.
 
         # Note that if no "copy_from"/'copy_to" methods are defined, copy are
         # performed over the current machine with "shutil.copyfileobj".

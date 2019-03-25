@@ -175,7 +175,13 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         Returns:
             int: Size in bytes.
         """
-        return self._system.getsize(header=self._head().copy())
+        try:
+            return self._system.getsize(header=self._head().copy())
+        except (UnsupportedOperation, ObjectNotFoundError):
+            # If in write mode, file may not yet exists on storage
+            if self._writable:
+                return 0
+            raise
 
     def _reset_head(self):
         """
@@ -355,6 +361,14 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
                 self._seek = offset + self._size
             else:
                 raise ValueError('Unsupported whence "%s"' % whence)
+
+            # If seek move out of file, add padding until new seek position.
+            if self._writable and not self._SUPPORT_PART_FLUSH:
+                size = len(self._write_buffer)
+                if self._seek > size:
+                    self._write_buffer[self._seek:] = b'\0' * (
+                            self._seek - size)
+
             return self._seek
 
     def write(self, b):

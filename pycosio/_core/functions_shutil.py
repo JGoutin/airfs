@@ -49,7 +49,8 @@ def _copy(src, dst, src_is_storage, dst_is_storage):
                 (system_src, system_dst, 'copy_to_%s')):
             if hasattr(caller, method % called.storage):
                 try:
-                    return getattr(caller, method % called.storage)(src, dst)
+                    return getattr(caller, method % called.storage)(
+                        src, dst, called)
                 except (UnsupportedOperation, ObjectException):
                     continue
 

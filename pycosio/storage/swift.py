@@ -53,13 +53,14 @@ class _SwiftSystem(_SystemBase):
     _SIZE_KEYS = ('content-length', 'content_length', 'bytes')
     _MTIME_KEYS = ('last-modified', 'last_modified')
 
-    def copy(self, src, dst):
+    def copy(self, src, dst, other_system=None):
         """
         Copy object of the same storage.
 
         Args:
             src (str): Path or URL.
             dst (str): Path or URL.
+            other_system (pycosio._core.io_system.SystemBase subclass): Unused.
         """
         container, obj = self.split_locator(src)
         with _handle_client_exception():

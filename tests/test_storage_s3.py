@@ -96,7 +96,7 @@ def test_mocked_storage():
         @staticmethod
         def put_object(Bucket=None, Key=None, Body=None, **_):
             """boto3.client.put_object"""
-            storage_mock.put_object(Bucket, Key, Body)
+            storage_mock.put_object(Bucket, Key, Body, new_file=True)
 
         @staticmethod
         def delete_object(Bucket=None, Key=None, **_):

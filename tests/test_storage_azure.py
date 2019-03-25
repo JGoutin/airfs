@@ -66,29 +66,22 @@ def test_mount_redirect():
         manager.MOUNTED = manager_mounted
 
 
-def test_update_storage_parameters():
-    """Test pycosio.storage.azure._update_storage_parameters"""
-    from pycosio.storage.azure import _update_storage_parameters
-
-    params = dict(arg=1)
-    assert _update_storage_parameters(params, True) == dict(
-        protocol='http', arg=1)
-    assert _update_storage_parameters(params, False) == dict(arg=1)
-
-
 def test_update_listing_client_kwargs():
-    """Test pycosio.storage.azure._update_storage_parameters"""
-    from pycosio.storage.azure import _update_listing_client_kwargs
+    """
+    Test pycosio.storage.azure._AzureBaseSystem._update_listing_client_kwargs
+    """
+    from pycosio.storage.azure import _AzureBaseSystem
 
     params = dict(arg=1)
-    assert _update_listing_client_kwargs(params, 10) == dict(
+    assert _AzureBaseSystem._update_listing_client_kwargs(params, 10) == dict(
         num_results=10, arg=1)
-    assert _update_listing_client_kwargs(params, 0) == dict(arg=1)
+    assert _AzureBaseSystem._update_listing_client_kwargs(
+        params, 0) == dict(arg=1)
 
 
 def test_model_to_dict():
-    """Test pycosio.storage.azure._model_to_dict"""
-    from pycosio.storage.azure import _model_to_dict
+    """Test pycosio.storage.azure._AzureBaseSystem._model_to_dict"""
+    from pycosio.storage.azure import _AzureBaseSystem
     from azure.storage.file import models
 
     last_modified = datetime.now()
@@ -97,24 +90,24 @@ def test_model_to_dict():
     props.last_modified = last_modified
     file = models.File(props=props, metadata=dict(metadata1=0))
 
-    assert _model_to_dict(file) == dict(
+    assert _AzureBaseSystem._model_to_dict(file) == dict(
         etag='etag', last_modified=last_modified, metadata=dict(metadata1=0))
 
 
 def test_get_time():
-    """Test pycosio.storage.azure._get_time"""
-    from pycosio.storage.azure import _get_time
+    """Test pycosio.storage.azure._AzureBaseSystem._get_time"""
+    from pycosio.storage.azure import _AzureBaseSystem
     from io import UnsupportedOperation
 
     m_time = time()
     last_modified = datetime.fromtimestamp(m_time)
 
-    assert (_get_time(
+    assert (_AzureBaseSystem._get_time(
         {'last_modified': last_modified}, ('last_modified',), 'gettime') ==
             pytest.approx(m_time, 1))
 
     with pytest.raises(UnsupportedOperation):
-        _get_time({}, ('last_modified',), 'gettime')
+        _AzureBaseSystem._get_time({}, ('last_modified',), 'gettime')
 
 
 def get_storage_mock():

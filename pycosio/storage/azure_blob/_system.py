@@ -9,17 +9,15 @@ from azure.storage.blob import (
 from azure.storage.blob.models import _BlobTypes
 
 from pycosio.storage.azure import (
-    _handle_azure_exception, _update_storage_parameters, _get_time,
-    _update_listing_client_kwargs, _get_endpoint, _model_to_dict)
+    _handle_azure_exception, _AzureBaseSystem)
 from pycosio._core.exceptions import ObjectNotFoundError
 from pycosio._core.io_base import memoizedmethod
-from pycosio.io import SystemBase
 
 # Default blob type
 _DEFAULT_BLOB_TYPE = _BlobTypes.BlockBlob
 
 
-class _AzureBlobSystem(SystemBase):
+class _AzureBlobSystem(_AzureBaseSystem):
     """
     Azure Blobs Storage system.
 
@@ -31,28 +29,21 @@ class _AzureBlobSystem(SystemBase):
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
     """
-    _MTIME_KEYS = ('last_modified',)
-    _SIZE_KEYS = ('content_length',)
 
-    def __init__(self, *args, **kwargs):
-        self._endpoint = None
-        SystemBase.__init__(self, *args, **kwargs)
-
-    def copy(self, src, dst):
+    def copy(self, src, dst, other_system=None):
         """
         Copy object of the same storage.
 
         Args:
             src (str): Path or URL.
             dst (str): Path or URL.
+            other_system (pycosio.storage.azure._AzureBaseSystem subclass):
+                The source storage system.
         """
-        # Path is relative, require an absolute path.
-        if self.relpath(src) == src:
-            src = '%s/%s' % (self._endpoint, src)
-
         with _handle_azure_exception():
             self._client_block.copy_blob(
-                copy_source=src, **self.get_client_kwargs(dst))
+                copy_source=(other_system or self)._format_src_url(src, self),
+                **self.get_client_kwargs(dst))
 
     def _get_client(self):
         """
@@ -62,8 +53,7 @@ class _AzureBlobSystem(SystemBase):
             dict of azure.storage.blob.baseblobservice.BaseBlobService subclass:
             Service
         """
-        parameters = _update_storage_parameters(
-            self._storage_parameters, self._unsecure).copy()
+        parameters = self._secured_storage_parameters().copy()
 
         # Parameter added by pycosio and unsupported by blob services.
         try:
@@ -74,21 +64,6 @@ class _AzureBlobSystem(SystemBase):
         return {_BlobTypes.PageBlob: PageBlobService(**parameters),
                 _BlobTypes.BlockBlob: BlockBlobService(**parameters),
                 _BlobTypes.AppendBlob: AppendBlobService(**parameters)}
-
-    @staticmethod
-    def _get_time(header, keys, name):
-        """
-        Get time from header
-
-        Args:
-            header (dict): Object header.
-            keys (tuple of str): Header keys.
-            name (str): Method name.
-
-        Returns:
-            float: The number of seconds since the epoch
-        """
-        return _get_time(header, keys, name)
 
     @property
     @memoizedmethod
@@ -144,10 +119,8 @@ class _AzureBlobSystem(SystemBase):
         # - https://<account>.blob.core.windows.net/<container>/<blob>
 
         # Note: "core.windows.net" may be replaced by another "endpoint_suffix"
-        account, suffix, endpoint = _get_endpoint(
-            self._storage_parameters, self._unsecure, 'blob')
-        self._endpoint = endpoint
-        return _re.compile(r'https?://%s\.blob\.%s' % (account, suffix)),
+        return _re.compile(
+            r'https?://%s\.blob\.%s' % self._get_endpoint('blob')),
 
     def _head(self, client_kwargs):
         """
@@ -169,7 +142,7 @@ class _AzureBlobSystem(SystemBase):
                 result = self._client_block.get_container_properties(
                     **client_kwargs)
 
-        return _model_to_dict(result)
+        return self._model_to_dict(result)
 
     def _list_locators(self):
         """
@@ -180,7 +153,7 @@ class _AzureBlobSystem(SystemBase):
         """
         with _handle_azure_exception():
             for container in self._client_block.list_containers():
-                yield container.name, _model_to_dict(container)
+                yield container.name, self._model_to_dict(container)
 
     def _list_objects(self, client_kwargs, path, max_request_entries):
         """
@@ -195,14 +168,14 @@ class _AzureBlobSystem(SystemBase):
         Returns:
             generator of tuple: object name str, object header dict
         """
-        client_kwargs = _update_listing_client_kwargs(
+        client_kwargs = self._update_listing_client_kwargs(
             client_kwargs, max_request_entries)
 
         blob = None
         with _handle_azure_exception():
             for blob in self._client_block.list_blobs(
                     prefix=path, **client_kwargs):
-                yield blob.name, _model_to_dict(blob)
+                yield blob.name, self._model_to_dict(blob)
 
         # None only if path don't exists
         if blob is None:

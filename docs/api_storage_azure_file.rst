@@ -1,6 +1,48 @@
 pycosio.storage.azure_file
 ==========================
 
+Microsoft Azure Storage File
+
+Mount
+-----
+
+An Azure storage account can be mounted using the Pycosio ``mount`` function.
+
+``storage_parameters`` await arguments to pass to the
+``azure.storage.file.fileservice.FileService`` class from
+``azure-storage-file`` Python library.
+
+This example show the mount of Azure Storage File with the minimal
+configuration:
+
+.. code-block:: python
+
+    import pycosio
+
+    # Mount Azure Storage File manually (Minimal configuration)
+    pycosio.mount(storage='azure_file', storage_parameters=dict(
+            account_name='my_account_name',
+            account_key='my_account_key'
+        )
+    )
+
+    # Call of pycosio on an Azure Storage file.
+    with pycosio.open(
+            'https://my_account.file.core.windows.net/my_share/my_file',
+            'rt') as file:
+        text = file.read()
+
+If using multiple Azure storage accounts simultaneously, the ``sas_token``
+argument of the ``FileService`` class is required to allow blob and files
+copies across different accounts.
+
+It is possible to mount Azure Storage Blob and Azure Storage File with a single
+``pycosio.mount`` call by using ``storage='azure'`` instead of
+``storage='azure_file'``.
+
+Files objects classes
+---------------------
+
 .. automodule:: pycosio.storage.azure_file
    :members:
    :inherited-members:

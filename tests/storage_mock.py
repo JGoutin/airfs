@@ -215,7 +215,7 @@ class ObjectStorageMock:
             self._raise_404()
 
     def put_object(self, locator, path, content=None, headers=None,
-                   data_range=None):
+                   data_range=None, new_file=False):
         """
         Put object.
 
@@ -225,11 +225,14 @@ class ObjectStorageMock:
             content (bytes like-object): File content.
             headers (dict): Header to put with the file.
             data_range (tuple of int): Range of position of content.
+            new_file (bool): If True, force new file creation.
 
         Returns:
             dict: File header.
         """
         with self._put_lock:
+            if new_file:
+                self.delete_object(locator, path, not_exists_ok=True)
             try:
                 # Existing file
                 file = self._get_locator_content(locator)[path]
@@ -457,15 +460,17 @@ class ObjectStorageMock:
         """
         return self._get_object(locator, path)[self._header_size]
 
-    def delete_object(self, locator, path):
+    def delete_object(self, locator, path, not_exists_ok=False):
         """
         Delete object.
 
         Args:
             locator (str): locator name
-            path (str): Object path..
+            path (str): Object path.
+            not_exists_ok (bool): If True, do not raise if object not exist.
         """
         try:
             del self._get_locator_content(locator)[path]
         except KeyError:
-            self._raise_404()
+            if not not_exists_ok:
+                self._raise_404()

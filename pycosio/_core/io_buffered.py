@@ -10,7 +10,7 @@ from os import SEEK_SET
 from threading import Lock
 from time import sleep
 
-from pycosio._core.compat import ThreadPoolExecutor, file_not_found_error
+from pycosio._core.compat import ThreadPoolExecutor
 from pycosio._core.io_base import ObjectIOBase
 from pycosio._core.io_raw import ObjectRawIOBase
 from pycosio._core.exceptions import handle_os_exceptions, ObjectNotFoundError

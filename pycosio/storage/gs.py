@@ -50,13 +50,14 @@ class _GSSystem(_SystemBase):
     _MTIME_KEYS = ('updated',)
     _SIZE_KEYS = ('size',)
 
-    def copy(self, src, dst):
+    def copy(self, src, dst, other_system=None):
         """
         Copy object of the same storage.
 
         Args:
             src (str): Path or URL.
             dst (str): Path or URL.
+            other_system (pycosio._core.io_system.SystemBase subclass): Unused.
         """
         dst_client_kwargs = self.get_client_kwargs(dst)
         with _handle_google_exception():

@@ -15,8 +15,7 @@ The following table shows features available for each storage.
 API
 ---
 
-The following pages describes IO class for each storage. This give information
-on parameters to use to configure storage.
+The following pages describes each storage.
 
 .. automodule:: pycosio.storage
    :members:

@@ -203,7 +203,7 @@ def test_object_buffered_base_io():
     assert object_io.write(250 * b'0') == 250
     object_io.ensure_ready()
     assert object_io._buffer_seek == 50
-    assert bytes(object_io._write_buffer) == 50 * b'0' + 50 * b'\x00'
+    assert bytes(object_io._write_buffer) == 50 * b'0' + 50 * b'\0'
     assert object_io._get_buffer().tobytes() == 50 * b'0'
     assert object_io._seek == 2
     assert len(flushed) == 200

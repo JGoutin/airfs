@@ -9,15 +9,13 @@ from azure.storage.file import FileService as _FileService
 from azure.common import AzureHttpError as _AzureHttpError
 
 from pycosio.storage.azure import (
-    _handle_azure_exception, _update_storage_parameters, _get_time,
-    _update_listing_client_kwargs, _get_endpoint, _model_to_dict)
+    _handle_azure_exception, _AzureBaseSystem)
 from pycosio.io import (
     ObjectRawIOBase as _ObjectRawIOBase,
-    ObjectBufferedIOBase as _ObjectBufferedIOBase,
-    SystemBase as _SystemBase)
+    ObjectBufferedIOBase as _ObjectBufferedIOBase)
 
 
-class _AzureFileSystem(_SystemBase):
+class _AzureFileSystem(_AzureBaseSystem):
     """
     Azure Files Storage system.
 
@@ -28,28 +26,21 @@ class _AzureFileSystem(_SystemBase):
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
     """
-    _MTIME_KEYS = ('last_modified',)
-    _SIZE_KEYS = ('content_length',)
 
-    def __init__(self, *args, **kwargs):
-        self._endpoint = None
-        _SystemBase.__init__(self, *args, **kwargs)
-
-    def copy(self, src, dst):
+    def copy(self, src, dst, other_system=None):
         """
         Copy object of the same storage.
 
         Args:
             src (str): Path or URL.
             dst (str): Path or URL.
+            other_system (pycosio.storage.azure._AzureBaseSystem subclass):
+                The source storage system.
         """
-        # Path is relative, require an absolute path.
-        if self.relpath(src) == src:
-            src = '%s/%s' % (self._endpoint, src)
-
         with _handle_azure_exception():
             self.client.copy_file(
-                copy_source=src, **self.get_client_kwargs(dst))
+                copy_source=(other_system or self)._format_src_url(src, self),
+                **self.get_client_kwargs(dst))
 
     copy_from_azure_blobs = copy  # Allows copy from Azure Blobs Storage
 
@@ -60,23 +51,7 @@ class _AzureFileSystem(_SystemBase):
         Returns:
             azure.storage.file.fileservice.FileService: Service
         """
-        return _FileService(**_update_storage_parameters(
-            self._storage_parameters, self._unsecure))
-
-    @staticmethod
-    def _get_time(header, keys, name):
-        """
-        Get time from header
-
-        Args:
-            header (dict): Object header.
-            keys (tuple of str): Header keys.
-            name (str): Method name.
-
-        Returns:
-            float: The number of seconds since the epoch
-        """
-        return _get_time(header, keys, name)
+        return _FileService(**self._secured_storage_parameters())
 
     def get_client_kwargs(self, path):
         """
@@ -127,11 +102,9 @@ class _AzureFileSystem(_SystemBase):
         # - https://<account>.file.core.windows.net/<share>/<file>
 
         # Note: "core.windows.net" may be replaced by another endpoint
-        account, suffix, endpoint = _get_endpoint(
-            self._storage_parameters, self._unsecure, 'file')
-        self._endpoint = endpoint
         return _re.compile(
-            r'(https?://|smb://|//|\\)%s\.file\.%s' % (account, suffix)),
+            r'(https?://|smb://|//|\\)%s\.file\.%s' %
+            self._get_endpoint('file')),
 
     def _head(self, client_kwargs):
         """
@@ -156,7 +129,7 @@ class _AzureFileSystem(_SystemBase):
             else:
                 result = self.client.get_share_properties(**client_kwargs)
 
-        return _model_to_dict(result)
+        return self._model_to_dict(result)
 
     def _list_locators(self):
         """
@@ -167,7 +140,7 @@ class _AzureFileSystem(_SystemBase):
         """
         with _handle_azure_exception():
             for share in self.client.list_shares():
-                yield share.name, _model_to_dict(share)
+                yield share.name, self._model_to_dict(share)
 
     def _list_objects(self, client_kwargs, path, max_request_entries):
         """
@@ -182,13 +155,13 @@ class _AzureFileSystem(_SystemBase):
         Returns:
             generator of tuple: object name str, object header dict
         """
-        client_kwargs = _update_listing_client_kwargs(
+        client_kwargs = self._update_listing_client_kwargs(
             client_kwargs, max_request_entries)
 
         with _handle_azure_exception():
             for obj in self.client.list_directories_and_files(
                     prefix=path, **client_kwargs):
-                yield obj.name, _model_to_dict(obj)
+                yield obj.name, self._model_to_dict(obj)
 
     def _make_dir(self, client_kwargs):
         """

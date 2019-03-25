@@ -114,7 +114,7 @@ class AzurePageBlobRawIO(AzureBlobRawIO):
 
         if (null_strip is None and self._ignore_padding) or null_strip:
             # Remove trailing Null chars (Empty page end)
-            return data.rstrip(b'\x00')
+            return data.rstrip(b'\0')
 
         return data
 
@@ -128,7 +128,7 @@ class AzurePageBlobRawIO(AzureBlobRawIO):
         data = AzureBlobRawIO._readall(self)
         if self._ignore_padding:
             # Remove trailing Null chars (Empty page end)
-            return data.rstrip(b'\x00')
+            return data.rstrip(b'\0')
         return data
 
     def seek(self, offset, whence=SEEK_SET):
@@ -152,8 +152,8 @@ class AzurePageBlobRawIO(AzureBlobRawIO):
         """
         seek = AzureBlobRawIO.seek(self, offset, whence)
 
-        # In case of end seek, adjust to real blob end and not padded page end
-        if whence == SEEK_END and self._ignore_padding:
+        # If seek on last page, remove padding
+        if self._ignore_padding and seek > self._size - 512:
             seek = self._seek_ignore_padding(seek, offset)
 
         return seek
@@ -169,17 +169,16 @@ class AzurePageBlobRawIO(AzureBlobRawIO):
         Returns:
             int: seek value with ignored padding.
         """
-        # Read last page
-        page_end = seek - offset
-        last_page = self._read_range(
-            page_end - 512, page_end - 1, null_strip=True)
+        # Read last page until seek position.
+        page_start = seek - (seek % 512 or 512)
+        last_page = self._read_range(page_start, seek, null_strip=True)
 
-        # Apply offset
-        if offset:
+        # Apply offset if negative
+        if offset < 0:
             last_page = memoryview(last_page)[:offset]
 
         # Move seek to last not null byte
-        self._seek = seek = page_end - 512 + len(last_page)
+        self._seek = seek = page_start + len(last_page)
         return seek
 
     def _flush(self, buffer, start, end):
@@ -288,7 +287,12 @@ class AzurePageBlobBufferedIO(AzureBlobBufferedIO):
     """
     _RAW_CLASS = AzurePageBlobRawIO
     _DEFAULT_CLASS = False
+
+    #: Maximal buffer_size value in bytes (Maximum upload page size)
     MAXIMUM_BUFFER_SIZE = _MAX_PAGE_SIZE
+
+    #: Minimal buffer_size value in bytes (Page size)
+    MINIMUM_BUFFER_SIZE = 512
 
     def __init__(self, *args, **kwargs):
         ObjectBufferedIOBase.__init__(self, *args, **kwargs)

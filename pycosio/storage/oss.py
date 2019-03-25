@@ -63,13 +63,14 @@ class _OSSSystem(_SystemBase):
         if self._unsecure:
             self._endpoint = self._endpoint.replace('https://', 'http://')
 
-    def copy(self, src, dst):
+    def copy(self, src, dst, other_system=None):
         """
         Copy object of the same storage.
 
         Args:
             src (str): Path or URL.
             dst (str): Path or URL.
+            other_system (pycosio._core.io_system.SystemBase subclass): Unused.
         """
         copy_source = self.get_client_kwargs(src)
         copy_destination = self.get_client_kwargs(dst)

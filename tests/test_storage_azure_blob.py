@@ -33,8 +33,9 @@ def test_mocked_storage():
         """azure.storage.blob.baseblobservice.BaseBlobService"""
         BLOB_TYPE = None
 
-        def __init__(self, *_, **__):
+        def __init__(self, *_, **kwargs):
             """azure.storage.blob.baseblobservice.BaseBlobService.__init__"""
+            self.kwargs = kwargs
 
         @staticmethod
         def copy_blob(container_name=None, blob_name=None, copy_source=None,
@@ -133,13 +134,13 @@ def test_mocked_storage():
                 assert not content_length % 512
 
                 # Create null pages
-                content = b'\x00' * content_length
+                content = b'\0' * content_length
             else:
                 content = None
 
             storage_mock.put_object(
                 container_name, blob_name, content=content, headers=dict(
-                    blob_type=self.BLOB_TYPE))
+                    blob_type=self.BLOB_TYPE), new_file=True)
 
         def create_blob_from_bytes(
                 self, container_name=None, blob_name=None, blob=None, **_):
@@ -150,7 +151,7 @@ def test_mocked_storage():
 
             storage_mock.put_object(
                 container_name, blob_name, content=blob, headers=dict(
-                    blob_type=self.BLOB_TYPE))
+                    blob_type=self.BLOB_TYPE), new_file=True)
 
         def resize_blob(self, container_name=None, blob_name=None,
                         content_length=None, **_):
@@ -163,7 +164,7 @@ def test_mocked_storage():
             size = storage_mock.get_object_size(container_name, blob_name)
             padding = content_length - size
             storage_mock.put_object(
-                container_name, blob_name, content=b'\x00' * padding,
+                container_name, blob_name, content=b'\0' * padding,
                 data_range=(content_length - padding, content_length))
 
         @staticmethod
@@ -191,7 +192,7 @@ def test_mocked_storage():
             create_blob_from_bytes"""
             storage_mock.put_object(
                 container_name, blob_name, blob, headers=dict(
-                    blob_type=self.BLOB_TYPE))
+                    blob_type=self.BLOB_TYPE), new_file=True)
 
         @staticmethod
         def put_block(container_name=None, blob_name=None, block=None,
@@ -224,7 +225,7 @@ def test_mocked_storage():
             """azure.storage.blob.appendblobservice.AppendBlobService.
             create_blob"""
             storage_mock.put_object(container_name, blob_name, headers=dict(
-                blob_type=self.BLOB_TYPE))
+                blob_type=self.BLOB_TYPE), new_file=True)
 
         @staticmethod
         def append_block(container_name=None, blob_name=None, block=None, **_):
@@ -292,7 +293,7 @@ def test_mocked_storage():
 
             with AzureBlobRawIO(file_path, ignore_padding=False,
                                 **tester._system_parameters) as file:
-                assert file.readall() == b'\x00' * 1024
+                assert file.readall() == b'\0' * 1024
 
             # Test pre-allocating pages with page unaligned content length
             with AzureBlobRawIO(file_path, 'wb', content_length=1234,
@@ -301,7 +302,7 @@ def test_mocked_storage():
 
             with AzureBlobRawIO(file_path, ignore_padding=False,
                                 **tester._system_parameters) as file:
-                assert file.readall() == b'\x00' * 1536
+                assert file.readall() == b'\0' * 1536
 
             # Test increase already existing blob size
             with AzureBlobRawIO(file_path, 'ab', content_length=2345,
@@ -310,7 +311,7 @@ def test_mocked_storage():
 
             with AzureBlobRawIO(file_path, ignore_padding=False,
                                 **tester._system_parameters) as file:
-                assert file.readall() == b'\x00' * 2560
+                assert file.readall() == b'\0' * 2560
 
             # Test not truncate already existing blob with specified content
             # length
@@ -320,7 +321,7 @@ def test_mocked_storage():
 
             with AzureBlobRawIO(file_path, ignore_padding=False,
                                 **tester._system_parameters) as file:
-                assert file.readall() == b'\x00' * 2560
+                assert file.readall() == b'\0' * 2560
 
             # Test Buffered IO: Page unaligned buffer size rounding
             with AzurePageBlobBufferedIO(file_path, 'wb', buffer_size=1234,
@@ -330,7 +331,7 @@ def test_mocked_storage():
             # Test Buffered IO: initialization to one buffer size
             with AzureBlobRawIO(file_path, ignore_padding=False,
                                 **tester._system_parameters) as file:
-                assert file.readall() == b'\x00' * 1536
+                assert file.readall() == b'\0' * 1536
 
             # Test Buffered IO: not truncate when initializing to one buffer
             with AzurePageBlobBufferedIO(file_path, 'ab', buffer_size=1024,
@@ -339,7 +340,7 @@ def test_mocked_storage():
 
             with AzureBlobRawIO(file_path, ignore_padding=False,
                                 **tester._system_parameters) as file:
-                assert file.readall() == b'\x00' * 1536
+                assert file.readall() == b'\0' * 1536
 
         # Append blobs tests
         blob_type = _BlobTypes.AppendBlob
