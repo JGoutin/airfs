@@ -265,7 +265,7 @@ class SwiftRawIO(_ObjectRawIOBase):
         with _handle_client_exception():
             return self._client.get_object(*self._client_args)[1]
 
-    def _flush(self, buffer, *_):
+    def _flush(self, buffer):
         """
         Flush the write buffers of the stream if applicable.
 

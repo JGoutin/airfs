@@ -7,7 +7,7 @@ from os import SEEK_CUR, SEEK_END, SEEK_SET
 from pycosio._core.compat import file_exits_error
 from pycosio._core.exceptions import ObjectNotFoundError, handle_os_exceptions
 from pycosio._core.io_base import ObjectIOBase, memoizedmethod
-from pycosio._core.io_system import SystemBase
+from pycosio._core.io_base_system import SystemBase
 
 
 class ObjectRawIOBase(RawIOBase, ObjectIOBase):
@@ -33,9 +33,6 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
     """
     # System I/O class
     _SYSTEM_CLASS = SystemBase
-
-    # Can flush parts of files (Instead of full file content at once)
-    _SUPPORT_PART_FLUSH = False
 
     def __init__(self, name, mode='r', storage_parameters=None, **kwargs):
 
@@ -73,14 +70,13 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         if self._writable:
             self._write_buffer = bytearray()
 
+            # Flag that is set to True if file is flushed, created, ...
+            # at least once
+            self._was_flushed = False
+
             # Initializes starting data
             if 'a' in mode and self._exists():
-                if not self._SUPPORT_PART_FLUSH:
-                    # By default, since appending is not supported by a
-                    # majority of cloud storage, reads existing file content
-                    # in write buffer
-                    self._init_append()
-                self._seek = self._size
+                self._init_append()
 
             # Checks if object exists,
             # and raise if it is the case
@@ -93,11 +89,34 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
             with handle_os_exceptions():
                 self._head()
 
+    # New file creation
+    @property
+    def _is_new_file(self):
+        """
+        At object create, a file is considered new if:
+
+        - It was open in 'a' when the file didn't exists.
+        - It was open in other writing mode
+
+        When the file is flushed (Or create by any other method) the first time
+        the file is not considered as new.
+
+        Returns:
+            bool: True if a new file.
+        """
+        return (
+            self._writable and
+            ('a' not in self.mode or ('a' in self.mode and not self._exists()))
+            and not self._was_flushed)
+
     def _init_append(self):
         """
-        Initializes data on 'a' mode with full file content.
+        Initializes file on 'a' mode.
         """
+        # Require to load the full file content in buffer
         self._write_buffer[:] = self.readall()
+
+        self._seek = self._size
 
     @property
     def _client(self):
@@ -124,36 +143,18 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         save the object on the cloud.
         """
         if self._writable:
-            with self._seek_lock:
-                buffer = self._get_buffer()
-
-                # Random write: Buffer is a part of the file
-                if self._SUPPORT_PART_FLUSH:
-                    # Flush that part of the file
-                    end = self._seek
-                    start = end - len(buffer)
-
-                    # Clear buffer
-                    self._write_buffer = bytearray()
-
-                # No random write: Buffer is the entire file content
-                else:
-                    start = end = None
-
             with handle_os_exceptions():
-                self._flush(buffer, start, end)
+                self._flush(self._get_buffer())
+
+        self._was_flushed = True
 
     @abstractmethod
-    def _flush(self, buffer, start, end):
+    def _flush(self, buffer):
         """
         Flush the write buffers of the stream if applicable.
 
         Args:
             buffer (memoryview): Buffer content.
-            start (int): Start of buffer position to flush.
-                Supported only if random write supported.
-            end (int): End of buffer position to flush.
-                Supported only if random write supported.
         """
 
     def _get_buffer(self):
@@ -331,9 +332,9 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         Change the stream position to the given byte offset.
 
         Args:
-            offset: Offset is interpreted relative to the position indicated by
-                whence.
-            whence: The default value for whence is SEEK_SET.
+            offset (int): Offset is interpreted relative to the position
+                indicated by whence.
+            whence (int): The default value for whence is SEEK_SET.
                 Values for whence are:
                 SEEK_SET or 0 – start of the stream (the default);
                 offset should be zero or positive
@@ -348,10 +349,27 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         if not self._seekable:
             raise UnsupportedOperation('seek')
 
-        if self._SUPPORT_PART_FLUSH:
-            # Flush before moving position
-            self.flush()
+        seek = self._update_seek(offset, whence)
 
+        # If seek move out of file, add padding until new seek position.
+        if self._writable:
+            size = len(self._write_buffer)
+            if seek > size:
+                self._write_buffer[seek:size] = b'\0' * (seek - size)
+
+        return seek
+
+    def _update_seek(self, offset, whence):
+        """
+        Update seek value.
+
+        Args:
+            offset (int): Offset.
+            whence (int): Whence.
+
+        Returns:
+            int: Seek position.
+        """
         with self._seek_lock:
             if whence == SEEK_SET:
                 self._seek = offset
@@ -361,15 +379,7 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
                 self._seek = offset + self._size
             else:
                 raise ValueError('Unsupported whence "%s"' % whence)
-
-            # If seek move out of file, add padding until new seek position.
-            if self._writable and not self._SUPPORT_PART_FLUSH:
-                size = len(self._write_buffer)
-                if self._seek > size:
-                    self._write_buffer[self._seek:] = b'\0' * (
-                            self._seek - size)
-
-            return self._seek
+        return self._seek
 
     def write(self, b):
         """

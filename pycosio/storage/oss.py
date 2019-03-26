@@ -359,7 +359,7 @@ class OSSRawIO(_ObjectRawIOBase):
         with _handle_oss_error():
             return self._bucket.get_object(key=self._key).read()
 
-    def _flush(self, buffer, *_):
+    def _flush(self, buffer):
         """
         Flush the write buffers of the stream if applicable.
 

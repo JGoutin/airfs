@@ -32,9 +32,13 @@ This example show the mount of OSS with the minimal configuration:
     )
 
     # Call of pycosio on an OSS object.
-    with pycosio.open('http://oss-my_region.aliyuncs.com/my_bucket/my_object',
-                      'rt') as file:
+    with pycosio.open('oss://my_bucket/my_object', 'rt') as file:
         text = file.read()
+
+Limitation
+~~~~~~~~~~
+
+Only one OSS configuration can be mounted simultaneously.
 
 Files objects classes
 ---------------------

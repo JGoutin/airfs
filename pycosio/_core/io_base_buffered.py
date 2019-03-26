@@ -2,21 +2,20 @@
 """Cloud storage abstract buffered IO class"""
 from __future__ import division  # Python 2:  Enable "type(int / int) == float"
 
+from abc import abstractmethod
 from concurrent.futures import as_completed
-from functools import partial
 from io import BufferedIOBase, UnsupportedOperation
 from math import ceil
 from os import SEEK_SET
 from threading import Lock
 from time import sleep
 
-from pycosio._core.compat import ThreadPoolExecutor
-from pycosio._core.io_base import ObjectIOBase
-from pycosio._core.io_raw import ObjectRawIOBase
-from pycosio._core.exceptions import handle_os_exceptions, ObjectNotFoundError
+from pycosio._core.io_base import ObjectIOBase, WorkerPoolBase
+from pycosio._core.io_base_raw import ObjectRawIOBase
+from pycosio._core.exceptions import handle_os_exceptions
 
 
-class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
+class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
     """
     Base class for buffered binary cloud storage object I/O
 
@@ -55,6 +54,7 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
 
         BufferedIOBase.__init__(self)
         ObjectIOBase.__init__(self, name, mode=mode)
+        WorkerPoolBase.__init__(self, max_workers)
 
         # Instantiate raw IO
         self._raw = self._RAW_CLASS(
@@ -65,10 +65,6 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
         self._mode = self._raw.mode
         self._name = self._raw.name
         self._client_kwargs = self._raw._client_kwargs
-
-        # Initialize parallel processing
-        self._workers_pool = None
-        self._workers_count = max_workers
 
         # Initializes buffer
         if not buffer_size or buffer_size < 0:
@@ -171,76 +167,13 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
                 self._write_buffer = bytearray(self._buffer_size)
                 self._buffer_seek = 0
 
+    @abstractmethod
     def _flush(self):
         """
         Flush the write buffers of the stream if applicable.
 
         In write mode, send the buffer content to the cloud object.
         """
-        if not self._raw._SUPPORT_PART_FLUSH:
-            # No random write access: This function must be implemented.
-            raise NotImplementedError('No default flushing function.')
-
-        # Flush buffer to specified range
-        buffer = self._get_buffer()
-        start = self._buffer_size * (self._seek - 1)
-        end = start + len(buffer)
-
-        future = self._workers.submit(
-            self._flush_range, buffer=buffer, start=start, end=end)
-        self._write_futures.append(future)
-        future.add_done_callback(partial(self._update_size, end))
-
-    def _update_size(self, size, future):
-        """
-        Keep track of the file size during writing.
-
-        If specified size value is greater than the current size, update the
-        current size using specified value.
-
-        Used as callback in default "_flush" implementation for files supporting
-        random write access.
-
-        Args:
-            size (int): Size value.
-            future (concurrent.futures._base.Future): future.
-        """
-        with self._size_lock:
-            # Update value
-            if size > self._size and future.done:
-                # Size can be lower if seek down on an 'a' mode open file.
-                self._size = size
-
-    def _flush_range(self, buffer, start, end):
-        """
-        Flush a buffer to a range of the file. Can only be used on files that
-        support random write access.
-
-        Meant to be used asynchronously, used to provides parallel flushing of
-        file parts when applicable.
-
-        Args:
-            buffer (memoryview): Buffer content.
-            start (int): Start of buffer position to flush.
-            end (int): End of buffer position to flush.
-        """
-        # On first call, Get file size if exists
-        with self._size_lock:
-            if not self._size_synched:
-                self._size_synched = True
-                try:
-                    self._size = self.raw._size
-                except (ObjectNotFoundError, UnsupportedOperation):
-                    self._size = 0
-
-        # It is not possible to flush a part if start > size:
-        # If it is the case, wait that previous parts are flushed before
-        # flushing this one
-        while start > self._size:
-            sleep(0.01)
-
-        # Flush buffer using RAW IO
-        self._raw_flush(buffer, start, end)
 
     def _get_buffer(self):
         """
@@ -520,20 +453,6 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase):
 
             # Preload starting from current seek
             self._preload_range()
-
-    @property
-    def _workers(self):
-        """Executor pool
-
-        Returns:
-            concurrent.futures.Executor: Executor pool"""
-        # Lazy instantiate workers pool on first call
-        if self._workers_pool is None:
-            self._workers_pool = ThreadPoolExecutor(
-                max_workers=self._workers_count)
-
-        # Get worker pool
-        return self._workers_pool
 
     def write(self, b):
         """

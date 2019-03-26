@@ -9,8 +9,10 @@ import pytest
 
 def test_object_buffered_base_io():
     """Tests pycosio._core.io_buffered.ObjectBufferedIOBase"""
-    from pycosio._core.io_raw import ObjectRawIOBase
-    from pycosio._core.io_buffered import ObjectBufferedIOBase
+    from pycosio._core.io_base_raw import ObjectRawIOBase
+    from pycosio._core.io_base_buffered import ObjectBufferedIOBase
+    from pycosio._core.io_random_write import (
+        ObjectRawIORandomWriteBase, ObjectBufferedIORandomWriteBase)
 
     # Mock sub class
     name = 'name'
@@ -57,7 +59,7 @@ def test_object_buffered_base_io():
         """Dummy IO"""
         _SYSTEM_CLASS = DummySystem
 
-        def _flush(self, buffer, *_):
+        def _flush(self, buffer):
             """Do nothing"""
             raw_flushed.extend(buffer)
 
@@ -93,9 +95,8 @@ def test_object_buffered_base_io():
             self._write_futures.append(self._workers.submit(
                 flush, self._write_buffer[:self._buffer_seek]))
 
-    class DummyRawIOPartFlush(DummyRawIO):
+    class DummyRawIOPartFlush(DummyRawIO, ObjectRawIORandomWriteBase):
         """Dummy IO with part flush support"""
-        _SUPPORT_PART_FLUSH = True
         _size = 20
 
         def _flush(self, buffer, start, *_):
@@ -105,13 +106,9 @@ def test_object_buffered_base_io():
                 time.sleep(0.1)
             raw_flushed.extend(buffer)
 
-    class DummyBufferedIOPartFlush(ObjectBufferedIOBase):
+    class DummyBufferedIOPartFlush(ObjectBufferedIORandomWriteBase):
         """Dummy buffered IO with part flush support"""
         _RAW_CLASS = DummyRawIOPartFlush
-
-    class DummyBufferedIONoPartFlush(ObjectBufferedIOBase):
-        """Dummy buffered IO without part flush support"""
-        _RAW_CLASS = DummyRawIO
 
     # Test raw
     object_io = DummyBufferedIO(name)
@@ -269,12 +266,6 @@ def test_object_buffered_base_io():
     assert object_io._buffer_size == DummyBufferedIO.MINIMUM_BUFFER_SIZE
     object_io = DummyBufferedIO(name, mode='w', buffer_size=1000000)
     assert object_io._buffer_size == DummyBufferedIO.MAXIMUM_BUFFER_SIZE
-
-    # Test raises not implemented error if no part flush support and no
-    # _flush implementation
-    object_io = DummyBufferedIONoPartFlush(name, mode='w')
-    with pytest.raises(NotImplementedError):
-        object_io.flush()
 
     # Test default implementation with part flush support
     raw_flushed[:] = b''

@@ -4,16 +4,20 @@ from collections import OrderedDict
 from importlib import import_module
 from threading import RLock
 
-from pycosio._core.io_raw import ObjectRawIOBase
-from pycosio._core.io_buffered import ObjectBufferedIOBase
-from pycosio._core.io_system import SystemBase
+from pycosio._core.io_base_raw import ObjectRawIOBase
+from pycosio._core.io_base_buffered import ObjectBufferedIOBase
+from pycosio._core.io_base_system import SystemBase
+from pycosio._core.io_random_write import ObjectBufferedIORandomWriteBase
 from pycosio._core.compat import Pattern
 
 MOUNTED = OrderedDict()
 _MOUNT_LOCK = RLock()
+
+# List Base classes, and advanced base classes that are not abstract.
 _BASE_CLASSES = {
-    'raw': ObjectRawIOBase, 'buffered': ObjectBufferedIOBase,
-    'system': SystemBase}
+    'raw': (ObjectRawIOBase, ),
+    'buffered': (ObjectBufferedIOBase, ObjectBufferedIORandomWriteBase),
+    'system': (SystemBase, )}
 
 
 def get_instance(name, cls='system', storage=None, storage_parameters=None,
@@ -151,7 +155,12 @@ def mount(storage=None, name='', storage_parameters=None,
         member = getattr(module, member_name)
         for cls_name, cls in classes_items:
             try:
-                if (issubclass(member, cls) and member is not cls and
+                if (issubclass(member, cls) and
+                        # Not a base class
+                        member not in cls and
+                        # Not an abstract class
+                        not member.__abstractmethods__ and
+                        # Is flagged as default class
                         getattr(member, '_DEFAULT_CLASS')):
                     storage_info[cls_name] = member
                     break

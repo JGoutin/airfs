@@ -8,16 +8,21 @@ from stat import S_IFDIR, S_IFREG, S_IFLNK
 
 from dateutil.parser import parse
 
+from pycosio._core.io_base import WorkerPoolBase
 from pycosio._core.compat import ABC, Pattern, to_timestamp
 from pycosio._core.exceptions import ObjectNotFoundError, ObjectPermissionError
 
 
-class SystemBase(ABC):
+class SystemBase(ABC, WorkerPoolBase):
     """
     Cloud storage system handler.
 
     This class subclasses are not intended to be public and are
     implementation details.
+
+    This base system is for Object storage that does not handles files with
+    a true hierarchy like file systems. Directories are virtual with this kind
+    of storage.
 
     Args:
         storage_parameters (dict): Storage configuration parameters.
@@ -38,6 +43,9 @@ class SystemBase(ABC):
 
     def __init__(self, storage_parameters=None, unsecure=False, roots=None,
                  **_):
+        # Initialize worker pool
+        WorkerPoolBase.__init__(self)
+
         # Save storage parameters
         self._storage_parameters = storage_parameters or dict()
         self._unsecure = unsecure

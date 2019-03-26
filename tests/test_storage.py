@@ -225,12 +225,7 @@ class StorageTester:
 
             with self._raw_io(file_path, 'rb',
                               **self._system_parameters) as file:
-
-                # TODO: See how to manage this case with
-                # pycosio.storage.azure_blob._page_blob.AzurePageBlobRawIO
-                # Which currently strip "\0" on seek by design.
-                if not hasattr(file, '_ignore_padding'):
-                    assert file.readall() == b'\0' * 256 + b'\x01'
+                assert file.readall() == b'\0' * 256 + b'\x01'
 
     def _test_buffered_io(self):
         """

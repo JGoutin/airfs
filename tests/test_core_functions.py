@@ -68,7 +68,7 @@ def test_equivalent_functions(tmpdir):
     from pycosio._core.storage_manager import MOUNTED
     import pycosio._core.functions_os_path as std_os_path
     import pycosio._core.functions_os as std_os
-    from pycosio._core.io_system import SystemBase
+    from pycosio._core.io_base_system import SystemBase
     from pycosio._core.compat import fsencode
     from pycosio._core.exceptions import ObjectPermissionError
 
@@ -360,7 +360,7 @@ def test_cos_open(tmpdir):
     from pycosio._core.functions_io import cos_open
     from pycosio._core.storage_manager import MOUNTED
     from pycosio._core.compat import same_file_error
-    from pycosio._core.io_system import SystemBase
+    from pycosio._core.io_base_system import SystemBase
     from io import TextIOWrapper, UnsupportedOperation
     from os.path import isdir
     import pycosio._core.functions_shutil as pycosio_shutil

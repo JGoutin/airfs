@@ -28,7 +28,7 @@ configuration:
 
     # Call of pycosio on an Azure Storage file.
     with pycosio.open(
-            'https://my_account.file.core.windows.net/my_share/my_file',
+            '//my_account.file.core.windows.net/my_share/my_file',
             'rt') as file:
         text = file.read()
 
@@ -39,6 +39,11 @@ copies across different accounts.
 It is possible to mount Azure Storage Blob and Azure Storage File with a single
 ``pycosio.mount`` call by using ``storage='azure'`` instead of
 ``storage='azure_file'``.
+
+Limitation
+~~~~~~~~~~
+
+Only one configuration per Azure Storage account can be mounted simultaneously.
 
 Files objects classes
 ---------------------

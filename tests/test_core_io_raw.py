@@ -8,8 +8,9 @@ import pytest
 
 def test_object_raw_base_io():
     """Tests pycosio._core.io_raw.ObjectRawIOBase"""
-    from pycosio._core.io_raw import ObjectRawIOBase
+    from pycosio._core.io_base_raw import ObjectRawIOBase
     from pycosio._core.exceptions import ObjectNotFoundError
+    from pycosio._core.io_random_write import ObjectRawIORandomWriteBase
 
     # Mock sub class
     name = 'name'
@@ -65,10 +66,8 @@ def test_object_raw_base_io():
                 end = size
             return ((size if end > size else end) - start) * b'0'
 
-    class DummyIORandomWrite(DummyIO):
+    class DummyIORandomWrite(DummyIO, ObjectRawIORandomWriteBase):
         """Dummy IO with random write support"""
-
-        _SUPPORT_PART_FLUSH = True
 
         def _flush(self, buffer, start, stop):
             """Flush in a buffer"""
@@ -131,7 +130,6 @@ def test_object_raw_base_io():
 
     # Test write
     object_io = DummyIO(name, mode='w')
-    assert not object_io._SUPPORT_PART_FLUSH
     assert object_io.write(10 * b'0') == 10
     assert object_io.tell() == 10
     assert object_io.write(10 * b'0') == 10
@@ -172,7 +170,6 @@ def test_object_raw_base_io():
     object_io = DummyIORandomWrite(name, mode='w')
     flushed[:] = b''
     assert not len(flushed)
-    assert object_io._SUPPORT_PART_FLUSH
     assert object_io.write(100 * b'0') == 100
     object_io.seek(50)
     assert len(flushed) == len(100 * b'0')

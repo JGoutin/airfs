@@ -40,6 +40,11 @@ It is possible to mount Azure Storage Blob and Azure Storage File with a single
 ``pycosio.mount`` call by using ``storage='azure'`` instead of
 ``storage='azure_blob'``.
 
+Limitation
+~~~~~~~~~~
+
+Only one configuration per Azure Storage account can be mounted simultaneously.
+
 Files objects classes
 ---------------------
 

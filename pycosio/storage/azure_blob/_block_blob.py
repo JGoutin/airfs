@@ -54,16 +54,12 @@ class AzureBlockBlobRawIO(AzureBlobRawIO):
         """
         return self._system.client[_BLOB_TYPE]
 
-    def _flush(self, buffer, start, end):
+    def _flush(self, buffer):
         """
         Flush the write buffer of the stream if applicable.
 
         Args:
             buffer (memoryview): Buffer content.
-            start (int): Start of buffer position to flush.
-                Supported only with page blobs.
-            end (int): End of buffer position to flush.
-                Supported only with page blobs.
         """
         with _handle_azure_exception():
             # Write entire file at once

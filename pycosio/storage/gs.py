@@ -282,7 +282,7 @@ class GSRawIO(_ObjectRawIOBase):
             self._download_to_file(file_obj=file_obj)
         return file_obj.getvalue()
 
-    def _flush(self, buffer, *_):
+    def _flush(self, buffer):
         """
         Flush the write buffers of the stream if applicable.
 

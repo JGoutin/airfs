@@ -3,8 +3,9 @@
 from functools import wraps
 from io import IOBase, UnsupportedOperation
 from threading import Lock
+from itertools import chain
 
-from pycosio._core.compat import fsdecode
+from pycosio._core.compat import fsdecode, ThreadPoolExecutor
 
 
 class ObjectIOBase(IOBase):
@@ -149,3 +150,56 @@ def memoizedmethod(method):
             return result
 
     return patched
+
+
+class WorkerPoolBase:
+    """
+    Base class that handle a worker pool.
+
+    Args:
+        max_workers (int): Maximum number of workers.
+    """
+
+    def __init__(self, max_workers=None):
+        self._workers_count = max_workers
+
+    @property
+    @memoizedmethod
+    def _workers(self):
+        """Executor pool
+
+        Returns:
+            concurrent.futures.Executor: Executor pool"""
+        # Lazy instantiate workers pool on first call
+        return ThreadPoolExecutor(max_workers=self._workers_count)
+
+    def _generate_async(self, generator):
+        """
+        Return the previous generator object after having run the first element
+        evaluation as a background task.
+
+        Args:
+            generator (iterable): A generator function.
+
+        Returns:
+            iterable: The generator function with first element evaluated
+                in background.
+        """
+        first_value_future = self._workers.submit(next, generator)
+
+        def get_first_element(future=first_value_future):
+            """
+            Get first element value from future.
+
+            Args:
+                future (concurrent.futures._base.Future): First value future.
+
+            Returns:
+                Evaluated value
+            """
+            try:
+                yield future.result()
+            except StopIteration:
+                return
+
+        return chain(get_first_element(), generator)

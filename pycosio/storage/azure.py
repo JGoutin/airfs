@@ -2,8 +2,11 @@
 """Microsoft Azure Storage"""
 from __future__ import absolute_import  # Python 2: Fix azure import
 
+from abc import abstractmethod as _abstractmethod
 from contextlib import contextmanager as _contextmanager
-from io import UnsupportedOperation as _UnsupportedOperation
+from io import (
+    UnsupportedOperation as _UnsupportedOperation, BytesIO as _BytesIO)
+from threading import Lock as _Lock
 
 from azure.common import AzureHttpError as _AzureHttpError
 
@@ -11,7 +14,9 @@ from pycosio._core.compat import to_timestamp as _to_timestamp
 from pycosio._core.exceptions import (
     ObjectNotFoundError as _ObjectNotFoundError,
     ObjectPermissionError as _ObjectPermissionError)
-from pycosio.io import SystemBase as _SystemBase
+from pycosio.io import (
+    SystemBase as _SystemBase, ObjectRawIOBase as _ObjectRawIOBase,
+    ObjectRawIORandomWriteBase as _ObjectRawIORandomWriteBase)
 
 #: 'azure' can be used to mount following storage at once with pycosio.mount
 MOUNT_REDIRECT = ('azure_blob', 'azure_file')
@@ -208,3 +213,195 @@ class _AzureBaseSystem(_SystemBase):
             if value:
                 result[attribute] = value
         return result
+
+
+class _AzureStorageRawIOBase(_ObjectRawIOBase):
+    """
+    Common Raw IO for all Azure storage classes
+    """
+
+    @property
+    @_abstractmethod
+    def _get_to_stream(self):
+        """
+        Azure storage function that read a range to a stream.
+
+        Returns:
+            function: Read function.
+        """
+
+    def _read_range(self, start, end=0):
+        """
+        Read a range of bytes in stream.
+
+        Args:
+            start (int): Start stream position.
+            end (int): End stream position.
+                0 To not specify end.
+
+        Returns:
+            bytes: number of bytes read
+        """
+        stream = _BytesIO()
+        try:
+            with _handle_azure_exception():
+                self._get_to_stream(
+                    stream=stream, start_range=start,
+                    end_range=(end - 1) if end else None, **self._client_kwargs)
+
+        # Check for end of file
+        except _AzureHttpError as exception:
+            if exception.status_code == 416:
+                # EOF
+                return bytes()
+            raise
+
+        return stream.getvalue()
+
+    def _readall(self):
+        """
+        Read and return all the bytes from the stream until EOF.
+
+        Returns:
+            bytes: Object content
+        """
+        stream = _BytesIO()
+        with _handle_azure_exception():
+            self._get_to_stream(stream=stream, **self._client_kwargs)
+        return stream.getvalue()
+
+
+class _AzureStorageRawIORangeWriteBase(_ObjectRawIORandomWriteBase,
+                                       _AzureStorageRawIOBase):
+    """
+    Common Raw IO for Azure storage classes that have write range ability.
+    """
+    _MAX_FLUSH_SIZE = None
+
+    def __init__(self, *args, **kwargs):
+        _ObjectRawIORandomWriteBase.__init__(self, *args, **kwargs)
+
+        if self._writable:
+
+            # Create lock for resizing
+            self._size_lock = _Lock()
+
+            # If a content length is provided, allocate pages for this blob
+            self._content_length = kwargs.get('content_length', 0)
+
+    @property
+    @_abstractmethod
+    def _resize(self):
+        """
+        Azure storage function that resize an object.
+
+        Returns:
+            function: Resize function.
+        """
+
+    @property
+    @_abstractmethod
+    def _create_from_size(self):
+        """
+        Azure storage function that create an object with a specified size.
+
+        Returns:
+            function: Create function.
+        """
+
+    @_abstractmethod
+    def _create_from_bytes(self, data, **kwargs):
+        """
+        Create an object from bytes.
+
+        Args:
+            data (bytes): data.
+        """
+
+    def _init_content_length(self):
+        """
+        Initialize content with content length
+        """
+        if self._is_new_file:
+            self._create_with_padding(self._content_length)
+
+        # On already existing blob, increase size if needed
+        elif self._size < self._content_length:
+            with _handle_azure_exception():
+                self._resize(
+                    content_length=self._content_length, **self._client_kwargs)
+
+    def _create_with_padding(self, content_length):
+        """
+        Create a new object of a specified size containing null padding.
+
+        Args:
+            content_length (int): object content length.
+        """
+        if self._is_new_file:
+            with _handle_azure_exception():
+                self._create_from_size(
+                    content_length=content_length, **self._client_kwargs)
+            self._was_flushed = True
+
+    @_abstractmethod
+    def _update_range(self, data, **kwargs):
+        """
+        Update range with data
+
+        Args:
+            data (bytes): data.
+        """
+
+    def _flush(self, buffer, start, end):
+        """
+        Flush the write buffer of the stream if applicable.
+
+        Args:
+            buffer (memoryview): Buffer content.
+            start (int): Start of buffer position to flush.
+                Supported only with page blobs.
+            end (int): End of buffer position to flush.
+                Supported only with page blobs.
+        """
+        buffer_size = len(buffer)
+
+        if buffer_size:
+
+            # Write first buffer and create blob simultaneously
+            if start == 0 and self._is_new_file:
+
+                if buffer_size > self._MAX_FLUSH_SIZE:
+                    # Can't send more at once, require to perform extra
+                    # "update_page" steps
+                    initial_buffer = buffer[:self._MAX_FLUSH_SIZE]
+                    buffer = buffer[self._MAX_FLUSH_SIZE:]
+                    start = self._MAX_FLUSH_SIZE
+                else:
+                    initial_buffer = buffer
+
+                with _handle_azure_exception():
+                    self._create_from_bytes(
+                        data=initial_buffer.tobytes(), **self._client_kwargs)
+                self._reset_head()
+
+                # No more data to flush
+                if not start:
+                    return
+
+            # Write page normally
+            with self._size_lock:
+                if end > self._size:
+                    # Require to resize the blob if note enough space
+                    with _handle_azure_exception():
+                        self._resize(content_length=end, **self._client_kwargs)
+                    self._reset_head()
+
+            with _handle_azure_exception():
+                self._update_range(
+                    data=buffer.tobytes(), start_range=start,
+                    end_range=end - 1, **self._client_kwargs)
+
+        # Flush a new empty blob
+        elif start == 0 and self._is_new_file:
+            self._create_with_padding(0)

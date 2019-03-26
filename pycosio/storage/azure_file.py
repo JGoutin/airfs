@@ -2,20 +2,22 @@
 """Microsoft Azure Files Storage"""
 from __future__ import absolute_import  # Python 2: Fix azure import
 
-from io import BytesIO as _BytesIO
 import re as _re
 
 from azure.storage.file import FileService as _FileService
-from azure.common import AzureHttpError as _AzureHttpError
+from azure.storage.file.models import Directory as _Directory
 
+from pycosio._core.io_base import memoizedmethod as _memoizedmethod
 from pycosio.storage.azure import (
-    _handle_azure_exception, _AzureBaseSystem)
+    _handle_azure_exception, _AzureBaseSystem, _AzureStorageRawIORangeWriteBase)
 from pycosio.io import (
-    ObjectRawIOBase as _ObjectRawIOBase,
-    ObjectBufferedIOBase as _ObjectBufferedIOBase)
+    ObjectBufferedIORandomWriteBase as _ObjectBufferedIORandomWriteBase,
+    FileSystemBase as _FileSystemBase)
+
+_MAX_RANGE_SIZE = _FileService.MAX_RANGE_SIZE
 
 
-class _AzureFileSystem(_AzureBaseSystem):
+class _AzureFileSystem(_AzureBaseSystem, _FileSystemBase):
     """
     Azure Files Storage system.
 
@@ -153,7 +155,8 @@ class _AzureFileSystem(_AzureBaseSystem):
                 by request.
 
         Returns:
-            generator of tuple: object name str, object header dict
+            generator of tuple: object name str, object header dict,
+            directory bool
         """
         client_kwargs = self._update_listing_client_kwargs(
             client_kwargs, max_request_entries)
@@ -161,7 +164,8 @@ class _AzureFileSystem(_AzureBaseSystem):
         with _handle_azure_exception():
             for obj in self.client.list_directories_and_files(
                     prefix=path, **client_kwargs):
-                yield obj.name, self._model_to_dict(obj)
+                yield (obj.name, self._model_to_dict(obj),
+                       isinstance(obj, _Directory))
 
     def _make_dir(self, client_kwargs):
         """
@@ -206,7 +210,7 @@ class _AzureFileSystem(_AzureBaseSystem):
                 share_name=client_kwargs['share_name'])
 
 
-class AzureFileRawIO(_ObjectRawIOBase):
+class AzureFileRawIO(_AzureStorageRawIORangeWriteBase):
     """Binary Azure Files Storage Object I/O
 
     Args:
@@ -218,75 +222,75 @@ class AzureFileRawIO(_ObjectRawIOBase):
             "azure.storage.file.fileservice.FileService" for more information.
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
+        content_length (int): Define the size to preallocate on new file
+            creation. This is not mandatory, and file will be resized on needs
+            but this allow to improve performance when file size is known in
+            advance.
     """
     _SYSTEM_CLASS = _AzureFileSystem
-    _SUPPORT_PART_FLUSH = True
+    _DEFAULT_CLASS = True
+    _MAX_FLUSH_SIZE = _MAX_RANGE_SIZE
 
     def __init__(self, *args, **kwargs):
-        _ObjectRawIOBase.__init__(self, *args, **kwargs)
+        _AzureStorageRawIORangeWriteBase.__init__(self, *args, **kwargs)
 
-        # Creates blob on write mode
-        if 'x' in self.mode or 'w' in self.mode:
-            with _handle_azure_exception():
-                self._client.create_file(
-                    content_length=0, **self._client_kwargs)
+        if self._writable and self._content_length:
+            # If a content length is provided, allocate pages for this file
+            self._init_content_length()
 
-    def _read_range(self, start, end=0):
+    @property
+    @_memoizedmethod
+    def _get_to_stream(self):
         """
-        Read a range of bytes in stream.
-
-        Args:
-            start (int): Start stream position.
-            end (int): End stream position.
-                0 To not specify end.
+        Azure storage function that read a range to a stream.
 
         Returns:
-            bytes: number of bytes read
+            function: Read function.
         """
-        stream = _BytesIO()
-        try:
-            with _handle_azure_exception():
-                self._client.get_file_to_stream(
-                    stream=stream, start_range=start,
-                    end_range=end if end else None, **self._client_kwargs)
+        return self._client.get_file_to_stream
 
-        # Check for end of file
-        except _AzureHttpError as exception:
-            if exception.status_code == 416:
-                # EOF
-                return bytes()
-            raise
-
-        return stream.getvalue()
-
-    def _readall(self):
+    @property
+    @_memoizedmethod
+    def _resize(self):
         """
-        Read and return all the bytes from the stream until EOF.
+        Azure storage function that resize an object.
 
         Returns:
-            bytes: Object content
+            function: Resize function.
         """
-        stream = _BytesIO()
-        with _handle_azure_exception():
-            self._client.get_file_to_stream(
-                stream=stream, **self._client_kwargs)
-        return stream.getvalue()
+        return self._client.resize_file
 
-    def _flush(self, buffer, start, end):
+    @property
+    @_memoizedmethod
+    def _create_from_size(self):
         """
-        Flush the write buffers of the stream if applicable.
+        Azure storage function that create an object.
+
+        Returns:
+            function: Create function.
+        """
+        return self._client.create_file
+
+    def _create_from_bytes(self, data, **kwargs):
+        """
+        Create an object from bytes.
 
         Args:
-            buffer (memoryview): Buffer content.
-            start (int): Start of buffer position to flush.
-            end (int): End of buffer position to flush.
+            data (bytes): data.
         """
-        with _handle_azure_exception():
-            self._client.update_range(data=buffer.tobytes(), start_range=start,
-                                      end_range=end, **self._client_kwargs)
+        self._client.create_file_from_bytes(file=data, **kwargs)
+
+    def _update_range(self, data, **kwargs):
+        """
+        Update range with data
+
+        Args:
+            data (bytes): data.
+        """
+        self._client.update_range(data=data, **kwargs)
 
 
-class AzureFileBufferedIO(_ObjectBufferedIOBase):
+class AzureFileBufferedIO(_ObjectBufferedIORandomWriteBase):
     """Buffered binary Azure Files Storage Object I/O
 
     Args:
@@ -304,3 +308,6 @@ class AzureFileBufferedIO(_ObjectBufferedIOBase):
             transfer performance. But makes connection unsecure.
     """
     _RAW_CLASS = AzureFileRawIO
+
+    #: Maximal buffer_size value in bytes (Maximum upload range size)
+    MAXIMUM_BUFFER_SIZE = _MAX_RANGE_SIZE

@@ -2,14 +2,13 @@
 """Microsoft Azure Blobs Storage: Base for all blob types"""
 from __future__ import absolute_import  # Python 2: Fix azure import
 
-from io import BytesIO, IOBase
+from io import IOBase
 
-from azure.common import AzureHttpError as _AzureHttpError
-
+from pycosio._core.io_base import memoizedmethod
 from pycosio._core.exceptions import ObjectNotFoundError
-from pycosio.io import ObjectRawIOBase, ObjectBufferedIOBase
-from pycosio.storage.azure import _handle_azure_exception
+from pycosio.io import ObjectBufferedIOBase
 from pycosio.storage.azure_blob._system import _AzureBlobSystem
+from pycosio.storage.azure import _AzureStorageRawIOBase
 
 # Store blob types specific classes
 AZURE_BUFFERED = {}
@@ -57,7 +56,7 @@ def _new_blob(cls, kwargs):
     return head.get('blob_type', system._default_blob_type)
 
 
-class AzureBlobRawIO(ObjectRawIOBase):
+class AzureBlobRawIO(_AzureStorageRawIOBase):
     """Binary Azure Blobs Storage Object I/O
 
     Args:
@@ -74,6 +73,7 @@ class AzureBlobRawIO(ObjectRawIOBase):
             Possibles values: BlockBlob (default), AppendBlob, PageBlob.
     """
     _SYSTEM_CLASS = _AzureBlobSystem
+    _DEFAULT_CLASS = True
 
     def __new__(cls, name, mode='r', **kwargs):
         # If call from a subclass, instantiate this subclass directly
@@ -83,54 +83,16 @@ class AzureBlobRawIO(ObjectRawIOBase):
         # Get subclass
         return IOBase.__new__(AZURE_RAW[_new_blob(cls, kwargs)])
 
-    def __init__(self, *args, **kwargs):
-        ObjectRawIOBase.__init__(self, *args, **kwargs)
-
-        # New file creation
-        self._is_new_file = (
-            self._writable and
-            ('a' not in self.mode or ('a' in self.mode and not self._exists())))
-
-    def _read_range(self, start, end=0):
+    @property
+    @memoizedmethod
+    def _get_to_stream(self):
         """
-        Read a range of bytes in stream.
-
-        Args:
-            start (int): Start stream position.
-            end (int): End stream position.
-                0 To not specify end.
+        Azure storage function that read a range to a stream.
 
         Returns:
-            bytes: number of bytes read
+            function: Read function.
         """
-        stream = BytesIO()
-        try:
-            with _handle_azure_exception():
-                self._client.get_blob_to_stream(
-                    stream=stream, start_range=start,
-                    end_range=(end - 1) if end else None, **self._client_kwargs)
-
-        # Check for end of file
-        except _AzureHttpError as exception:
-            if exception.status_code == 416:
-                # EOF
-                return bytes()
-            raise
-
-        return stream.getvalue()
-
-    def _readall(self):
-        """
-        Read and return all the bytes from the stream until EOF.
-
-        Returns:
-            bytes: Object content
-        """
-        stream = BytesIO()
-        with _handle_azure_exception():
-            self._client.get_blob_to_stream(
-                stream=stream, **self._client_kwargs)
-        return stream.getvalue()
+        return self._client.get_blob_to_stream
 
 
 class AzureBlobBufferedIO(ObjectBufferedIOBase):
@@ -154,6 +116,7 @@ class AzureBlobBufferedIO(ObjectBufferedIOBase):
             Possibles values: BlockBlob (default), AppendBlob, PageBlob.
     """
     _SYSTEM_CLASS = _AzureBlobSystem
+    _DEFAULT_CLASS = True
 
     def __new__(cls, name, mode='r', buffer_size=None, max_buffers=0,
                 max_workers=None, **kwargs):

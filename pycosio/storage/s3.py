@@ -366,7 +366,7 @@ class S3RawIO(_ObjectRawIOBase):
         with _handle_client_error():
             return self._client.get_object(**self._client_kwargs)['Body'].read()
 
-    def _flush(self, buffer, *_):
+    def _flush(self, buffer):
         """
         Flush the write buffers of the stream if applicable.
 

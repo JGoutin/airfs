@@ -6,14 +6,15 @@ from azure.storage.blob.models import _BlobTypes
 
 from pycosio.storage.azure import _handle_azure_exception
 from pycosio._core.io_base import memoizedmethod
-from pycosio.io import ObjectBufferedIOBase
+from pycosio.io import (
+    ObjectBufferedIORandomWriteBase, ObjectRawIORandomWriteBase)
 from pycosio.storage.azure_blob._base_blob import (
     AzureBlobRawIO, AzureBlobBufferedIO, AZURE_RAW, AZURE_BUFFERED)
 
 _BLOB_TYPE = _BlobTypes.AppendBlob
 
 
-class AzureAppendBlobRawIO(AzureBlobRawIO):
+class AzureAppendBlobRawIO(AzureBlobRawIO, ObjectRawIORandomWriteBase):
     """Binary Azure Append Blobs Storage Object I/O
 
     Args:
@@ -53,16 +54,12 @@ class AzureAppendBlobRawIO(AzureBlobRawIO):
         """
         return self._system.client[_BLOB_TYPE]
 
-    def _flush(self, buffer, start, end):
+    def _flush(self, buffer, *_):
         """
         Flush the write buffer of the stream if applicable.
 
         Args:
             buffer (memoryview): Buffer content.
-            start (int): Start of buffer position to flush.
-                Supported only with page blobs.
-            end (int): End of buffer position to flush.
-                Supported only with page blobs.
         """
         with _handle_azure_exception():
             # Append mode: Append block at file end
@@ -72,7 +69,8 @@ class AzureAppendBlobRawIO(AzureBlobRawIO):
                     block=buffer.tobytes(), **self._client_kwargs)
 
 
-class AzureAppendBlobBufferedIO(AzureBlobBufferedIO):
+class AzureAppendBlobBufferedIO(AzureBlobBufferedIO,
+                                ObjectBufferedIORandomWriteBase):
     """Buffered binary Azure Append Blobs Storage Object I/O
 
     Args:
@@ -94,7 +92,7 @@ class AzureAppendBlobBufferedIO(AzureBlobBufferedIO):
     _DEFAULT_CLASS = False
 
     def __init__(self, *args, **kwargs):
-        ObjectBufferedIOBase.__init__(self, *args, **kwargs)
+        ObjectBufferedIORandomWriteBase.__init__(self, *args, **kwargs)
 
         if self._writable:
             # Can't upload in parallel, always add data at end.

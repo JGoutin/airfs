@@ -3,14 +3,15 @@
 from __future__ import absolute_import  # Python 2: Fix azure import
 
 from os import SEEK_SET, SEEK_END
-from threading import Lock as _Lock
 
 from azure.storage.blob import PageBlobService
 from azure.storage.blob.models import _BlobTypes
 
-from pycosio.storage.azure import _handle_azure_exception
+from pycosio.storage.azure import (
+    _handle_azure_exception, _AzureStorageRawIORangeWriteBase)
 from pycosio._core.io_base import memoizedmethod
-from pycosio.io import ObjectBufferedIOBase
+from pycosio.io import (
+    ObjectBufferedIORandomWriteBase, ObjectRawIORandomWriteBase)
 from pycosio.storage.azure_blob._base_blob import (
     AzureBlobRawIO, AzureBlobBufferedIO, AZURE_RAW, AZURE_BUFFERED)
 
@@ -18,7 +19,7 @@ _BLOB_TYPE = _BlobTypes.PageBlob
 _MAX_PAGE_SIZE = PageBlobService.MAX_PAGE_SIZE
 
 
-class AzurePageBlobRawIO(AzureBlobRawIO):
+class AzurePageBlobRawIO(AzureBlobRawIO, _AzureStorageRawIORangeWriteBase):
     """Binary Azure Page Blobs Storage Object I/O
 
     Args:
@@ -36,14 +37,15 @@ class AzurePageBlobRawIO(AzureBlobRawIO):
             but this allow to improve performance when file size is known in
             advance. Any value will be rounded to be page aligned. Default to 0.
         ignore_padding (bool): If True, strip null chars padding from end of
-            read data and ignore padding on last page when seeking from end.
-            Default to True.
+            read data and ignore padding when seeking from end
+            (whence=os.SEEK_END). Default to True.
     """
     _SUPPORT_PART_FLUSH = True
     _DEFAULT_CLASS = False
+    _MAX_FLUSH_SIZE = _MAX_PAGE_SIZE
 
     def __init__(self, *args, **kwargs):
-        AzureBlobRawIO.__init__(self, *args, **kwargs)
+        _AzureStorageRawIORangeWriteBase.__init__(self, *args, **kwargs)
 
         self._ignore_padding = kwargs.get('ignore_padding', True)
 
@@ -51,41 +53,15 @@ class AzurePageBlobRawIO(AzureBlobRawIO):
 
             # If ignore padding, seek to real end of blob
             if self._ignore_padding and self._exists and 'a' in self._mode:
-                self._seek_ignore_padding(self._size)
-
-            # Create lock for resizing
-            self._size_lock = _Lock()
+                self._seek = self._seek_end_ignore_padding()
 
             # If a content length is provided, allocate pages for this blob
-            content_length = kwargs.get('content_length', 0)
-            if content_length:
+            if self._content_length:
+                if self._content_length % 512:
+                    # Ensure content length is page aligned
+                    self._content_length += 512 - self._content_length % 512
 
-                if content_length % 512:
-                    # Must be page aligned
-                    content_length += 512 - content_length % 512
-
-                if self._is_new_file:
-                    self._create_null_page_blob(content_length)
-
-                # On already existing blob, increase size if needed
-                elif self._size < content_length:
-                    with _handle_azure_exception():
-                        self._client.resize_blob(content_length=content_length,
-                                                 **self._client_kwargs)
-
-    def _create_null_page_blob(self, content_length):
-        """
-        Create a new blob of a specified size containing null pages.
-
-        Args:
-            content_length (int): Blob content length.
-                Must be 512 bytes aligned.
-        """
-        if self._is_new_file:
-            self._is_new_file = False
-            with _handle_azure_exception():
-                self._client.create_blob(
-                    content_length=content_length, **self._client_kwargs)
+                self._init_content_length()
 
     @property
     @memoizedmethod
@@ -97,6 +73,46 @@ class AzurePageBlobRawIO(AzureBlobRawIO):
             client
         """
         return self._system.client[_BLOB_TYPE]
+
+    @property
+    @memoizedmethod
+    def _resize(self):
+        """
+        Azure storage function that resize an object.
+
+        Returns:
+            function: Resize function.
+        """
+        return self._client.resize_blob
+
+    @property
+    @memoizedmethod
+    def _create_from_size(self):
+        """
+        Azure storage function that create an object.
+
+        Returns:
+            function: Create function.
+        """
+        return self._client.create_blob
+
+    def _create_from_bytes(self, data, **kwargs):
+        """
+        Create an object from bytes.
+
+        Args:
+            data (bytes): data.
+        """
+        self._client.create_blob_from_bytes(blob=data, **kwargs)
+
+    def _update_range(self, data, **kwargs):
+        """
+        Update range with data
+
+        Args:
+            data (bytes): data.
+        """
+        self._client.update_page(page=data, **kwargs)
 
     def _read_range(self, start, end=0, null_strip=None):
         """
@@ -150,36 +166,31 @@ class AzurePageBlobRawIO(AzureBlobRawIO):
         Returns:
             int: The new absolute position.
         """
-        seek = AzureBlobRawIO.seek(self, offset, whence)
+        if self._ignore_padding and whence == SEEK_END:
+            # If seek on last page, remove padding
+            offset = self._seek_end_ignore_padding(offset)
+            whence = SEEK_SET
 
-        # If seek on last page, remove padding
-        if self._ignore_padding and seek > self._size - 512:
-            seek = self._seek_ignore_padding(seek, offset)
+        return ObjectRawIORandomWriteBase.seek(self, offset, whence)
 
-        return seek
-
-    def _seek_ignore_padding(self, seek, offset=0):
+    def _seek_end_ignore_padding(self, offset=0):
         """
-        Seek to end of blob ignoring null padding.
+        Compute seek position if seeking from end ignoring null padding.
 
         Args:
-            seek (int): End of page to seek.
-            offset (int): relative position to seek based on seek.
+            offset (int): relative position to seek.
 
         Returns:
-            int: seek value with ignored padding.
+            int: New seek value.
         """
-        # Read last page until seek position.
-        page_start = seek - (seek % 512 or 512)
-        last_page = self._read_range(page_start, seek, null_strip=True)
-
-        # Apply offset if negative
-        if offset < 0:
-            last_page = memoryview(last_page)[:offset]
+        # Read last pages
+        page_end = self._size
+        page_seek = page_end + min(offset, 0)
+        page_start = page_seek - (page_seek % 512 or 512)
+        last_pages = self._read_range(page_start, page_end, null_strip=True)
 
         # Move seek to last not null byte
-        self._seek = seek = page_start + len(last_page)
-        return seek
+        return page_start + len(last_pages) + offset
 
     def _flush(self, buffer, start, end):
         """
@@ -217,49 +228,11 @@ class AzurePageBlobRawIO(AzureBlobRawIO):
                 # Update with current buffer
                 buffer[start_page_diff:-end_page_diff] = unaligned_buffer
 
-            # Write first buffer and create blob simultaneously
-            if start == 0 and self._is_new_file:
-                self._is_new_file = False
-
-                if buffer_size > _MAX_PAGE_SIZE:
-                    # Can't send more at once, require to perform extra
-                    # "update_page" steps
-                    initial_buffer = buffer[:_MAX_PAGE_SIZE]
-                    buffer = buffer[_MAX_PAGE_SIZE:]
-                    start = _MAX_PAGE_SIZE
-                else:
-                    initial_buffer = buffer
-
-                with _handle_azure_exception():
-                    self._client.create_blob_from_bytes(
-                        blob=initial_buffer.tobytes(), **self._client_kwargs)
-                self._reset_head()
-
-                # No more data to flush
-                if not start:
-                    return
-
-            # Write page normally
-            with self._size_lock:
-                if end > self._size:
-                    # Require to resize the blob if note enough space
-                    with _handle_azure_exception():
-                        self._client.resize_blob(
-                            content_length=end, **self._client_kwargs)
-                    self._reset_head()
-
-            with _handle_azure_exception():
-                self._client.update_page(
-                    page=buffer.tobytes(), start_range=start,
-                    end_range=end - 1,
-                    **self._client_kwargs)
-
-        # Flush a new empty blob
-        elif start == 0 and self._is_new_file:
-            self._create_null_page_blob(0)
+        _AzureStorageRawIORangeWriteBase._flush(self, buffer, start, end)
 
 
-class AzurePageBlobBufferedIO(AzureBlobBufferedIO):
+class AzurePageBlobBufferedIO(AzureBlobBufferedIO,
+                              ObjectBufferedIORandomWriteBase):
     """Buffered binary Azure Page Blobs Storage Object I/O
 
     Args:
@@ -295,7 +268,7 @@ class AzurePageBlobBufferedIO(AzureBlobBufferedIO):
     MINIMUM_BUFFER_SIZE = 512
 
     def __init__(self, *args, **kwargs):
-        ObjectBufferedIOBase.__init__(self, *args, **kwargs)
+        ObjectBufferedIORandomWriteBase.__init__(self, *args, **kwargs)
 
         if self._writable:
             page_diff = self._buffer_size % 512
@@ -307,7 +280,7 @@ class AzurePageBlobBufferedIO(AzureBlobBufferedIO):
 
             # Initialize a blob with size equal one buffer,
             # if not already existing.
-            self._raw._create_null_page_blob(self._buffer_size)
+            self._raw._create_with_padding(self._buffer_size)
 
     def _flush(self):
         """

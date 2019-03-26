@@ -9,7 +9,7 @@ import pytest
 
 def test_system_base():
     """Tests pycosio._core.io_system.SystemBase"""
-    from pycosio._core.io_system import SystemBase
+    from pycosio._core.io_base_system import SystemBase
     from pycosio._core.exceptions import (
         ObjectNotFoundError, ObjectPermissionError)
     from io import UnsupportedOperation
