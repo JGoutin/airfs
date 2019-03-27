@@ -264,6 +264,53 @@ def test_mocked_storage():
                 'smb://other.file.core.windows.net' + rel_path, system) ==
                     'https://other.file.core.windows.net' + rel_path)
 
+            # Test pre-allocating file
+            with AzureFileRawIO(file_path, 'wb', content_length=1024,
+                                **tester._system_parameters):
+                pass
+
+            with AzureFileRawIO(file_path, ignore_padding=False,
+                                **tester._system_parameters) as file:
+                assert file.readall() == b'\0' * 1024
+
+            # Test increase already existing blob size
+            with AzureFileRawIO(file_path, 'ab', content_length=2048,
+                                **tester._system_parameters):
+                pass
+
+            with AzureFileRawIO(file_path, ignore_padding=False,
+                                **tester._system_parameters) as file:
+                assert file.readall() == b'\0' * 2048
+
+            # Test not truncate already existing blob with specified content
+            # length
+            with AzureFileRawIO(file_path, 'ab', content_length=1024,
+                                **tester._system_parameters):
+                pass
+
+            with AzureFileRawIO(file_path, ignore_padding=False,
+                                **tester._system_parameters) as file:
+                assert file.readall() == b'\0' * 2048
+
+            # Test Buffered IO: Page unaligned buffer size rounding
+            with AzureFileBufferedIO(file_path, 'wb', buffer_size=1234,
+                                     **tester._system_parameters) as file:
+                assert file._buffer_size == 1234
+
+            # Test Buffered IO: initialization to one buffer size
+            with AzureFileRawIO(file_path, ignore_padding=False,
+                                **tester._system_parameters) as file:
+                assert file.readall() == b'\0' * 1234
+
+            # Test Buffered IO: not truncate when initializing to one buffer
+            with AzureFileBufferedIO(file_path, 'ab', buffer_size=1024,
+                                     **tester._system_parameters):
+                pass
+
+            with AzureFileRawIO(file_path, ignore_padding=False,
+                                **tester._system_parameters) as file:
+                assert file.readall() == b'\0' * 1234
+
     # Restore mocked class
     finally:
         azure_file._FileService = azure_storage_file_file_service

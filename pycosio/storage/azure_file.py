@@ -303,8 +303,20 @@ class AzureFileBufferedIO(_ObjectBufferedIORandomWriteBase):
             "azure.storage.file.fileservice.FileService" for more information.
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
+        content_length (int): Define the size to preallocate on new file
+            creation. This is not mandatory, and file will be resized on needs
+            but this allow to improve performance when file size is known in
+            advance.
     """
     _RAW_CLASS = AzureFileRawIO
 
     #: Maximal buffer_size value in bytes (Maximum upload range size)
     MAXIMUM_BUFFER_SIZE = _MAX_RANGE_SIZE
+
+    def __init__(self, *args, **kwargs):
+        _ObjectBufferedIORandomWriteBase.__init__(self, *args, **kwargs)
+
+        if self._writable:
+            # Initialize a file with size equal one buffer,
+            # if not already existing.
+            self._raw._create_with_padding(self._buffer_size)
