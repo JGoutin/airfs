@@ -14,8 +14,6 @@ from pycosio.io import (
     ObjectBufferedIORandomWriteBase as _ObjectBufferedIORandomWriteBase,
     FileSystemBase as _FileSystemBase)
 
-_MAX_RANGE_SIZE = _FileService.MAX_RANGE_SIZE
-
 
 class _AzureFileSystem(_AzureBaseSystem, _FileSystemBase):
     """
@@ -226,7 +224,9 @@ class AzureFileRawIO(_AzureStorageRawIORangeWriteBase):
             advance.
     """
     _SYSTEM_CLASS = _AzureFileSystem
-    _MAX_FLUSH_SIZE = _MAX_RANGE_SIZE
+
+    #: Maximum size of one flush operation
+    MAX_FLUSH_SIZE = _FileService.MAX_RANGE_SIZE
 
     def __init__(self, *args, **kwargs):
         _AzureStorageRawIORangeWriteBase.__init__(self, *args, **kwargs)
@@ -311,7 +311,7 @@ class AzureFileBufferedIO(_ObjectBufferedIORandomWriteBase):
     _RAW_CLASS = AzureFileRawIO
 
     #: Maximal buffer_size value in bytes (Maximum upload range size)
-    MAXIMUM_BUFFER_SIZE = _MAX_RANGE_SIZE
+    MAXIMUM_BUFFER_SIZE = _FileService.MAX_RANGE_SIZE
 
     def __init__(self, *args, **kwargs):
         _ObjectBufferedIORandomWriteBase.__init__(self, *args, **kwargs)

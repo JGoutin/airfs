@@ -7,8 +7,7 @@ from os import SEEK_SET, SEEK_END
 from azure.storage.blob import PageBlobService
 from azure.storage.blob.models import _BlobTypes
 
-from pycosio.storage.azure import (
-    _handle_azure_exception, _AzureStorageRawIORangeWriteBase)
+from pycosio.storage.azure import _AzureStorageRawIORangeWriteBase
 from pycosio._core.io_base import memoizedmethod
 from pycosio.io import (
     ObjectBufferedIORandomWriteBase, ObjectRawIORandomWriteBase)
@@ -16,7 +15,6 @@ from pycosio.storage.azure_blob._base_blob import (
     AzureBlobRawIO, AzureBlobBufferedIO, AZURE_RAW, AZURE_BUFFERED)
 
 _BLOB_TYPE = _BlobTypes.PageBlob
-_MAX_PAGE_SIZE = PageBlobService.MAX_PAGE_SIZE
 
 
 class AzurePageBlobRawIO(AzureBlobRawIO, _AzureStorageRawIORangeWriteBase):
@@ -40,8 +38,8 @@ class AzurePageBlobRawIO(AzureBlobRawIO, _AzureStorageRawIORangeWriteBase):
             read data and ignore padding when seeking from end
             (whence=os.SEEK_END). Default to True.
     """
-    _SUPPORT_PART_FLUSH = True
-    _MAX_FLUSH_SIZE = _MAX_PAGE_SIZE
+    #: Maximum size of one flush operation
+    MAX_FLUSH_SIZE = PageBlobService.MAX_PAGE_SIZE
 
     def __init__(self, *args, **kwargs):
         _AzureStorageRawIORangeWriteBase.__init__(self, *args, **kwargs)
@@ -260,7 +258,7 @@ class AzurePageBlobBufferedIO(AzureBlobBufferedIO,
     _RAW_CLASS = AzurePageBlobRawIO
 
     #: Maximal buffer_size value in bytes (Maximum upload page size)
-    MAXIMUM_BUFFER_SIZE = _MAX_PAGE_SIZE
+    MAXIMUM_BUFFER_SIZE = PageBlobService.MAX_PAGE_SIZE
 
     #: Minimal buffer_size value in bytes (Page size)
     MINIMUM_BUFFER_SIZE = 512

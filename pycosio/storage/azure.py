@@ -4,12 +4,14 @@ from __future__ import absolute_import  # Python 2: Fix azure import
 
 from abc import abstractmethod as _abstractmethod
 from contextlib import contextmanager as _contextmanager
+from concurrent.futures import as_completed as _as_completed
 from io import (
     UnsupportedOperation as _UnsupportedOperation, BytesIO as _BytesIO)
 from threading import Lock as _Lock
 
 from azure.common import AzureHttpError as _AzureHttpError
 
+from pycosio._core.io_base import WorkerPoolBase as _WorkerPoolBase
 from pycosio._core.compat import to_timestamp as _to_timestamp
 from pycosio._core.exceptions import (
     ObjectNotFoundError as _ObjectNotFoundError,
@@ -272,7 +274,8 @@ class _AzureStorageRawIOBase(_ObjectRawIOBase):
 
 
 class _AzureStorageRawIORangeWriteBase(_ObjectRawIORandomWriteBase,
-                                       _AzureStorageRawIOBase):
+                                       _AzureStorageRawIOBase,
+                                       _WorkerPoolBase):
     """
     Common Raw IO for Azure storage classes that have write range ability.
     """
@@ -280,6 +283,7 @@ class _AzureStorageRawIORangeWriteBase(_ObjectRawIORandomWriteBase,
 
     def __init__(self, *args, **kwargs):
         _ObjectRawIORandomWriteBase.__init__(self, *args, **kwargs)
+        _WorkerPoolBase.__init__(self)
 
         if self._writable:
 
@@ -371,12 +375,12 @@ class _AzureStorageRawIORangeWriteBase(_ObjectRawIORandomWriteBase,
             # Write first buffer and create blob simultaneously
             if start == 0 and self._is_new_file:
 
-                if buffer_size > self._MAX_FLUSH_SIZE:
+                if buffer_size > self.MAX_FLUSH_SIZE:
                     # Can't send more at once, require to perform extra
                     # "update_page" steps
-                    initial_buffer = buffer[:self._MAX_FLUSH_SIZE]
-                    buffer = buffer[self._MAX_FLUSH_SIZE:]
-                    start = self._MAX_FLUSH_SIZE
+                    initial_buffer = buffer[:self.MAX_FLUSH_SIZE]
+                    buffer = buffer[self.MAX_FLUSH_SIZE:]
+                    start = self.MAX_FLUSH_SIZE
                 else:
                     initial_buffer = buffer
 
@@ -389,7 +393,7 @@ class _AzureStorageRawIORangeWriteBase(_ObjectRawIORandomWriteBase,
                 if not start:
                     return
 
-            # Write page normally
+            # Write range normally
             with self._size_lock:
                 if end > self._size:
                     # Require to resize the blob if note enough space
@@ -397,10 +401,37 @@ class _AzureStorageRawIORangeWriteBase(_ObjectRawIORandomWriteBase,
                         self._resize(content_length=end, **self._client_kwargs)
                     self._reset_head()
 
-            with _handle_azure_exception():
-                self._update_range(
-                    data=buffer.tobytes(), start_range=start,
-                    end_range=end - 1, **self._client_kwargs)
+            if buffer_size > self.MAX_FLUSH_SIZE:
+                # Too large buffer, needs to split in multiples requests
+                futures = []
+                for part_start in range(0, buffer_size, self.MAX_FLUSH_SIZE):
+
+                    # Split buffer
+                    buffer_part = buffer[
+                          part_start:part_start + self.MAX_FLUSH_SIZE]
+                    if not len(buffer_part):
+                        # No more data
+                        break
+
+                    # Upload split buffer in parallel
+                    start_range = start + part_start
+                    futures.append(self._workers.submit(
+                        self._update_range, data=buffer_part.tobytes(),
+                        start_range=start_range,
+                        end_range=start_range + len(buffer_part) - 1,
+                        **self._client_kwargs))
+
+                with _handle_azure_exception():
+                    # Wait for upload completion
+                    for future in _as_completed(futures):
+                        future.result()
+
+            else:
+                # Buffer lower than limit, do one requests.
+                with _handle_azure_exception():
+                    self._update_range(
+                        data=buffer.tobytes(), start_range=start,
+                        end_range=end - 1, **self._client_kwargs)
 
         # Flush a new empty blob
         elif start == 0 and self._is_new_file:

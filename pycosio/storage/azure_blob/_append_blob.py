@@ -3,6 +3,7 @@
 from __future__ import absolute_import  # Python 2: Fix azure import
 
 from azure.storage.blob.models import _BlobTypes
+from azure.storage.blob import AppendBlobService
 
 from pycosio.storage.azure import _handle_azure_exception
 from pycosio._core.io_base import memoizedmethod
@@ -28,6 +29,8 @@ class AzureAppendBlobRawIO(AzureBlobRawIO, ObjectRawIORandomWriteBase):
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
     """
+    #: Maximum size of one flush operation
+    MAX_FLUSH_SIZE = AppendBlobService.MAX_BLOCK_SIZE
 
     def __init__(self, *args, **kwargs):
         AzureBlobRawIO.__init__(self, *args, **kwargs)
@@ -59,12 +62,30 @@ class AzureAppendBlobRawIO(AzureBlobRawIO, ObjectRawIORandomWriteBase):
         Args:
             buffer (memoryview): Buffer content.
         """
-        with _handle_azure_exception():
-            # Append mode: Append block at file end
-            # Can't append an empty buffer
-            if len(buffer):
+        buffer_size = len(buffer)
+
+        # If buffer too large, must flush by parts sequentially
+        if buffer_size > self.MAX_FLUSH_SIZE:
+            for part_start in range(0, buffer_size, self.MAX_FLUSH_SIZE):
+
+                # Split buffer
+                buffer_part = buffer[
+                    part_start:part_start + self.MAX_FLUSH_SIZE]
+
+                if not len(buffer_part):
+                    # No more data
+                    break
+
+                self._client.append_block(
+                    block=buffer_part.tobytes(), **self._client_kwargs)
+
+        # Small buffer, send it in one command.
+        elif buffer_size:
+            with _handle_azure_exception():
                 self._client.append_block(
                     block=buffer.tobytes(), **self._client_kwargs)
+
+        # if empty buffer, don't perform flush
 
 
 class AzureAppendBlobBufferedIO(AzureBlobBufferedIO,

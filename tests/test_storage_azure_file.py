@@ -77,7 +77,7 @@ def test_mocked_storage():
             """
             props = DirectoryProperties()
             props.last_modified = storage_mock.get_object_mtime(
-                share_name, directory_name)
+                share_name, directory_name + '/')
             return Directory(props=props, name=directory_name)
 
         @staticmethod

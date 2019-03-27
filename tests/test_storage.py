@@ -244,6 +244,24 @@ class StorageTester:
                 assert file.readall() == b'\0' * 256 + b'\x01',\
                     'Raw seek, null padding read'
 
+        # Test: write big file
+        if self._is_supported('write') and self._raw_io.MAX_FLUSH_SIZE:
+            file_name = 'raw_file1.dat'
+            file_path = self.base_dir_path + file_name
+            self._to_clean(file_path)
+
+            size = self._raw_io.MAX_FLUSH_SIZE * 4
+            content = _urandom(size)
+
+            with self._raw_io(file_path, 'wb',
+                              **self._system_parameters) as file:
+                file.write(content)
+
+            with self._raw_io(file_path, 'rb',
+                              **self._system_parameters) as file:
+                assert file.readall() == content,\
+                    'Raw Write big file, content match'
+
     def _test_buffered_io(self):
         """
         Tests buffered IO.
@@ -387,6 +405,10 @@ class StorageTester:
                 assert dir_path0 in self._list_objects_names(), \
                     'Create directory, exists (with "/")'
 
+            # Test: Check directory header
+            assert hasattr(system.head(path=dir_path0), '__getitem__'), \
+                'Head directory, header is mapping'
+
             # Test: Make a directory (Without trailing /)
             dir_name1 = 'directory1'
             dir_path1 = self.base_dir_path + dir_name1
@@ -469,9 +491,17 @@ class StorageTester:
         # Write some files
         files = set()
         files.add(file_path)
-        for i in range(10):
-            file_name = 'file%d.dat' % i
-            path = self.base_dir_path + file_name
+        for i in range(11):
+            if i < 10:
+                # Files in directory
+                file_name = 'file%d.dat' % i
+                path = self.base_dir_path + file_name
+                rel_path = self.base_dir_name + file_name
+            else:
+                # File in locator
+                rel_path = self._get_id() + '.dat'
+                path = '%s/%s' % (self.locator, rel_path)
+
             files.add(path)
             self._to_clean(path)
             if self._is_supported('write'):
@@ -480,8 +510,7 @@ class StorageTester:
                     file.flush()
             elif self._storage_mock:
                 # Create pre-existing file
-                self._storage_mock.put_object(
-                    self.locator, self.base_dir_name + file_name, b'')
+                self._storage_mock.put_object(self.locator, rel_path, b'')
 
         # Test: List objects
         if self._is_supported('listdir'):

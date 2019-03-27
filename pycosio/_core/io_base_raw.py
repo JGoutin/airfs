@@ -34,6 +34,9 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
     # System I/O class
     _SYSTEM_CLASS = SystemBase
 
+    #: Maximum size of one flush operation (0 for no limit)
+    MAX_FLUSH_SIZE = 0
+
     def __init__(self, name, mode='r', storage_parameters=None, **kwargs):
 
         RawIOBase.__init__(self)
