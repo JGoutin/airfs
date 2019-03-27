@@ -90,6 +90,8 @@ class ObjectBufferedIORandomWriteBase(ObjectBufferedIOBase):
     Buffered base class for binary cloud storage object I/O that support
     flushing parts of file instead of requiring flushing the full file at once.
     """
+    # Need to be flagged because it is not an abstract class
+    __DEFAULT_CLASS = False
 
     def _flush(self):
         """

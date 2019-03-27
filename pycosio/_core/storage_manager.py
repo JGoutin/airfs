@@ -7,7 +7,6 @@ from threading import RLock
 from pycosio._core.io_base_raw import ObjectRawIOBase
 from pycosio._core.io_base_buffered import ObjectBufferedIOBase
 from pycosio._core.io_base_system import SystemBase
-from pycosio._core.io_random_write import ObjectBufferedIORandomWriteBase
 from pycosio._core.compat import Pattern
 
 MOUNTED = OrderedDict()
@@ -15,9 +14,9 @@ _MOUNT_LOCK = RLock()
 
 # List Base classes, and advanced base classes that are not abstract.
 _BASE_CLASSES = {
-    'raw': (ObjectRawIOBase, ),
-    'buffered': (ObjectBufferedIOBase, ObjectBufferedIORandomWriteBase),
-    'system': (SystemBase, )}
+    'raw': ObjectRawIOBase,
+    'buffered': ObjectBufferedIOBase,
+    'system': SystemBase}
 
 # Use this flag on subclass to make this class the default class for a
 # specific storage (Useful when a storage provides multiple class):
@@ -161,9 +160,9 @@ def mount(storage=None, name='', storage_parameters=None,
 
             # Skip if not subclass of the target class
             try:
-                if not issubclass(member, cls) or member in cls:
+                if not issubclass(member, cls) or member is cls:
                     continue
-            except (TypeError, AttributeError):
+            except TypeError:
                 continue
 
             # The class may have been flag as default or not-default
