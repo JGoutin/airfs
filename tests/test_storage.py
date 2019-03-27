@@ -146,7 +146,8 @@ class StorageTester:
                 # Test: tell
                 is_seekable = file.seekable()
                 if is_seekable:
-                    assert file.tell() == size
+                    assert file.tell() == size,\
+                        'Raw write, tell match writen size'
                 else:
                     with _pytest.raises(_UnsupportedOperation):
                         file.tell()
@@ -172,40 +173,54 @@ class StorageTester:
         # Open file in read mode
         with self._raw_io(file_path, **self._system_parameters) as file:
             # Test: _read_all
-            assert file.readall() == content
-            assert file.tell() == size
+            assert file.readall() == content, 'Raw read all, content match'
+            assert file.tell() == size, 'Raw read all, tell match'
 
-            assert file.seek(10) == 10
-            assert file.readall() == content[10:]
-            assert file.tell() == size
+            assert file.seek(10) == 10, 'Raw seek 10 & read all, seek match'
+            assert file.readall() == content[10:],\
+                'Raw seek 10 & read all, content match'
+            assert file.tell() == size,\
+                'Raw seek 10 & read all, tell match'
 
             # Test: _read_range
-            assert file.seek(0) == 0
+            assert file.seek(0) == 0, 'Raw seek 0, seek match'
             buffer = bytearray(40)
-            assert file.readinto(buffer) == 40
-            assert bytes(buffer) == content[:40]
-            assert file.tell() == 40
+            assert file.readinto(buffer) == 40,\
+                'Raw read into, returned size match'
+            assert bytes(buffer) == content[:40], 'Raw read into, content match'
+            assert file.tell() == 40, 'Raw read into, tell match'
 
             buffer = bytearray(40)
-            assert file.readinto(buffer) == 40
-            assert bytes(buffer) == content[40:80]
-            assert file.tell() == 80
+            assert file.readinto(buffer) == 40,\
+                'Raw read into from 40, returned size match'
+            assert bytes(buffer) == content[40:80],\
+                'Raw read into from 40, content match'
+            assert file.tell() == 80, 'Raw read into from 40, tell match'
 
             buffer = bytearray(40)
-            assert file.readinto(buffer) == 20
-            assert bytes(buffer) == content[80:] + b'\0' * 20
-            assert file.tell() == size
+            assert file.readinto(buffer) == 20,\
+                'Raw read into partially over EOF, returned size match'
+            assert bytes(buffer) == content[80:] + b'\0' * 20,\
+                'Raw read into partially over EOF, content match'
+            assert file.tell() == size,\
+                'Raw read into partially over EOF, tell match'
 
             buffer = bytearray(40)
-            assert file.readinto(buffer) == 0
-            assert bytes(buffer) == b'\0' * 40
-            assert file.tell() == size
+            assert file.readinto(buffer) == 0,\
+                'Raw read into over EOF, returned size match'
+            assert bytes(buffer) == b'\0' * 40,\
+                'Raw read into over EOF, content match'
+            assert file.tell() == size,\
+                'Raw read into over EOF, tell match'
 
             file.seek(-10, SEEK_END)
             buffer = bytearray(20)
-            assert file.readinto(buffer) == 10
-            assert bytes(buffer) == content[90:] + b'\0' * 10
-            assert file.tell() == size
+            assert file.readinto(buffer) == 10,\
+                'Raw seek from end & read into, returned size match'
+            assert bytes(buffer) == content[90:] + b'\0' * 10,\
+                'Raw seek from end & read into, content match'
+            assert file.tell() == size,\
+                'Raw seek from end & read into, tell match'
 
         # Test: Append mode correctly append data
         if self._is_supported('write'):
@@ -214,7 +229,8 @@ class StorageTester:
                 file.write(content)
 
             with self._raw_io(file_path, **self._system_parameters) as file:
-                assert file.readall() == content + content
+                assert file.readall() == content + content,\
+                    'Raw append, previous content read'
 
         # Test: Seek out of file and write
         if is_seekable:
@@ -225,7 +241,8 @@ class StorageTester:
 
             with self._raw_io(file_path, 'rb',
                               **self._system_parameters) as file:
-                assert file.readall() == b'\0' * 256 + b'\x01'
+                assert file.readall() == b'\0' * 256 + b'\x01',\
+                    'Raw seek, null padding read'
 
     def _test_buffered_io(self):
         """
@@ -262,7 +279,8 @@ class StorageTester:
         # Test: Read data, not multiple of buffer
         with self._buffered_io(file_path, 'rb', buffer_size=buffer_size,
                                **self._system_parameters) as file:
-            assert content == file.read()
+            assert content == file.read(),\
+                'Buffered read, not multiple of buffer size'
 
         # Test: write data, multiple of buffer
         file_name = 'buffered_file1.dat'
@@ -284,7 +302,8 @@ class StorageTester:
         # Test: Read data, multiple of buffer
         with self._buffered_io(file_path, 'rb', buffer_size=buffer_size,
                                **self._system_parameters) as file:
-            assert content == file.read()
+            assert content == file.read(),\
+                'Buffered read, multiple of buffer size'
 
     def _test_system_locator(self):
         """
@@ -314,7 +333,8 @@ class StorageTester:
                 _pytest.fail('Locator "%s" not found' % self.locator)
 
             # Test: Check locator header return a mapping
-            assert hasattr(system.head(path=self.locator), '__getitem__')
+            assert hasattr(system.head(path=self.locator), '__getitem__'), \
+                'List locators, header is mapping'
         else:
             # Test: Unsupported
             with _pytest.raises(_UnsupportedOperation):
@@ -331,13 +351,15 @@ class StorageTester:
         if self._is_supported('remove'):
             if self._is_supported('listdir'):
                 assert tmp_locator in [
-                    name for name, _ in system._list_locators()]
+                    name for name, _ in system._list_locators()],\
+                    'Remove locator, locator exists'
 
             system.remove(tmp_locator)
 
             if self._is_supported('listdir'):
                 assert tmp_locator not in [
-                    name for name, _ in system._list_locators()]
+                    name for name, _ in system._list_locators()],\
+                    'Remove locator, locator not exists'
         else:
             # Test: Unsupported
             with _pytest.raises(_UnsupportedOperation):
@@ -362,7 +384,8 @@ class StorageTester:
             system.make_dir(dir_path0)
             self._to_clean(dir_path0)
             if self._is_supported('listdir'):
-                assert dir_path0 in self._list_objects_names()
+                assert dir_path0 in self._list_objects_names(), \
+                    'Create directory, exists (with "/")'
 
             # Test: Make a directory (Without trailing /)
             dir_name1 = 'directory1'
@@ -372,10 +395,12 @@ class StorageTester:
             self._to_clean(dir_path1)
 
             if self._is_supported('listdir'):
-                assert dir_path1 in self._list_objects_names()
+                assert dir_path1 in self._list_objects_names(), \
+                    'Create directory, exists (without "/")'
 
                 # Test: Listing empty directory
-                assert len(tuple(system.list_objects(dir_path0))) == 0
+                assert len(tuple(system.list_objects(dir_path0))) == 0, \
+                    'List objects, empty directory'
 
         # Write a sample file
         file_name = 'sample_1K.dat'
@@ -400,11 +425,13 @@ class StorageTester:
         create_time = _time()
 
         # Test: Check file header
-        assert hasattr(system.head(path=file_path), '__getitem__')
+        assert hasattr(system.head(path=file_path), '__getitem__'), \
+            'Head file, header is mapping'
 
         # Test: Check file size
         try:
-            assert system.getsize(file_path) == size
+            assert system.getsize(file_path) == size, \
+                'Head file, size match'
         except _UnsupportedOperation:
             # May not be supported on all files, if supported
             if self._is_supported('getsize'):
@@ -414,7 +441,8 @@ class StorageTester:
         try:
             file_time = system.getmtime(file_path)
             if self._is_supported('write'):
-                assert file_time == _pytest.approx(create_time, 2)
+                assert file_time == _pytest.approx(create_time, 2), \
+                    'Head file, modification time match'
         except _UnsupportedOperation:
             # May not be supported on all files, if supported
             if self._is_supported('getmtime'):
@@ -424,7 +452,8 @@ class StorageTester:
         try:
             file_time = system.getctime(file_path)
             if self._is_supported('write'):
-                assert file_time == _pytest.approx(create_time, 2)
+                assert file_time == _pytest.approx(create_time, 2), \
+                    'Head file, creation time match'
         except _UnsupportedOperation:
             # May not be supported on all files, if supported
             if self._is_supported('getctime'):
@@ -432,10 +461,10 @@ class StorageTester:
 
         # Test: Check path and URL handling
         with self._raw_io(file_path, **self._system_parameters) as file:
-            assert file.name == file_path
+            assert file.name == file_path, 'Open file, path match'
 
         with self._raw_io(file_url, **self._system_parameters) as file:
-            assert file.name == file_url
+            assert file.name == file_url, 'Open file, URL match'
 
         # Write some files
         files = set()
@@ -460,15 +489,17 @@ class StorageTester:
             objects_list = set(
                 '%s/%s' % (self.locator, name) for name, _ in objects)
             for file in files:
-                assert file in objects_list
+                assert file in objects_list, 'List objects, file name match'
             for _, header in objects:
-                assert isinstance(header, dict)
+                assert hasattr(header, '__getitem__'),\
+                    'List objects, file header is mapping'
 
             # Test: List objects, with limited output
             max_request_entries = 5
             entries = len(tuple(system.list_objects(
                 max_request_entries=max_request_entries)))
-            assert entries == max_request_entries
+            assert entries == max_request_entries, \
+                'List objects, Number of entries match'
 
             # Test: List objects, no objects found
             with _pytest.raises(ObjectNotFoundError):
@@ -493,14 +524,14 @@ class StorageTester:
         self._to_clean(copy_path)
         if self._is_supported('copy'):
             system.copy(file_path, copy_path)
-            assert system.getsize(copy_path) == size
+            assert system.getsize(copy_path) == size, 'Copy file, size match'
         else:
             # Test: Unsupported
             with _pytest.raises(_UnsupportedOperation):
                 system.copy(file_path, copy_path)
 
         # Test: Normal file is not symlink
-        assert not system.islink(file_path)
+        assert not system.islink(file_path), 'Symlink, file is not symlink'
 
         # Test: Symlink
         if self._is_supported('symlink'):
@@ -514,10 +545,12 @@ class StorageTester:
         # Test: Remove file
         if self._is_supported('remove'):
             if self._is_supported('listdir'):
-                assert file_path in self._list_objects_names()
+                assert file_path in self._list_objects_names(), \
+                    'Remove file, file exists'
             system.remove(file_path)
             if self._is_supported('listdir'):
-                assert file_path not in self._list_objects_names()
+                assert file_path not in self._list_objects_names(), \
+                    'Remove file, file not exists'
         else:
             # Test: Unsupported
             with _pytest.raises(_UnsupportedOperation):

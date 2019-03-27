@@ -31,8 +31,6 @@ class AzureBlockBlobRawIO(AzureBlobRawIO):
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
     """
-    _SUPPORT_PART_FLUSH = False
-    _DEFAULT_CLASS = False
 
     def __init__(self, *args, **kwargs):
         AzureBlobRawIO.__init__(self, *args, **kwargs)
@@ -86,7 +84,6 @@ class AzureBlockBlobBufferedIO(AzureBlobBufferedIO):
             transfer performance. But makes connection unsecure.
     """
     _RAW_CLASS = AzureBlockBlobRawIO
-    _DEFAULT_CLASS = False
 
     def __init__(self, *args, **kwargs):
         ObjectBufferedIOBase.__init__(self, *args, **kwargs)

@@ -41,7 +41,6 @@ class AzurePageBlobRawIO(AzureBlobRawIO, _AzureStorageRawIORangeWriteBase):
             (whence=os.SEEK_END). Default to True.
     """
     _SUPPORT_PART_FLUSH = True
-    _DEFAULT_CLASS = False
     _MAX_FLUSH_SIZE = _MAX_PAGE_SIZE
 
     def __init__(self, *args, **kwargs):
@@ -259,7 +258,6 @@ class AzurePageBlobBufferedIO(AzureBlobBufferedIO,
             on last page when seeking from end. Default to True.
     """
     _RAW_CLASS = AzurePageBlobRawIO
-    _DEFAULT_CLASS = False
 
     #: Maximal buffer_size value in bytes (Maximum upload page size)
     MAXIMUM_BUFFER_SIZE = _MAX_PAGE_SIZE

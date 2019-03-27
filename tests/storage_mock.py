@@ -97,7 +97,7 @@ class ObjectStorageMock:
             self._raise_404()
 
     def get_locator(self, locator, prefix=None, limit=None,
-                    raise_404_if_empty=True):
+                    raise_404_if_empty=True, first_level=False, relative=False):
         """
         Get locator content.
 
@@ -106,6 +106,8 @@ class ObjectStorageMock:
             prefix (str): Filter returned object with this prefix.
             limit (int): Maximum number of result to return.
             raise_404_if_empty (bool): Raise 404 Error if empty.
+            first_level (bool): If True, return only first level after prefix.
+            relative (bool): If True, return objects names relative to prefix.
 
         Returns:
             dict: objects names, objects headers.
@@ -115,6 +117,26 @@ class ObjectStorageMock:
         headers = dict()
         for name, header in self._get_locator_content(locator).items():
             if name.startswith(prefix):
+
+                if (relative and prefix) or first_level:
+                    # Relative path
+                    if prefix:
+                        name = name.split(prefix)[1].lstrip('/')
+
+                    # Get first level element
+                    if first_level and '/' in name.rstrip('/'):
+                        name = name.split('/', 1)[0].rstrip('/')
+                        if name:
+                            name += '/'
+
+                    # Set name absolute
+                    if not relative and prefix and name:
+                        name = '%s/%s' % (prefix.rstrip('/'), name)
+
+                    # Skip already existing
+                    if first_level and name in headers:
+                        continue
+
                 headers[name] = header.copy()
                 del headers[name]['_content']
 

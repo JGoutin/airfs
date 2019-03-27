@@ -73,7 +73,7 @@ class AzureBlobRawIO(_AzureStorageRawIOBase):
             Possibles values: BlockBlob (default), AppendBlob, PageBlob.
     """
     _SYSTEM_CLASS = _AzureBlobSystem
-    _DEFAULT_CLASS = True
+    __DEFAULT_CLASS = True
 
     def __new__(cls, name, mode='r', **kwargs):
         # If call from a subclass, instantiate this subclass directly
@@ -116,7 +116,7 @@ class AzureBlobBufferedIO(ObjectBufferedIOBase):
             Possibles values: BlockBlob (default), AppendBlob, PageBlob.
     """
     _SYSTEM_CLASS = _AzureBlobSystem
-    _DEFAULT_CLASS = True
+    __DEFAULT_CLASS = True
 
     def __new__(cls, name, mode='r', buffer_size=None, max_buffers=0,
                 max_workers=None, **kwargs):

@@ -27,6 +27,8 @@ class FileSystemBase(SystemBase):
             generator of tuple: object name str, object header dict
         """
         entries = 0
+        next_values = []
+        max_request_entries_arg = None
 
         if not relative:
             path = self.relpath(path)
@@ -37,28 +39,10 @@ class FileSystemBase(SystemBase):
 
         # Sub directory
         else:
-            objects = self._list_objects(self.get_client_kwargs(path), '',
-                                         max_request_entries)
+            objects = self._list_objects(
+                self.get_client_kwargs(path), max_request_entries)
 
-        # Yield only first level
-        if first_level:
-            for obj in objects:
-                name = obj[0]
-                header = obj[1]
-
-                if path:
-                    # Path relative to root
-                    name = '/'.join((path.rstrip('/'), name))
-
-                entries += 1
-                yield name, header
-                if entries == max_request_entries:
-                    return
-            return
-
-        # Yield full hierarchy
-        next_values = []
-        max_request_entries_arg = None
+        # Yield file hierarchy
         for obj in objects:
             # Generate first level objects entries
             try:
@@ -69,7 +53,7 @@ class FileSystemBase(SystemBase):
                 is_directory = True
 
             # Start to generate subdirectories content
-            if is_directory:
+            if is_directory and not first_level:
                 name = next_path = name.rstrip('/') + '/'
 
                 if path:
@@ -98,14 +82,13 @@ class FileSystemBase(SystemBase):
                     return
 
     @abstractmethod
-    def _list_objects(self, client_kwargs, path, max_request_entries):
+    def _list_objects(self, client_kwargs, max_request_entries):
         """
         Lists objects. Like "SystemBase._list_objects" but also return a bool
         that is True if the returned entry is a directory.
 
         args:
             client_kwargs (dict): Client arguments.
-            path (str): Path relative to current locator.
             max_request_entries (int): If specified, maximum entries returned
                 by request.
 

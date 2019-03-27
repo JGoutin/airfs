@@ -33,9 +33,8 @@ def test_mocked_storage():
         """azure.storage.blob.baseblobservice.BaseBlobService"""
         BLOB_TYPE = None
 
-        def __init__(self, *_, **kwargs):
+        def __init__(self, *_, **__):
             """azure.storage.blob.baseblobservice.BaseBlobService.__init__"""
-            self.kwargs = kwargs
 
         @staticmethod
         def copy_blob(container_name=None, blob_name=None, copy_source=None,

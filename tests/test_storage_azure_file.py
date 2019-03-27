@@ -12,10 +12,6 @@ UNSUPPORTED_OPERATIONS = (
 
 def test_mocked_storage():
     """Tests pycosio.azure_file with a mock"""
-    # TODO: Fix once real test completed
-    import pytest
-    pytest.xfail('Need update, do not match with real case')
-
     from azure.storage.file.models import (
         Share, File, Directory, ShareProperties, FileProperties,
         DirectoryProperties)
@@ -51,8 +47,9 @@ def test_mocked_storage():
     class FileService:
         """azure.storage.file.fileservice.FileService"""
 
-        def __init__(self, *_, **__):
+        def __init__(self, *_, **kwargs):
             """azure.storage.file.fileservice.FileService.__init__"""
+            self.kwargs = kwargs
 
         @staticmethod
         def copy_file(share_name=None, directory_name=None, file_name=None,
@@ -104,22 +101,36 @@ def test_mocked_storage():
 
         @staticmethod
         def list_directories_and_files(
-                share_name=None, directory_name=None, prefix=None,
-                num_results=None, **_):
+                share_name=None, directory_name=None, num_results=None, **_):
             """
             azure.storage.file.fileservice.FileService.
             list_directories_and_files
             """
-            files = []
-            for file_name in storage_mock.get_locator(
-                    share_name, prefix=prefix, limit=num_results):
-                props = FileProperties()
-                props.last_modified = storage_mock.get_object_mtime(
-                    share_name, file_name)
-                props.content_length = storage_mock.get_object_size(
-                    share_name, file_name)
-                files.append(File(props=props, name=file_name))
-            return files
+            content = []
+            for name in storage_mock.get_locator(
+                    share_name, prefix=directory_name, limit=num_results,
+                    first_level=True, relative=True):
+
+                # This directory
+                if not name:
+                    continue
+
+                # Directory
+                elif name.endswith('/'):
+                    content.append(Directory(
+                        props=DirectoryProperties(), name=name))
+
+                # File
+                else:
+                    props = FileProperties()
+                    path = join(directory_name, name)
+                    props.last_modified = storage_mock.get_object_mtime(
+                        share_name, path)
+                    props.content_length = storage_mock.get_object_size(
+                        share_name, path)
+                    content.append(File(props=props, name=name))
+
+            return content
 
         @staticmethod
         def create_directory(share_name=None, directory_name=None, **_):
@@ -133,9 +144,17 @@ def test_mocked_storage():
 
         @staticmethod
         def create_file(share_name=None, directory_name=None,
-                        file_name=None, **_):
+                        file_name=None, content_length=None, **_):
             """azure.storage.file.fileservice.FileService.create_file"""
-            storage_mock.put_object(share_name, join(directory_name, file_name))
+            if content_length:
+                # Create null padding
+                content = b'\0' * content_length
+            else:
+                content = None
+
+            storage_mock.put_object(
+                share_name, join(directory_name, file_name), content=content,
+                new_file=True)
 
         @staticmethod
         def delete_directory(share_name=None, directory_name=None, **_):
@@ -159,17 +178,43 @@ def test_mocked_storage():
                 share_name=None, directory_name=None, file_name=None,
                 stream=None, start_range=None, end_range=None, **_):
             """azure.storage.file.fileservice.FileService.get_file_to_stream"""
+            if end_range is not None:
+                end_range += 1
             stream.write(storage_mock.get_object(
                 share_name, join(directory_name, file_name),
                 data_range=(start_range, end_range)))
 
         @staticmethod
+        def create_file_from_bytes(
+                share_name=None, directory_name=None, file_name=None,
+                file=None, **_):
+            """azure.storage.file.fileservice.FileService.
+            create_file_from_bytes"""
+            storage_mock.put_object(
+                share_name, join(directory_name, file_name), file,
+                new_file=True)
+
+        @staticmethod
         def update_range(share_name=None, directory_name=None, file_name=None,
                          data=None, start_range=None, end_range=None, **_):
             """azure.storage.file.fileservice.FileService.update_range"""
+            if end_range is not None:
+                end_range += 1
             storage_mock.put_object(
                 share_name, join(directory_name, file_name), content=data,
                 data_range=(start_range, end_range))
+
+        @staticmethod
+        def resize_file(share_name=None, directory_name=None,
+                        file_name=None, content_length=None, **_):
+            """azure.storage.file.fileservice.FileService.resize_file"""
+            path = join(directory_name, file_name)
+            # Add padding to resize file
+            size = storage_mock.get_object_size(share_name, path)
+            padding = content_length - size
+            storage_mock.put_object(
+                share_name, path, content=b'\0' * padding,
+                data_range=(content_length - padding, content_length))
 
     azure_storage_file_file_service = azure_file._FileService
     azure_file._FileService = FileService

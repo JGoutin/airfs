@@ -144,13 +144,12 @@ class _AzureFileSystem(_AzureBaseSystem, _FileSystemBase):
             for share in self.client.list_shares():
                 yield share.name, self._model_to_dict(share)
 
-    def _list_objects(self, client_kwargs, path, max_request_entries):
+    def _list_objects(self, client_kwargs, max_request_entries):
         """
         Lists objects.
 
         args:
             client_kwargs (dict): Client arguments.
-            path (str): Path relative to current locator.
             max_request_entries (int): If specified, maximum entries returned
                 by request.
 
@@ -162,8 +161,7 @@ class _AzureFileSystem(_AzureBaseSystem, _FileSystemBase):
             client_kwargs, max_request_entries)
 
         with _handle_azure_exception():
-            for obj in self.client.list_directories_and_files(
-                    prefix=path, **client_kwargs):
+            for obj in self.client.list_directories_and_files(**client_kwargs):
                 yield (obj.name, self._model_to_dict(obj),
                        isinstance(obj, _Directory))
 
@@ -228,7 +226,6 @@ class AzureFileRawIO(_AzureStorageRawIORangeWriteBase):
             advance.
     """
     _SYSTEM_CLASS = _AzureFileSystem
-    _DEFAULT_CLASS = True
     _MAX_FLUSH_SIZE = _MAX_RANGE_SIZE
 
     def __init__(self, *args, **kwargs):

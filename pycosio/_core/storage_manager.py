@@ -19,6 +19,10 @@ _BASE_CLASSES = {
     'buffered': (ObjectBufferedIOBase, ObjectBufferedIORandomWriteBase),
     'system': (SystemBase, )}
 
+# Use this flag on subclass to make this class the default class for a
+# specific storage (Useful when a storage provides multiple class):
+# __DEFAULT_CLASS = True
+
 
 def get_instance(name, cls='system', storage=None, storage_parameters=None,
                  unsecure=None, *args, **kwargs):
@@ -159,12 +163,13 @@ def mount(storage=None, name='', storage_parameters=None,
                         # Not a base class
                         member not in cls and
                         # Not an abstract class
-                        not member.__abstractmethods__ and
-                        # Is flagged as default class
-                        getattr(member, '_DEFAULT_CLASS')):
+                        (not member.__abstractmethods__ or
+                         # Is flagged as default class for this storage
+                         getattr(member, '_%s_DEFAULT_CLASS' % member.__name__)
+                         )):
                     storage_info[cls_name] = member
                     break
-            except TypeError:
+            except (TypeError, AttributeError):
                 continue
 
     # Caches a system instance
