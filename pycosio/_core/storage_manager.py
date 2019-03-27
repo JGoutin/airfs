@@ -158,19 +158,32 @@ def mount(storage=None, name='', storage_parameters=None,
     for member_name in dir(module):
         member = getattr(module, member_name)
         for cls_name, cls in classes_items:
+
+            # Skip if not subclass of the target class
             try:
-                if (issubclass(member, cls) and
-                        # Not a base class
-                        member not in cls and
-                        # Not an abstract class
-                        (not member.__abstractmethods__ or
-                         # Is flagged as default class for this storage
-                         getattr(member, '_%s_DEFAULT_CLASS' % member.__name__)
-                         )):
-                    storage_info[cls_name] = member
-                    break
+                if not issubclass(member, cls) or member in cls:
+                    continue
             except (TypeError, AttributeError):
                 continue
+
+            # The class may have been flag as default or not-default
+            default_flag = '_%s__DEFAULT_CLASS' % member.__name__.strip('_')
+            try:
+                is_default = getattr(member, default_flag)
+            except AttributeError:
+                is_default = None
+
+            # Skip if explicitly flagged as non default
+            if is_default is False:
+                continue
+
+            # Skip if is an abstract class not explicitly flagged as default
+            elif is_default is not True and member.__abstractmethods__:
+                continue
+
+            # Is the default class
+            storage_info[cls_name] = member
+            break
 
     # Caches a system instance
     storage_info['system_cached'] = storage_info['system'](**system_parameters)

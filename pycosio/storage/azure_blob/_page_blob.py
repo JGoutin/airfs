@@ -38,6 +38,8 @@ class AzurePageBlobRawIO(AzureBlobRawIO, _AzureStorageRawIORangeWriteBase):
             read data and ignore padding when seeking from end
             (whence=os.SEEK_END). Default to True.
     """
+    __DEFAULT_CLASS = False
+
     #: Maximum size of one flush operation
     MAX_FLUSH_SIZE = PageBlobService.MAX_PAGE_SIZE
 
@@ -255,6 +257,7 @@ class AzurePageBlobBufferedIO(AzureBlobBufferedIO,
             remove page padding when reading, and ignore trailing null chars
             on last page when seeking from end. Default to True.
     """
+    __DEFAULT_CLASS = False
     _RAW_CLASS = AzurePageBlobRawIO
 
     #: Maximal buffer_size value in bytes (Maximum upload page size)

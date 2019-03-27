@@ -145,6 +145,7 @@ class StorageTester:
 
                 # Test: tell
                 is_seekable = file.seekable()
+                max_flush_size = file.MAX_FLUSH_SIZE
                 if is_seekable:
                     assert file.tell() == size,\
                         'Raw write, tell match writen size'
@@ -160,6 +161,7 @@ class StorageTester:
 
         else:
             is_seekable = False
+            max_flush_size = 0
 
             # Test: Unsupported
             with _pytest.raises(_UnsupportedOperation):
@@ -245,12 +247,12 @@ class StorageTester:
                     'Raw seek, null padding read'
 
         # Test: write big file
-        if self._is_supported('write') and self._raw_io.MAX_FLUSH_SIZE:
+        if self._is_supported('write') and max_flush_size:
             file_name = 'raw_file1.dat'
             file_path = self.base_dir_path + file_name
             self._to_clean(file_path)
 
-            size = self._raw_io.MAX_FLUSH_SIZE * 4
+            size = max_flush_size * 4
             content = _urandom(size)
 
             with self._raw_io(file_path, 'wb',

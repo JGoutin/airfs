@@ -13,3 +13,13 @@ from pycosio.storage.azure_blob._block_blob import (
     AzureBlockBlobRawIO, AzureBlockBlobBufferedIO)
 from pycosio.storage.azure_blob._page_blob import (
     AzurePageBlobRawIO, AzurePageBlobBufferedIO)
+
+__all__ = ['AzureBlobRawIO', 'AzureBlobBufferedIO',
+           'AzureAppendBlobRawIO', 'AzureAppendBlobBufferedIO',
+           'AzureBlockBlobRawIO', 'AzureBlockBlobBufferedIO',
+           'AzurePageBlobRawIO', 'AzurePageBlobBufferedIO']
+
+# Makes cleaner namespace
+for _name in __all__:
+    locals()[_name].__module__ = __name__
+del _name

@@ -29,6 +29,8 @@ class AzureAppendBlobRawIO(AzureBlobRawIO, ObjectRawIORandomWriteBase):
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
     """
+    __DEFAULT_CLASS = False
+
     #: Maximum size of one flush operation
     MAX_FLUSH_SIZE = AppendBlobService.MAX_BLOCK_SIZE
 
@@ -107,6 +109,7 @@ class AzureAppendBlobBufferedIO(AzureBlobBufferedIO,
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
     """
+    __DEFAULT_CLASS = False
     _RAW_CLASS = AzureAppendBlobRawIO
 
     def __init__(self, *args, **kwargs):
