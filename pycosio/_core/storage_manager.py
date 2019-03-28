@@ -9,6 +9,10 @@ from pycosio._core.io_base_buffered import ObjectBufferedIOBase
 from pycosio._core.io_base_system import SystemBase
 from pycosio._core.compat import Pattern
 
+# Packages where to search for storage
+STORAGE_PACKAGE = ['pycosio.storage']
+
+# Mounted storage
 MOUNTED = OrderedDict()
 _MOUNT_LOCK = RLock()
 
@@ -136,7 +140,14 @@ def mount(storage=None, name='', storage_parameters=None,
     storage_info = dict(storage=storage, system_parameters=system_parameters)
 
     # Finds module containing target subclass
-    module = import_module('pycosio.storage.%s' % storage)
+    for package in STORAGE_PACKAGE:
+        try:
+            module = import_module('%s.%s' % (package, storage))
+            break
+        except ImportError:
+            continue
+    else:
+        raise ImportError('No storage named "%s" found' % storage)
 
     # Case module is a mount redirection to mount multiple storage at once
     if hasattr(module, 'MOUNT_REDIRECT'):

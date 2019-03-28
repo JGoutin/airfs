@@ -42,6 +42,16 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         RawIOBase.__init__(self)
         ObjectIOBase.__init__(self, name, mode=mode)
 
+        if storage_parameters is not None:
+            storage_parameters = storage_parameters.copy()
+
+        # Try to get cached head for this file
+        try:
+            self._cache['_head'] = storage_parameters.pop(
+                'pycosio.raw_io._head')
+        except (AttributeError, KeyError):
+            pass
+
         # Initializes system
         try:
             # Try to get cached system
@@ -53,14 +63,6 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
             # If none cached, create a new system
             self._system = self._SYSTEM_CLASS(
                 storage_parameters=storage_parameters, **kwargs)
-
-        # Checks for cached head dict
-        try:
-            # Try to get cached system
-            self._cache['_head'] = storage_parameters.pop(
-                'pycosio.raw_io._head')
-        except (AttributeError, KeyError):
-            pass
 
         # Gets storage local path from URL
         self._path = self._system.relpath(name)

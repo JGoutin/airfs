@@ -1,5 +1,6 @@
 # coding=utf-8
 """Test pycosio.storage"""
+from copy import deepcopy as _deepcopy
 from io import UnsupportedOperation as _UnsupportedOperation
 from os import urandom as _os_urandom
 from time import time as _time
@@ -50,7 +51,14 @@ class StorageTester:
         if system_parameters is None and storage_info:
             system_parameters = storage_info['system_parameters']
 
-        self._system_parameters = system_parameters or dict()
+        if not system_parameters:
+            system_parameters = dict(storage_parameters=dict())
+        else:
+            system_parameters = _deepcopy(system_parameters)
+
+        self._system_parameters = system_parameters
+        self._system_parameters['storage_parameters'][
+            'pycosio.system_cached'] = system
         self._system = system
         self._raw_io = raw_io
         self._buffered_io = buffered_io
@@ -647,4 +655,22 @@ def test_user_storage(storage_test_kwargs):
     with StorageTester(
             unsupported_operations=unsupported_operations,
             **storage_test_kwargs) as tester:
+        tester.test_common()
+
+
+def test_mock_storage():
+    """
+    Run test sequence on the mocked storage.
+    """
+    from tests.storage_package.mock import (
+        MockSystem, MockBufferedIO, MockRawIO)
+
+    # Init mocked system
+    system = MockSystem()
+
+    # Tests
+    with StorageTester(
+            system, MockRawIO, MockBufferedIO, system.client) as tester:
+
+        # Common tests
         tester.test_common()

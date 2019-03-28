@@ -158,3 +158,6 @@ class ObjectBufferedIORandomWriteBase(ObjectBufferedIOBase):
 
         # Flush buffer using RAW IO
         self._raw_flush(buffer, start, end)
+
+        # Mark as flushed raw side
+        self._raw._was_flushed = True

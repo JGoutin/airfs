@@ -264,7 +264,6 @@ class ObjectStorageMock:
                     'Accept-Ranges': 'bytes',
                     'ETag': str(_uuid()),
                     '_content': bytearray(),
-                    '_pending_content': dict(),
                     '_lock': _Lock()
                 }
 
@@ -292,19 +291,14 @@ class ObjectStorageMock:
                         start = 0
                     if end is None:
                         end = start + len(content)
-                    assert len(content) == end - start
 
-                    # Add to pending content
-                    pending_content = file['_pending_content']
-                    pending_content[start] = content
+                    # Add padding if missing data
+                    if start > len(file_content):
+                        file_content[len(file_content):start] = (
+                            start - len(file_content)) * b'\0'
 
-                    # Write all pending range of content
-                    for pending_start in sorted(tuple(pending_content)):
-                        if pending_start <= len(file_content):
-                            file_content[
-                                pending_start:pending_start + len(
-                                    pending_content[pending_start])] = content
-                            del pending_content[pending_start]
+                    # Flush new content
+                    file_content[start:end] = content
 
             if headers:
                 file.update(headers)

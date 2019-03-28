@@ -239,7 +239,7 @@ def test_mocked_storage():
             # Test: Unsecure mode
             file_path = tester.base_dir_path + 'file0.dat'
             with AzureFileRawIO(file_path, unsecure=True,
-                                **tester._system_parameters) as file:
+                                **system_parameters) as file:
                 assert file._client.kwargs['protocol'] == 'http'
 
             # Test: Copy source formatted to use URL

@@ -46,7 +46,16 @@ class SystemBase(ABC, WorkerPoolBase):
         WorkerPoolBase.__init__(self)
 
         # Save storage parameters
-        self._storage_parameters = storage_parameters or dict()
+        if storage_parameters:
+            storage_parameters = storage_parameters.copy()
+            # Drop pycosio internal keys
+            for key in tuple(storage_parameters):
+                if key.startswith('pycosio.'):
+                    del storage_parameters[key]
+        else:
+            storage_parameters = dict()
+
+        self._storage_parameters = storage_parameters
         self._unsecure = unsecure
         self._storage = self.__module__.rsplit('.', 1)[1]
 

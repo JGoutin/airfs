@@ -3,6 +3,7 @@
 
 Allows to filter Pycosio generated exception and standard exceptions"""
 from contextlib import contextmanager
+from sys import exc_info
 
 from pycosio._core.compat import (
     file_not_found_error, permission_error, file_exits_error)
@@ -33,8 +34,16 @@ def handle_os_exceptions():
         yield
 
     # Convert pycosio exception to equivalent OSError
-    except ObjectException as exception:
-        raise {ObjectNotFoundError: file_not_found_error,
-               ObjectPermissionError: permission_error,
-               ObjectExistsError: file_exits_error
-               }.get(type(exception), OSError)(exception.args[0])
+    except ObjectException:
+        exc_type, exc_value, exc_traceback = exc_info()
+
+        # Raise OSError subclass for predefined exceptions
+        try:
+            raise {ObjectNotFoundError: file_not_found_error,
+                   ObjectPermissionError: permission_error,
+                   ObjectExistsError: file_exits_error
+                   }[exc_type](exc_value)
+
+        # Raise generic OSError for other exceptions
+        except KeyError:
+            raise OSError('(%s) %s' % (exc_type, exc_value))
