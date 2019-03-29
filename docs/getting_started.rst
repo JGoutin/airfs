@@ -20,6 +20,7 @@ You can also install these optional extras:
 * ``all``: Install all extras.
 * ``azure_blob``: Microsoft Azure Blob Storage support.
 * ``azure_file``: Microsoft Azure File Storage support.
+* ``gs``: Google Cloud Storage support.
 * ``oss``: Alibaba Cloud OSS support.
 * ``s3``: Amazon Web Services S3 support.
 * ``swift``: OpenStack Swift support.

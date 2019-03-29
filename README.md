@@ -32,6 +32,7 @@ airfs is compatible with the following cloud objects storage services:
 
 * Alibaba Cloud OSS
 * Amazon Web Services S3
+* Google Cloud Storage
 * Microsoft Azure Blobs Storage
 * Microsoft Azure Files Storage
 * OpenStack Swift

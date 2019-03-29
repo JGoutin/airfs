@@ -42,6 +42,7 @@ PACKAGE_INFO = dict(
         # Storage specific requirements
         'azure_blob': ['azure-storage-blob>=1.3.0,<=2.1.0'],
         'azure_file': ['azure-storage-file>=1.3.0'],
+        'gs': ['google-cloud-storage>=1.10'],
         'oss': ['oss2>=2.3.0'],
         's3': ['boto3>=1.5.0'],
         'swift': ['python-swiftclient[keystone]>=3.3.0']},
