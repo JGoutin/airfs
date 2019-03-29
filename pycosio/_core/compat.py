@@ -1,7 +1,6 @@
 # coding=utf-8
 """Python old versions compatibility"""
 import abc as _abc
-import concurrent.futures as _futures
 import re as _re
 import os as _os
 import shutil as _shutil
@@ -164,6 +163,9 @@ if _py[0] == 2:
     same_file_error = OSError
     is_a_directory_error = OSError
 
+    # Missing "os.scandir"
+    from scandir import scandir, walk
+
 else:
     def to_timestamp(dt):
         """Return POSIX timestamp as float"""
@@ -184,7 +186,7 @@ else:
     file_exits_error = FileExistsError
     same_file_error = _shutil.SameFileError
     is_a_directory_error = IsADirectoryError
-
+    from os import scandir, walk
 
 # Python 2 Windows compatibility
 try:
@@ -197,39 +199,6 @@ except ImportError:
         """Checks if same files."""
         raise NotImplementedError(
             '"os.path.samefile" not available on Windows with Python 2.')
-
-# Python 3.4 compatibility
-if _py[0] == 3 and _py[1] == 4:
-
-    _deprecation_warning()
-
-    # "max_workers" as keyword argument for ThreadPoolExecutor
-    class ThreadPoolExecutor(_futures.ThreadPoolExecutor):
-        """concurrent.futures.ThreadPoolExecutor"""
-        def __init__(self, max_workers=None, **kwargs):
-            """Initializes a new ThreadPoolExecutor instance.
-
-            Args:
-                max_workers: The maximum number of threads that can be used to
-                    execute the given calls.
-            """
-            if max_workers is None:
-                # Use this number because ThreadPoolExecutor is often
-                # used to overlap I/O instead of CPU work.
-                max_workers = (_os.cpu_count() or 1) * 5
-            _futures.ThreadPoolExecutor.__init__(self, max_workers, **kwargs)
-
-else:
-    ThreadPoolExecutor = _futures.ThreadPoolExecutor
-
-# Python < 3.5 compatibility
-if _py[0] < 3 or (_py[0] == 3 and _py[1] < 5):
-
-    # Missing "os.scandir"
-    from scandir import scandir, walk
-
-else:
-    from os import scandir, walk
 
 # Python < 3.6 compatibility
 if _py[0] < 3 or (_py[0] == 3 and _py[1] < 6):

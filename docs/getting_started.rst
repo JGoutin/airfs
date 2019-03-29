@@ -4,7 +4,7 @@ Getting Started
 Installation
 ------------
 
-Supported Python versions: 2.7, 3.4, 3.5, 3.6, 3.7
+Supported Python versions: 2.7, 3.5, 3.6, 3.7
 
 Python >= 3.6 is recommended to provide fully featured local file support.
 

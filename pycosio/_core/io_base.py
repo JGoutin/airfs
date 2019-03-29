@@ -1,11 +1,12 @@
 # coding=utf-8
 """Cloud storage abstract IO Base class"""
+from concurrent.futures import ThreadPoolExecutor
 from functools import wraps
 from io import IOBase, UnsupportedOperation
 from threading import Lock
 from itertools import chain
 
-from pycosio._core.compat import fsdecode, ThreadPoolExecutor
+from pycosio._core.compat import fsdecode
 
 
 class ObjectIOBase(IOBase):
