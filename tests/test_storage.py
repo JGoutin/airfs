@@ -134,8 +134,6 @@ class StorageTester:
         """
         Tests raw IO.
         """
-        # TODO: Add: modes tests('a', 'x'), Random write access test.
-
         from os import SEEK_END
 
         size = 100
@@ -145,27 +143,32 @@ class StorageTester:
         content = _urandom(size)
 
         # Open file in write mode
+        assert not self._system.exists(file_path), 'Raw write, file not exists'
+
         if self._is_supported('write'):
-            file = self._raw_io(file_path, 'wb', **self._system_parameters)
-            try:
+            with self._raw_io(file_path, 'wb',
+                              **self._system_parameters) as file:
+
+                assert self._system.getsize(file_path) == 0, \
+                    'Raw write, file must exist but empty'
+
+                # Get file file type for later
+                is_seekable = file.seekable()
+                try:
+                    max_flush_size = file.MAX_FLUSH_SIZE
+                except AttributeError:
+                    max_flush_size = 0
+
                 # Test: Write
                 file.write(content)
 
                 # Test: tell
-                is_seekable = file.seekable()
-                max_flush_size = file.MAX_FLUSH_SIZE
                 if is_seekable:
                     assert file.tell() == size,\
                         'Raw write, tell match writen size'
                 else:
                     with _pytest.raises(_UnsupportedOperation):
                         file.tell()
-
-                # Test: _flush
-                file.flush()
-
-            finally:
-                file.close()
 
         else:
             is_seekable = False
@@ -232,18 +235,34 @@ class StorageTester:
             assert file.tell() == size,\
                 'Raw seek from end & read into, tell match'
 
-        # Test: Append mode correctly append data
+        # Test: Append mode
         if self._is_supported('write'):
+            # Test: Appending on existing file
             with self._raw_io(file_path, mode='ab',
                               **self._system_parameters) as file:
                 file.write(content)
 
             with self._raw_io(file_path, **self._system_parameters) as file:
                 assert file.readall() == content + content,\
-                    'Raw append, previous content read'
+                    'Raw append, previous content read match'
+
+            # Test: Appending on not existing file
+            file_name = 'raw_file1.dat'
+            file_path = self.base_dir_path + file_name
+            self._to_clean(file_path)
+            with self._raw_io(file_path, mode='ab',
+                              **self._system_parameters) as file:
+                file.write(content)
+
+            with self._raw_io(file_path, **self._system_parameters) as file:
+                assert file.readall() == content,\
+                    'Raw append, file create content match'
 
         # Test: Seek out of file and write
         if is_seekable:
+            file_name = 'raw_file2.dat'
+            file_path = self.base_dir_path + file_name
+            self._to_clean(file_path)
             with self._raw_io(file_path, 'wb',
                               **self._system_parameters) as file:
                 file.seek(256)
@@ -256,7 +275,7 @@ class StorageTester:
 
         # Test: write big file
         if self._is_supported('write') and max_flush_size:
-            file_name = 'raw_file1.dat'
+            file_name = 'raw_file3.dat'
             file_path = self.base_dir_path + file_name
             self._to_clean(file_path)
 
@@ -618,7 +637,7 @@ class StorageTester:
 
         # Test: Read not block other exceptions
         with self._storage_mock.raise_server_error():
-            with _pytest.raises(self._storage_mock.base_exception):
+            with _pytest.raises(OSError):
                 self._raw_io(file_path, **self._system_parameters).read(10)
 
     def _list_objects_names(self):

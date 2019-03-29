@@ -60,8 +60,7 @@ def test_mocked_storage():
         """Raise 500 error"""
         raise OssError(500, headers={}, body=None, details={'Message': ''})
 
-    storage_mock = ObjectStorageMock(
-        raise_404, raise_416, raise_500, OssError)
+    storage_mock = ObjectStorageMock(raise_404, raise_416, raise_500)
 
     class Auth:
         """oss2.Auth/oss2.StsAuth/oss2.AnonymousAuth"""

@@ -60,8 +60,7 @@ def test_mocked_storage():
         """Raise 500 error"""
         raise swiftclient.ClientException('error', http_status=500)
 
-    storage_mock = ObjectStorageMock(
-        raise_404, raise_416, raise_500, swiftclient.ClientException)
+    storage_mock = ObjectStorageMock(raise_404, raise_416, raise_500)
 
     class Connection:
         """swiftclient.client.Connection"""

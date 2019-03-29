@@ -22,8 +22,7 @@ class ObjectStorageMock:
             500 error.
     """
 
-    def __init__(self, raise_404, raise_416, raise_500, base_exception,
-                 format_date=None):
+    def __init__(self, raise_404, raise_416, raise_500, format_date=None):
         self._put_lock = _Lock()
         self._system = None
         self._locators = {}
@@ -33,7 +32,6 @@ class ObjectStorageMock:
         self._raise_404 = raise_404
         self._raise_416 = raise_416
         self._raise_500 = raise_500
-        self.base_exception = base_exception
         self._raise_server_error = False
         if format_date is None:
             from wsgiref.handlers import format_date_time

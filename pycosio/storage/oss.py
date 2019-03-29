@@ -34,7 +34,8 @@ def _handle_oss_error():
 
     except _OssError as exception:
         if exception.status in _ERROR_CODES:
-            raise _ERROR_CODES[exception.status](exception.details['Message'])
+            raise _ERROR_CODES[exception.status](
+                exception.details.get('Message', ''))
         raise
 
 

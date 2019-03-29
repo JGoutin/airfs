@@ -260,7 +260,8 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
                 self._preload_range()
 
             # Get buffer from future
-            buffer = self._read_queue.pop(queue_index).result()
+            with handle_os_exceptions():
+                buffer = self._read_queue.pop(queue_index).result()
 
             # Append another buffer preload at end of queue
             buffer_size = self._buffer_size
@@ -354,12 +355,13 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
                     break
 
                 # Get buffer from future
-                try:
-                    queue[queue_index] = buffer = buffer.result()
+                with handle_os_exceptions():
+                    try:
+                        queue[queue_index] = buffer = buffer.result()
 
-                # Already evaluated
-                except AttributeError:
-                    pass
+                    # Already evaluated
+                    except AttributeError:
+                        pass
                 buffer_view = memoryview(buffer)
                 data_size = len(buffer)
 
@@ -519,7 +521,8 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
                             sleep(flush_wait)
 
                     # Flush
-                    self._flush()
+                    with handle_os_exceptions():
+                        self._flush()
 
                     # Clear buffer
                     self._write_buffer = bytearray(buffer_size)

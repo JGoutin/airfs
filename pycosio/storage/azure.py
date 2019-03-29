@@ -62,7 +62,7 @@ def _properties_model_to_dict(properties):
         if hasattr(value, '__module__') and 'models' in value.__module__:
             value = _properties_model_to_dict(value)
 
-        if value:
+        if not (value is None or (isinstance(value, dict) and not value)):
             result[attr] = value
 
     return result
@@ -282,6 +282,10 @@ class _AzureStorageRawIORangeWriteBase(_ObjectRawIORandomWriteBase,
     _MAX_FLUSH_SIZE = None
 
     def __init__(self, *args, **kwargs):
+
+        # If a content length is provided, allocate pages for this blob
+        self._content_length = kwargs.get('content_length', 0)
+
         _ObjectRawIORandomWriteBase.__init__(self, *args, **kwargs)
         _WorkerPoolBase.__init__(self)
 
@@ -289,9 +293,6 @@ class _AzureStorageRawIORangeWriteBase(_ObjectRawIORandomWriteBase,
 
             # Create lock for resizing
             self._size_lock = _Lock()
-
-            # If a content length is provided, allocate pages for this blob
-            self._content_length = kwargs.get('content_length', 0)
 
     @property
     @_abstractmethod
@@ -313,40 +314,28 @@ class _AzureStorageRawIORangeWriteBase(_ObjectRawIORandomWriteBase,
             function: Create function.
         """
 
-    @_abstractmethod
-    def _create_from_bytes(self, data, **kwargs):
+    def _init_append(self):
         """
-        Create an object from bytes.
-
-        Args:
-            data (bytes): data.
+        Initializes file on 'a' mode.
         """
-
-    def _init_content_length(self):
-        """
-        Initialize content with content length
-        """
-        if self._is_new_file:
-            self._create_with_padding(self._content_length)
-
-        # On already existing blob, increase size if needed
-        elif self._size < self._content_length:
+        if self._content_length:
+            # Adjust size if content length specified
             with _handle_azure_exception():
                 self._resize(
                     content_length=self._content_length, **self._client_kwargs)
+                self._reset_head()
 
-    def _create_with_padding(self, content_length):
-        """
-        Create a new object of a specified size containing null padding.
+        # Make initial seek position to current end of file
+        self._seek = self._size
 
-        Args:
-            content_length (int): object content length.
+    def _create(self):
         """
-        if self._is_new_file:
-            with _handle_azure_exception():
-                self._create_from_size(
-                    content_length=content_length, **self._client_kwargs)
-            self._was_flushed = True
+        Create the file if not exists.
+        """
+        # Create new file
+        with _handle_azure_exception():
+            self._create_from_size(
+                content_length=self._content_length, **self._client_kwargs)
 
     @_abstractmethod
     def _update_range(self, data, **kwargs):
@@ -369,70 +358,45 @@ class _AzureStorageRawIORangeWriteBase(_ObjectRawIORandomWriteBase,
                 Supported only with page blobs.
         """
         buffer_size = len(buffer)
+        if not buffer_size:
+            return
 
-        if buffer_size:
-
-            # Write first buffer and create blob simultaneously
-            if start == 0 and self._is_new_file:
-
-                if buffer_size > self.MAX_FLUSH_SIZE:
-                    # Can't send more at once, require to perform extra
-                    # "update_page" steps
-                    initial_buffer = buffer[:self.MAX_FLUSH_SIZE]
-                    buffer = buffer[self.MAX_FLUSH_SIZE:]
-                    start = self.MAX_FLUSH_SIZE
-                else:
-                    initial_buffer = buffer
-
+        # Write range normally
+        with self._size_lock:
+            if end > self._size:
+                # Require to resize the blob if note enough space
                 with _handle_azure_exception():
-                    self._create_from_bytes(
-                        data=initial_buffer.tobytes(), **self._client_kwargs)
+                    self._resize(content_length=end, **self._client_kwargs)
                 self._reset_head()
 
-                # No more data to flush
-                if not start:
-                    return
+        if buffer_size > self.MAX_FLUSH_SIZE:
+            # Too large buffer, needs to split in multiples requests
+            futures = []
+            for part_start in range(0, buffer_size, self.MAX_FLUSH_SIZE):
 
-            # Write range normally
-            with self._size_lock:
-                if end > self._size:
-                    # Require to resize the blob if note enough space
-                    with _handle_azure_exception():
-                        self._resize(content_length=end, **self._client_kwargs)
-                    self._reset_head()
+                # Split buffer
+                buffer_part = buffer[
+                      part_start:part_start + self.MAX_FLUSH_SIZE]
+                if not len(buffer_part):
+                    # No more data
+                    break
 
-            if buffer_size > self.MAX_FLUSH_SIZE:
-                # Too large buffer, needs to split in multiples requests
-                futures = []
-                for part_start in range(0, buffer_size, self.MAX_FLUSH_SIZE):
+                # Upload split buffer in parallel
+                start_range = start + part_start
+                futures.append(self._workers.submit(
+                    self._update_range, data=buffer_part.tobytes(),
+                    start_range=start_range,
+                    end_range=start_range + len(buffer_part) - 1,
+                    **self._client_kwargs))
 
-                    # Split buffer
-                    buffer_part = buffer[
-                          part_start:part_start + self.MAX_FLUSH_SIZE]
-                    if not len(buffer_part):
-                        # No more data
-                        break
+            with _handle_azure_exception():
+                # Wait for upload completion
+                for future in _as_completed(futures):
+                    future.result()
 
-                    # Upload split buffer in parallel
-                    start_range = start + part_start
-                    futures.append(self._workers.submit(
-                        self._update_range, data=buffer_part.tobytes(),
-                        start_range=start_range,
-                        end_range=start_range + len(buffer_part) - 1,
-                        **self._client_kwargs))
-
-                with _handle_azure_exception():
-                    # Wait for upload completion
-                    for future in _as_completed(futures):
-                        future.result()
-
-            else:
-                # Buffer lower than limit, do one requests.
-                with _handle_azure_exception():
-                    self._update_range(
-                        data=buffer.tobytes(), start_range=start,
-                        end_range=end - 1, **self._client_kwargs)
-
-        # Flush a new empty blob
-        elif start == 0 and self._is_new_file:
-            self._create_with_padding(0)
+        else:
+            # Buffer lower than limit, do one requests.
+            with _handle_azure_exception():
+                self._update_range(
+                    data=buffer.tobytes(), start_range=start,
+                    end_range=end - 1, **self._client_kwargs)

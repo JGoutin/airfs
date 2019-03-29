@@ -41,10 +41,12 @@ class AzureAppendBlobRawIO(AzureBlobRawIO, ObjectRawIORandomWriteBase):
             # Not seekable in append mode
             self._seekable = False
 
-            # Creates blob on write mode
-            if self._is_new_file:
-                with _handle_azure_exception():
-                    self._client.create_blob(**self._client_kwargs)
+    def _create(self):
+        """
+        Create the file if not exists.
+        """
+        with _handle_azure_exception():
+            self._client.create_blob(**self._client_kwargs)
 
     @property
     @memoizedmethod
@@ -70,24 +72,19 @@ class AzureAppendBlobRawIO(AzureBlobRawIO, ObjectRawIORandomWriteBase):
         if buffer_size > self.MAX_FLUSH_SIZE:
             for part_start in range(0, buffer_size, self.MAX_FLUSH_SIZE):
 
-                # Split buffer
+                # Split buffer and append
                 buffer_part = buffer[
                     part_start:part_start + self.MAX_FLUSH_SIZE]
 
-                if not len(buffer_part):
-                    # No more data
-                    break
-
-                self._client.append_block(
-                    block=buffer_part.tobytes(), **self._client_kwargs)
+                with _handle_azure_exception():
+                    self._client.append_block(
+                        block=buffer_part.tobytes(), **self._client_kwargs)
 
         # Small buffer, send it in one command.
         elif buffer_size:
             with _handle_azure_exception():
                 self._client.append_block(
                     block=buffer.tobytes(), **self._client_kwargs)
-
-        # if empty buffer, don't perform flush
 
 
 class AzureAppendBlobBufferedIO(AzureBlobBufferedIO,
@@ -116,7 +113,8 @@ class AzureAppendBlobBufferedIO(AzureBlobBufferedIO,
         ObjectBufferedIORandomWriteBase.__init__(self, *args, **kwargs)
 
         if self._writable:
-            # Can't upload in parallel, always add data at end.
+            # Can't upload in parallel, but can still upload sequentially as
+            # background task
             self._workers_count = 1
 
     def _flush(self):

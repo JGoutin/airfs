@@ -90,6 +90,7 @@ def test_model_to_dict():
     props.last_modified = last_modified
     file = models.File(props=props, metadata=dict(metadata1=0))
 
+    print(_AzureBaseSystem._model_to_dict(file))
     assert _AzureBaseSystem._model_to_dict(file) == dict(
         etag='etag', last_modified=last_modified, metadata=dict(metadata1=0))
 
@@ -133,5 +134,4 @@ def get_storage_mock():
         raise AzureHttpError(message='', status_code=500)
 
     return ObjectStorageMock(
-        raise_404, raise_416, raise_500, AzureHttpError,
-        format_date=datetime.fromtimestamp)
+        raise_404, raise_416, raise_500, format_date=datetime.fromtimestamp)

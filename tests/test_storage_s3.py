@@ -68,8 +68,7 @@ def test_mocked_storage():
             'Error': {'Code': 'Error', 'Message': 'Error'}}, 'Error')
 
     storage_mock = ObjectStorageMock(
-        raise_404, raise_416, raise_500, ClientError,
-        format_date=datetime.fromtimestamp)
+        raise_404, raise_416, raise_500, format_date=datetime.fromtimestamp)
 
     no_head = False
 

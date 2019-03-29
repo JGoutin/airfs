@@ -12,7 +12,7 @@ from tests.storage_mock import ObjectStorageMock as _ObjectStorageMock
 
 def _raise_404():
     """Raise 404 error"""
-    raise _exc.ObjectNotFoundError()
+    raise _exc.ObjectNotFoundError('Object not found')
 
 
 class _Error416(_exc.ObjectException):
@@ -21,12 +21,12 @@ class _Error416(_exc.ObjectException):
 
 def _raise_416():
     """Raise 416 error"""
-    raise _Error416()
+    raise _Error416('Invalid range or End of file')
 
 
 def _raise_500():
     """Raise 500 error"""
-    raise _exc.ObjectException()
+    raise _exc.ObjectException('Server error')
 
 
 class MockSystem(_SystemBase):
@@ -40,8 +40,7 @@ class MockSystem(_SystemBase):
         Returns:
             tests.storage_mock.ObjectStorageMock: client
         """
-        storage_mock = _ObjectStorageMock(
-            _raise_404, _raise_416, _raise_500, _exc.ObjectException)
+        storage_mock = _ObjectStorageMock(_raise_404, _raise_416, _raise_500)
         storage_mock.attach_io_system(self)
         return storage_mock
 
@@ -166,8 +165,13 @@ class MockRawIO(_ObjectRawIORandomWriteBase):
                 Supported only if random write supported.
         """
         self._client.put_object(
-            content=buffer, data_range=(start, end), new_file=self._is_new_file,
-            **self._client_kwargs)
+            content=buffer, data_range=(start, end), **self._client_kwargs)
+
+    def _create(self):
+        """
+        Create the file if not exists.
+        """
+        self._client.put_object(new_file=True, **self._client_kwargs)
 
     def _read_range(self, start, end=0):
         """

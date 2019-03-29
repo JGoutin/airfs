@@ -87,7 +87,7 @@ def test_mocked_storage():
         """Raise 500 error"""
         raise HTTPException(500)
 
-    storage_mock = ObjectStorageMock(raise_404, raise_416, raise_500, HTTPError)
+    storage_mock = ObjectStorageMock(raise_404, raise_416, raise_500)
 
     class Response:
         """HTTP request response"""

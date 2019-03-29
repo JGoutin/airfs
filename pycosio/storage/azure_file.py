@@ -228,13 +228,6 @@ class AzureFileRawIO(_AzureStorageRawIORangeWriteBase):
     #: Maximum size of one flush operation
     MAX_FLUSH_SIZE = _FileService.MAX_RANGE_SIZE
 
-    def __init__(self, *args, **kwargs):
-        _AzureStorageRawIORangeWriteBase.__init__(self, *args, **kwargs)
-
-        if self._writable and self._content_length:
-            # If a content length is provided, allocate pages for this file
-            self._init_content_length()
-
     @property
     @_memoizedmethod
     def _get_to_stream(self):
@@ -267,15 +260,6 @@ class AzureFileRawIO(_AzureStorageRawIORangeWriteBase):
             function: Create function.
         """
         return self._client.create_file
-
-    def _create_from_bytes(self, data, **kwargs):
-        """
-        Create an object from bytes.
-
-        Args:
-            data (bytes): data.
-        """
-        self._client.create_file_from_bytes(file=data, **kwargs)
 
     def _update_range(self, data, **kwargs):
         """
@@ -312,11 +296,3 @@ class AzureFileBufferedIO(_ObjectBufferedIORandomWriteBase):
 
     #: Maximal buffer_size value in bytes (Maximum upload range size)
     MAXIMUM_BUFFER_SIZE = _FileService.MAX_RANGE_SIZE
-
-    def __init__(self, *args, **kwargs):
-        _ObjectBufferedIORandomWriteBase.__init__(self, *args, **kwargs)
-
-        if self._writable:
-            # Initialize a file with size equal one buffer,
-            # if not already existing.
-            self._raw._create_with_padding(self._buffer_size)

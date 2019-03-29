@@ -39,10 +39,9 @@ class ObjectRawIORandomWriteBase(ObjectRawIOBase):
                 # Clear buffer
                 self._write_buffer = bytearray()
 
+            # Flush content
             with handle_os_exceptions():
                 self._flush(buffer, start, end)
-
-        self._was_flushed = True
 
     @abstractmethod
     def _flush(self, buffer, start, end):
@@ -56,6 +55,12 @@ class ObjectRawIORandomWriteBase(ObjectRawIOBase):
             end (int): End of buffer position to flush.
                 Supported only if random write supported.
         """
+
+    def _create(self):
+        """
+        Create the file if not exists.
+        """
+        self._flush(memoryview(b''), 0, 0)
 
     def seek(self, offset, whence=SEEK_SET):
         """
@@ -159,5 +164,3 @@ class ObjectBufferedIORandomWriteBase(ObjectBufferedIOBase):
         # Flush buffer using RAW IO
         self._raw_flush(buffer, start, end)
 
-        # Mark as flushed raw side
-        self._raw._was_flushed = True

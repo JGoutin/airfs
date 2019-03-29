@@ -44,23 +44,8 @@ class AzurePageBlobRawIO(AzureBlobRawIO, _AzureStorageRawIORangeWriteBase):
     MAX_FLUSH_SIZE = PageBlobService.MAX_PAGE_SIZE
 
     def __init__(self, *args, **kwargs):
-        _AzureStorageRawIORangeWriteBase.__init__(self, *args, **kwargs)
-
         self._ignore_padding = kwargs.get('ignore_padding', True)
-
-        if self._writable:
-
-            # If ignore padding, seek to real end of blob
-            if self._ignore_padding and self._exists and 'a' in self._mode:
-                self._seek = self._seek_end_ignore_padding()
-
-            # If a content length is provided, allocate pages for this blob
-            if self._content_length:
-                if self._content_length % 512:
-                    # Ensure content length is page aligned
-                    self._content_length += 512 - self._content_length % 512
-
-                self._init_content_length()
+        _AzureStorageRawIORangeWriteBase.__init__(self, *args, **kwargs)
 
     @property
     @memoizedmethod
@@ -84,6 +69,29 @@ class AzurePageBlobRawIO(AzureBlobRawIO, _AzureStorageRawIORangeWriteBase):
         """
         return self._client.resize_blob
 
+    def _init_append(self):
+        """
+        Initializes file on 'a' mode.
+        """
+        # Ensure content length is page aligned
+        if self._content_length % 512:
+            self._content_length += 512 - self._content_length % 512
+
+        _AzureStorageRawIORangeWriteBase._init_append(self)
+
+        # If ignore padding, seek to real end of blob
+        if self._ignore_padding:
+            self._seek = self._seek_end_ignore_padding()
+
+    def _create(self):
+        """
+        Create the file if not exists.
+        """
+        # Ensure content length is page aligned
+        if self._content_length % 512:
+            self._content_length += 512 - self._content_length % 512
+        _AzureStorageRawIORangeWriteBase._create(self)
+
     @property
     @memoizedmethod
     def _create_from_size(self):
@@ -94,15 +102,6 @@ class AzurePageBlobRawIO(AzureBlobRawIO, _AzureStorageRawIORangeWriteBase):
             function: Create function.
         """
         return self._client.create_blob
-
-    def _create_from_bytes(self, data, **kwargs):
-        """
-        Create an object from bytes.
-
-        Args:
-            data (bytes): data.
-        """
-        self._client.create_blob_from_bytes(blob=data, **kwargs)
 
     def _update_range(self, data, **kwargs):
         """
@@ -276,10 +275,6 @@ class AzurePageBlobBufferedIO(AzureBlobBufferedIO,
                 self._buffer_size = min(
                     self._buffer_size + 512 - page_diff,
                     self.MAXIMUM_BUFFER_SIZE)
-
-            # Initialize a blob with size equal one buffer,
-            # if not already existing.
-            self._raw._create_with_padding(self._buffer_size)
 
     def _flush(self):
         """

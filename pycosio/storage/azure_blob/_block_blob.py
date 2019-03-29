@@ -33,15 +33,6 @@ class AzureBlockBlobRawIO(AzureBlobRawIO):
     """
     __DEFAULT_CLASS = False
 
-    def __init__(self, *args, **kwargs):
-        AzureBlobRawIO.__init__(self, *args, **kwargs)
-
-        # Creates blob on write mode
-        if self._is_new_file:
-            with _handle_azure_exception():
-                self._client.create_blob_from_bytes(
-                    blob=b'', **self._client_kwargs)
-
     @property
     @memoizedmethod
     def _client(self):
@@ -64,6 +55,13 @@ class AzureBlockBlobRawIO(AzureBlobRawIO):
             # Write entire file at once
             self._client.create_blob_from_bytes(
                 blob=buffer.tobytes(), **self._client_kwargs)
+
+    def _create(self):
+        """
+        Create the file if not exists.
+        """
+        with _handle_azure_exception():
+            self._client.create_blob_from_bytes(blob=b'', **self._client_kwargs)
 
 
 class AzureBlockBlobBufferedIO(AzureBlobBufferedIO):

@@ -22,6 +22,8 @@ Deprecations:
 
 Fixes:
 
+* Fix file methods not translate Cloud Storage exception into OSError.
+* Fix file not create on open in write mode (Was only created on flush).
 * Fix file closed twice when using context manager.
 * Fix root URL detection in some cases.
 * Fix too many returned result when listing objects with a count limit.

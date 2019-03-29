@@ -25,6 +25,12 @@ class ObjectExistsError(ObjectException):
     """Reraised as "FileExistsError" by handle_os_exceptions"""
 
 
+_OS_EXCEPTIONS = {
+    ObjectNotFoundError: file_not_found_error,
+    ObjectPermissionError: permission_error,
+    ObjectExistsError: file_exits_error}
+
+
 @contextmanager
 def handle_os_exceptions():
     """
@@ -35,15 +41,11 @@ def handle_os_exceptions():
 
     # Convert pycosio exception to equivalent OSError
     except ObjectException:
-        exc_type, exc_value, exc_traceback = exc_info()
+        exc_type, exc_value, _ = exc_info()
+        raise _OS_EXCEPTIONS.get(exc_type, OSError)(exc_value)
 
-        # Raise OSError subclass for predefined exceptions
-        try:
-            raise {ObjectNotFoundError: file_not_found_error,
-                   ObjectPermissionError: permission_error,
-                   ObjectExistsError: file_exits_error
-                   }[exc_type](exc_value)
-
-        # Raise generic OSError for other exceptions
-        except KeyError:
-            raise OSError('(%s) %s' % (exc_type, exc_value))
+    # Raise generic OSError for other exceptions
+    except Exception:
+        exc_type, exc_value, _ = exc_info()
+        raise OSError('%s%s' % (
+            exc_type, (', %s' % exc_value) if exc_value else ''))

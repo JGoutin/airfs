@@ -265,51 +265,30 @@ def test_mocked_storage():
                     'https://other.file.core.windows.net' + rel_path)
 
             # Test pre-allocating file
-            with AzureFileRawIO(file_path, 'wb', content_length=1024,
+            with AzureFileRawIO(file_path, 'wb', content_length=1234,
                                 **tester._system_parameters):
                 pass
 
-            with AzureFileRawIO(file_path, ignore_padding=False,
-                                **tester._system_parameters) as file:
-                assert file.readall() == b'\0' * 1024
+            with AzureFileRawIO(file_path, **tester._system_parameters) as file:
+                assert file.readall() == b'\0' * 1234, 'Azure raw initialized'
 
             # Test increase already existing blob size
-            with AzureFileRawIO(file_path, 'ab', content_length=2048,
+            with AzureFileRawIO(file_path, 'ab', content_length=2345,
                                 **tester._system_parameters):
                 pass
 
-            with AzureFileRawIO(file_path, ignore_padding=False,
-                                **tester._system_parameters) as file:
-                assert file.readall() == b'\0' * 2048
+            with AzureFileRawIO(file_path, **tester._system_parameters) as file:
+                assert file.readall() == b'\0' * 2345, 'Azure raw resized'
 
             # Test not truncate already existing blob with specified content
             # length
-            with AzureFileRawIO(file_path, 'ab', content_length=1024,
+            with AzureFileRawIO(file_path, 'ab', content_length=1234,
                                 **tester._system_parameters):
                 pass
 
-            with AzureFileRawIO(file_path, ignore_padding=False,
-                                **tester._system_parameters) as file:
-                assert file.readall() == b'\0' * 2048
-
-            # Test Buffered IO: Page unaligned buffer size rounding
-            with AzureFileBufferedIO(file_path, 'wb', buffer_size=1234,
-                                     **tester._system_parameters) as file:
-                assert file._buffer_size == 1234
-
-            # Test Buffered IO: initialization to one buffer size
-            with AzureFileRawIO(file_path, ignore_padding=False,
-                                **tester._system_parameters) as file:
-                assert file.readall() == b'\0' * 1234
-
-            # Test Buffered IO: not truncate when initializing to one buffer
-            with AzureFileBufferedIO(file_path, 'ab', buffer_size=1024,
-                                     **tester._system_parameters):
-                pass
-
-            with AzureFileRawIO(file_path, ignore_padding=False,
-                                **tester._system_parameters) as file:
-                assert file.readall() == b'\0' * 1234
+            with AzureFileRawIO(file_path, **tester._system_parameters) as file:
+                assert file.readall() == b'\0' * 2345, \
+                    'Azure Raw resize do not truncate'
 
     # Restore mocked class
     finally:

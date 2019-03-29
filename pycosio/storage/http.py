@@ -143,7 +143,7 @@ class HTTPRawIO(_ObjectRawIOBase):
             self._client.request(
                 'GET', self.name, timeout=self._TIMEOUT)).content
 
-    def _flush(self):
+    def _flush(self, *_):
         """
         Flush the write buffers of the stream if applicable.
         """

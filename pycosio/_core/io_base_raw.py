@@ -75,44 +75,33 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         if self._writable:
             self._write_buffer = bytearray()
 
-            # Flag that is set to True if file is flushed, created, ...
-            # at least once
-            self._was_flushed = False
-
             # Initializes starting data
-            if 'a' in mode and self._exists():
-                self._init_append()
+            if 'a' in mode:
+                # Initialize with existing file content
+                if self._exists():
+                    with handle_os_exceptions():
+                        self._init_append()
+
+                # Create new file
+                else:
+                    with handle_os_exceptions():
+                        self._create()
 
             # Checks if object exists,
             # and raise if it is the case
             elif 'x' in mode and self._exists():
                 raise file_exits_error
 
+            # Create new file
+            else:
+                with handle_os_exceptions():
+                    self._create()
+
         # Configure read mode
         else:
             # Get header and checks files exists
             with handle_os_exceptions():
                 self._head()
-
-    # New file creation
-    @property
-    def _is_new_file(self):
-        """
-        At object create, a file is considered new if:
-
-        - It was open in 'a' when the file didn't exists.
-        - It was open in other writing mode
-
-        When the file is flushed (Or create by any other method) the first time
-        the file is not considered as new.
-
-        Returns:
-            bool: True if a new file.
-        """
-        return (
-            self._writable and
-            ('a' not in self.mode or ('a' in self.mode and not self._exists()))
-            and not self._was_flushed)
 
     def _init_append(self):
         """
@@ -121,6 +110,7 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         # Require to load the full file content in buffer
         self._write_buffer[:] = self.readall()
 
+        # Make initial seek position to current end of file
         self._seek = self._size
 
     @property
@@ -140,7 +130,8 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         """
         if self._writable and not self._is_raw_of_buffered and not self._closed:
             self._closed = True
-            self.flush()
+            if self._write_buffer:
+                self.flush()
 
     def flush(self):
         """
@@ -151,8 +142,6 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
             with handle_os_exceptions():
                 self._flush(self._get_buffer())
 
-        self._was_flushed = True
-
     @abstractmethod
     def _flush(self, buffer):
         """
@@ -161,6 +150,12 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         Args:
             buffer (memoryview): Buffer content.
         """
+
+    def _create(self):
+        """
+        Create the file if not exists.
+        """
+        self._flush(memoryview(b''))
 
     def _get_buffer(self):
         """
@@ -253,7 +248,8 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         """
         with self._seek_lock:
             seek = self._seek
-        return self._read_range(seek, seek + size)
+        with handle_os_exceptions():
+            return self._read_range(seek, seek + size)
 
     def readall(self):
         """
@@ -264,12 +260,13 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         """
         with self._seek_lock:
             # Get data starting from seek
-            if self._seek and self._seekable:
-                data = self._read_range(self._seek)
+            with handle_os_exceptions():
+                if self._seek and self._seekable:
+                    data = self._read_range(self._seek)
 
-            # Get all data
-            else:
-                data = self._readall()
+                # Get all data
+                else:
+                    data = self._readall()
 
             # Update seek
             self._seek += len(data)
@@ -303,7 +300,8 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
             self._seek = end
 
         # Read data range
-        read_data = self._read_range(start, end)
+        with handle_os_exceptions():
+            read_data = self._read_range(start, end)
 
         # Copy to bytes-like object
         read_size = len(read_data)
@@ -383,7 +381,7 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
             elif whence == SEEK_END:
                 self._seek = offset + self._size
             else:
-                raise ValueError('Unsupported whence "%s"' % whence)
+                raise ValueError('whence value %s unsupported' % whence)
         return self._seek
 
     def write(self, b):
