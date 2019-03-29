@@ -134,7 +134,8 @@ class StorageTester:
         """
         Tests raw IO.
         """
-        from os import SEEK_END
+        from os import SEEK_END, SEEK_CUR
+        from pycosio._core.compat import file_exits_error
 
         size = 100
         file_name = 'raw_file0.dat'
@@ -159,16 +160,38 @@ class StorageTester:
                 except AttributeError:
                     max_flush_size = 0
 
-                # Test: Write
-                file.write(content)
+                # Test: Write blocs of data
+                assert file.write(content[:10]) == 10, \
+                    'Raw write, written size match'
+                if is_seekable:
+                    assert file.write(b'\0' * 10) == 10, \
+                        'Raw write, written size match'
+                else:
+                    assert file.write(content[10:20]) == 10, \
+                        'Raw write, written size match'
+                assert file.write(content[20:]) == 80, \
+                    'Raw write, written size match'
 
                 # Test: tell
                 if is_seekable:
                     assert file.tell() == size,\
                         'Raw write, tell match writen size'
+
+                    # Test write seek back and write
+                    assert file.seek(10) == 10, \
+                        'Raw write, seek position match'
+                    assert file.write(content[10:20]) == 10, \
+                        'Raw write, written size match'
+                    assert file.tell() == 20,\
+                        'Raw write, tell match ending positon'
+
                 else:
+                    # Test not seekable raises Unsupported exception
                     with _pytest.raises(_UnsupportedOperation):
                         file.tell()
+
+                    with _pytest.raises(_UnsupportedOperation):
+                        file.seek(0)
 
         else:
             is_seekable = False
@@ -185,15 +208,35 @@ class StorageTester:
 
         # Open file in read mode
         with self._raw_io(file_path, **self._system_parameters) as file:
-            # Test: _read_all
+            # Test: read_all
             assert file.readall() == content, 'Raw read all, content match'
             assert file.tell() == size, 'Raw read all, tell match'
 
+            # Test: seek and read_all
             assert file.seek(10) == 10, 'Raw seek 10 & read all, seek match'
             assert file.readall() == content[10:],\
                 'Raw seek 10 & read all, content match'
             assert file.tell() == size,\
                 'Raw seek 10 & read all, tell match'
+
+            # Test: seek from current position & read_all
+            assert file.seek(-50, SEEK_CUR) == 50, \
+                'Raw seek from current & read all, seek match'
+            assert file.readall() == content[-50:],\
+                'Raw seek from current & read all, content match'
+            assert file.tell() == size,\
+                'Raw seek from current & read all, tell match'
+
+            # Test: seek with bad whence value
+            with _pytest.raises(ValueError):
+                file.seek(0, 10)
+
+            # Test: Cannot write in read mode
+            with _pytest.raises(_UnsupportedOperation):
+                file.write(b'0')
+
+            # Test: Flush has no effect in read mode
+            file.flush()
 
             # Test: _read_range
             assert file.seek(0) == 0, 'Raw seek 0, seek match'
@@ -291,15 +334,28 @@ class StorageTester:
                 assert file.readall() == content,\
                     'Raw Write big file, content match'
 
+        # Test exclusive write mode
+        if self._is_supported('write'):
+            file_name = 'raw_file4.dat'
+            file_path = self.base_dir_path + file_name
+            self._to_clean(file_path)
+
+            # Create file
+            with self._raw_io(file_path, 'xb', **self._system_parameters):
+                pass
+
+            # File already exists
+            with _pytest.raises(file_exits_error):
+                self._raw_io(file_path, 'xb', **self._system_parameters)
+
     def _test_buffered_io(self):
         """
         Tests buffered IO.
         """
+        from pycosio.io import ObjectBufferedIOBase
+
         # Set buffer size
-        minimum_buffer_zize = 16 * 1024
-        buffer_size = self._buffered_io.MINIMUM_BUFFER_SIZE
-        if buffer_size < minimum_buffer_zize:
-            buffer_size = minimum_buffer_zize
+        buffer_size = 16 * 1024
 
         # Test: write data, not multiple of buffer
         file_name = 'buffered_file0.dat'
@@ -351,6 +407,50 @@ class StorageTester:
                                **self._system_parameters) as file:
             assert content == file.read(),\
                 'Buffered read, multiple of buffer size'
+
+            # Check if pycosio subclass
+            is_pycosio_subclass = isinstance(file, ObjectBufferedIOBase)
+
+        # Test: Buffer limits and default values
+        if is_pycosio_subclass:
+            with self._buffered_io(
+                    file_path, **self._system_parameters) as file:
+                assert file._buffer_size == file.DEFAULT_BUFFER_SIZE, \
+                    'Buffered, Default buffer size'
+
+                # Get limits values
+                minimum_buffer_size = file.MINIMUM_BUFFER_SIZE
+                maximum_buffer_size = file.MAXIMUM_BUFFER_SIZE
+
+                # Get current max buffers
+                calculated_max_buffers = file._max_buffers
+
+            # Test: Minimum buffer size
+            if minimum_buffer_size > 1:
+                with self._buffered_io(
+                        file_path, buffer_size=minimum_buffer_size // 2,
+                        **self._system_parameters) as file:
+                    assert file._buffer_size == minimum_buffer_size, \
+                        'Buffered, Minimum buffer size'
+
+            # Test: Maximum buffer size
+            if maximum_buffer_size:
+                with self._buffered_io(
+                        file_path, buffer_size=maximum_buffer_size * 2,
+                        **self._system_parameters) as file:
+                    assert file._buffer_size == maximum_buffer_size, \
+                        'Buffered, Maximum buffer size'
+
+            # Test: Maximum buffer count
+            assert calculated_max_buffers, \
+                'Buffered, calculated buffer count not 0'
+
+            max_buffers = calculated_max_buffers * 2
+            with self._buffered_io(
+                    file_path, mode='rb', max_buffers=max_buffers,
+                    **self._system_parameters) as file:
+                assert file._max_buffers == max_buffers, \
+                    'Buffered, Maximum buffer count'
 
     def _test_system_locator(self):
         """
