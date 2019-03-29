@@ -176,13 +176,7 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         Returns:
             int: Size in bytes.
         """
-        try:
-            return self._system.getsize(header=self._head().copy())
-        except (UnsupportedOperation, ObjectNotFoundError):
-            # If in write mode, file may not yet exists on storage
-            if self._writable:
-                return 0
-            raise
+        return self._system.getsize(header=self._head().copy())
 
     def _reset_head(self):
         """

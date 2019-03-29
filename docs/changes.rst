@@ -6,7 +6,6 @@ Changelog
 
 Add support for following cloud storage:
 
-* Google Cloud Storage
 * Microsoft Azure Blobs Storage
 * Microsoft Azure Files Storage
 

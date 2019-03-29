@@ -26,7 +26,6 @@ The following pages describes each storage.
 
    api_storage_azure_blob
    api_storage_azure_file
-   api_storage_gs
    api_storage_http
    api_storage_oss
    api_storage_s3
