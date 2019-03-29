@@ -17,20 +17,20 @@ Pycosio brings standard Python I/O to cloud objects by providing:
 * Features equivalent to the standard library (``io``, ``os``, ``os.path``,
   ``shutil``) for seamlessly managing cloud objects and local files.
 
-Theses functions are source agnostic and always provide the same interface for
+These functions are source agnostic and always provide the same interface for
 all files from cloud storage or local file systems.
 
-Buffered cloud objects also support following features:
+Buffered cloud objects also support the following features:
 
 * Buffered asynchronous writing of any object size.
-* Buffered asynchronous preloading in read mode.
+* Buffered asynchronous preloading in reading mode.
 * Write or read lock depending on memory usage limitation.
 * Maximization of bandwidth using parallels connections.
 
 Supported Cloud storage
 -----------------------
 
-Pycosio is compatible with following cloud objects storage services:
+Pycosio is compatible with the following cloud objects storage services:
 
 * Alibaba Cloud OSS
 * Amazon Web Services S3

@@ -193,6 +193,13 @@ class StorageTester:
                     with _pytest.raises(_UnsupportedOperation):
                         file.seek(0)
 
+                # Test: read in write mode is not supported
+                with _pytest.raises(_UnsupportedOperation):
+                    file.read()
+
+                with _pytest.raises(_UnsupportedOperation):
+                    file.readinto(bytearray(100))
+
         else:
             is_seekable = False
             max_flush_size = 0
@@ -396,6 +403,33 @@ class StorageTester:
             with self._buffered_io(file_path, 'wb', buffer_size=buffer_size,
                                    **self._system_parameters) as file:
                 file.write(content)
+
+                # Test: Flush manually
+                file.flush()
+
+                # Test: read in write mode is not supported
+                with _pytest.raises(_UnsupportedOperation):
+                    file.read()
+
+                with _pytest.raises(_UnsupportedOperation):
+                    file.read1()
+
+                with _pytest.raises(_UnsupportedOperation):
+                    file.readinto(bytearray(100))
+
+                with _pytest.raises(_UnsupportedOperation):
+                    file.readinto1(bytearray(100))
+
+                with _pytest.raises(_UnsupportedOperation):
+                    file.peek()
+
+                # Test: Unsupported if not seekable
+                if not file.seekable():
+                    with _pytest.raises(_UnsupportedOperation):
+                        file.tell()
+
+                    with _pytest.raises(_UnsupportedOperation):
+                        file.seek(0)
         else:
             # Create pre-existing file
             if self._storage_mock:
@@ -405,8 +439,27 @@ class StorageTester:
         # Test: Read data, multiple of buffer
         with self._buffered_io(file_path, 'rb', buffer_size=buffer_size,
                                **self._system_parameters) as file:
+
+            # Test full data read
             assert content == file.read(),\
                 'Buffered read, multiple of buffer size'
+
+            # Test: seek
+            assert file.seek(10) == 10, 'Buffered read, seek'
+            assert file.tell() == 10, 'Buffered read, tell match seek'
+
+            # Test: peek:
+            assert content[10:110] == file.peek(100), \
+                'Buffered read, peek content match'
+            assert file.tell() == 10, \
+                'Buffered read, peek tell match'
+
+            # Test: Cannot write in read mode
+            with _pytest.raises(_UnsupportedOperation):
+                file.write(b'0')
+
+            # Test: Flush has no effect in read mode
+            file.flush()
 
             # Check if pycosio subclass
             is_pycosio_subclass = isinstance(file, ObjectBufferedIOBase)

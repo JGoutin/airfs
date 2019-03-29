@@ -13,11 +13,11 @@ OSS can be mounted using the Pycosio ``mount`` function.
 ``oss2`` Python library (The class selection is done automatically based on
 parameters found in ``storage_parameters``).
 
-Pycosio also require one extra argument, the ``endpoint``, which is basically
+Pycosio also requires one extra argument, the ``endpoint``, which is basically
 the URL of the OSS Alibaba region to use. (See ``endpoint`` argument of the
 ``oss2.Bucket`` class)
 
-This example show the mount of OSS with the minimal configuration:
+This example shows the mount of OSS with the minimal configuration:
 
 .. code-block:: python
 

@@ -15,7 +15,7 @@ The following table shows features available for each storage.
 API
 ---
 
-The following pages describes each storage.
+The following pages describe each storage.
 
 .. automodule:: pycosio.storage
    :members:

@@ -52,6 +52,11 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
     def __init__(self, name, mode='r', buffer_size=None,
                  max_buffers=0, max_workers=None, **kwargs):
 
+        if 'a' in mode:
+            # TODO: Implement append mode and remove this exception
+            raise NotImplementedError(
+                'Not implemented yet in Pycosio')
+
         BufferedIOBase.__init__(self)
         ObjectIOBase.__init__(self, name, mode=mode)
         WorkerPoolBase.__init__(self, max_workers)
@@ -120,22 +125,10 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
         if self._writable and not self._closed:
             self._closed = True
             with self._seek_lock:
-                # Flush on close only if bytes written
-                # This avoid no required process/thread
-                # creation and network call.
-                # This step is performed by raw stream.
-                if self._buffer_seek and self._seek:
-                    self._seek += 1
-                    with handle_os_exceptions():
-                        self._flush()
-                        self._close_writable()
-
-                # If closed and data lower than buffer size
-                # flush data with raw stream to reduce IO calls
-                elif self._buffer_seek:
-                    self._raw._write_buffer = self._get_buffer()
-                    self._raw._seek = self._buffer_seek
-                    self._raw.flush()
+                self._flush_raw_or_buffered()
+            if self._seek:
+                with handle_os_exceptions():
+                    self._close_writable()
 
     def _close_writable(self):
         """
@@ -154,18 +147,31 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
         """
         if self._writable:
             with self._seek_lock:
-                # Advance seek
-                # This is the number of buffer flushed
-                # including the current one
-                self._seek += 1
-
-                # Write buffer to cloud object
-                with handle_os_exceptions():
-                    self._flush()
+                self._flush_raw_or_buffered()
 
                 # Clear the buffer
                 self._write_buffer = bytearray(self._buffer_size)
                 self._buffer_seek = 0
+
+    def _flush_raw_or_buffered(self):
+        """
+        Flush using raw of buffered methods.
+        """
+        # Flush only if bytes written
+        # This avoid no required process/thread
+        # creation and network call.
+        # This step is performed by raw stream.
+        if self._buffer_seek and self._seek:
+            self._seek += 1
+            with handle_os_exceptions():
+                self._flush()
+
+        # If data lower than buffer size
+        # flush data with raw stream to reduce IO calls
+        elif self._buffer_seek:
+            self._raw._write_buffer = self._get_buffer()
+            self._raw._seek = self._buffer_seek
+            self._raw.flush()
 
     @abstractmethod
     def _flush(self):
@@ -196,6 +202,9 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
         Returns:
             bytes: bytes read
         """
+        if not self._readable:
+            raise UnsupportedOperation('read')
+
         with self._seek_lock:
             self._raw.seek(self._seek)
             return self._raw._peek(size)
@@ -315,6 +324,9 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
         Returns:
             int: number of bytes read
         """
+        if not self._readable:
+            raise UnsupportedOperation('read')
+
         with self._seek_lock:
             # Gets seek
             seek = self._seek
@@ -451,10 +463,12 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
             # Set seek using raw method and
             # sync buffered seek with raw seek
             self.raw.seek(offset, whence)
-            self._seek = self.raw._seek
+            self._seek = seek = self.raw._seek
 
             # Preload starting from current seek
             self._preload_range()
+
+        return seek
 
     def write(self, b):
         """

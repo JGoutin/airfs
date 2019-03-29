@@ -18,6 +18,8 @@ _BLOB_TYPE = _BlobTypes.AppendBlob
 class AzureAppendBlobRawIO(AzureBlobRawIO, ObjectRawIORandomWriteBase):
     """Binary Azure Append Blobs Storage Object I/O
 
+    This blob type is not seekable in write mode.
+
     Args:
         name (path-like object): URL or path to the file which will be opened.
         mode (str): The mode can be 'r', 'w', 'a'
@@ -90,6 +92,8 @@ class AzureAppendBlobRawIO(AzureBlobRawIO, ObjectRawIORandomWriteBase):
 class AzureAppendBlobBufferedIO(AzureBlobBufferedIO,
                                 ObjectBufferedIORandomWriteBase):
     """Buffered binary Azure Append Blobs Storage Object I/O
+
+    This blob type is not seekable in write mode.
 
     Args:
         name (path-like object): URL or path to the file which will be opened.

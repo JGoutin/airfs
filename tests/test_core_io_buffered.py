@@ -1,15 +1,11 @@
 # coding=utf-8
 """Test pycosio._core.io_buffered"""
-import io
 import os
 import time
-
-import pytest
 
 
 def test_object_buffered_base_io():
     """Tests pycosio._core.io_buffered.ObjectBufferedIOBase"""
-    pytest.skip('')
     from pycosio._core.io_base_raw import ObjectRawIOBase
     from pycosio._core.io_base_buffered import ObjectBufferedIOBase
     from pycosio._core.io_random_write import (
@@ -111,23 +107,6 @@ def test_object_buffered_base_io():
         """Dummy buffered IO with part flush support"""
         _RAW_CLASS = DummyRawIOPartFlush
 
-    # Test raw
-    object_io = DummyBufferedIO(name)
-    assert isinstance(object_io.raw, object_io._RAW_CLASS)
-    assert object_io._size == object_io.raw._size
-
-    assert object_io.raw.tell() == 0
-    assert object_io.peek(10) == 10 * b'0'
-    assert object_io.raw.tell() == 0
-
-    assert object_io.read1(10) == 10 * b'0'
-    assert object_io.raw.tell() == 10
-
-    buffer = bytearray(10)
-    assert object_io.readinto1(buffer) == 10
-    assert bytes(buffer) == 10 * b'0'
-    assert object_io.raw.tell() == 20
-
     # Tests: Read until end
     object_io = DummyBufferedIO(name)
     assert object_io.read() == size * b'0'
@@ -172,11 +151,6 @@ def test_object_buffered_base_io():
     object_io.seek(700)
     assert sorted(object_io._read_queue) == list(range(
         700, 700 + buffer_size * 5, buffer_size))
-
-    # Tests: flush should do nothing
-    seek = object_io._seek
-    object_io.flush()
-    assert object_io._seek == seek
 
     # Tests: Read buffer size (No copy mode)
     object_io.seek(0)
@@ -242,31 +216,6 @@ def test_object_buffered_base_io():
     flush_sleep = object_io._FLUSH_WAIT
     assert object_io.write(1000 * b'0') == 1000
     flush_sleep = 0
-
-    # Test read in write mode
-    object_io = DummyBufferedIO(name, mode='w')
-    with pytest.raises(io.UnsupportedOperation):
-        object_io.read()
-
-    # Test seek in write mode
-    object_io = DummyBufferedIO(name, mode='w')
-    with pytest.raises(io.UnsupportedOperation):
-        object_io.seek(0)
-
-    # Test write in read mode
-    object_io = DummyBufferedIO(name)
-    with pytest.raises(io.UnsupportedOperation):
-        object_io.write(b'0')
-
-    # Test buffer size
-    object_io = DummyBufferedIO(name, mode='w')
-    assert object_io._buffer_size == DummyBufferedIO.DEFAULT_BUFFER_SIZE
-    object_io = DummyBufferedIO(name, mode='w', buffer_size=1000)
-    assert object_io._buffer_size == 1000
-    object_io = DummyBufferedIO(name, mode='w', buffer_size=1)
-    assert object_io._buffer_size == DummyBufferedIO.MINIMUM_BUFFER_SIZE
-    object_io = DummyBufferedIO(name, mode='w', buffer_size=1000000)
-    assert object_io._buffer_size == DummyBufferedIO.MAXIMUM_BUFFER_SIZE
 
     # Test default implementation with part flush support
     raw_flushed[:] = b''

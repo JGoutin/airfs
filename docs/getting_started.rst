@@ -6,7 +6,7 @@ Installation
 
 Supported Python versions: 2.7, 3.4, 3.5, 3.6, 3.7
 
-Python >= 3.6 is recommanded to provide fully featured local file support.
+Python >= 3.6 is recommended to provide fully featured local file support.
 
 Installation is performed using PIP:
 
@@ -24,7 +24,7 @@ You can also install these optional extras:
 * ``s3``: Amazon Web Services S3 support.
 * ``swift``: OpenStack Swift support.
 
-Example for installing Pycosio with all dependencies:
+Example of installing Pycosio with all dependencies:
 
 .. code-block:: bash
 
@@ -78,13 +78,13 @@ Examples of functions:
 Cloud storage configuration
 ---------------------------
 
-Like with file systems, Cloud storage need to be *mounted* to be used.
+Like with file systems, Cloud storage needs to be *mounted* to be used.
 
 Some storage requires configuration before use (such as user access keys).
 For the required parameter detail, see the targeted storage class or the
 targeted storage documentation.
 
-Storage that does not require configuration are automatically mounted.
+Storage that does not require configuration is automatically mounted.
 
 All storage parameters must be defined in a ``storage_parameters`` dictionary.
 This dictionary must be transmitted either to the ``pycosio.mount`` function
@@ -128,7 +128,7 @@ the ``storage_parameters`` dictionary.
                       storage_parameters=storage_parameters) as file:
         file.read()
 
-    # Next calls uses mounted storage transparently
+    # Next calls use mounted storage transparently
     with pycosio.open(
             'https://my_cloud.com/my_other_object', 'rt') as file:
         file.read()

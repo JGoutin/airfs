@@ -1,14 +1,15 @@
 pycosio.storage.http
 ====================
 
-HTTP/HTTPS object read only access.
+HTTP/HTTPS object read-only access.
 
 Mount
 -----
 
-The HTTP storage does not require to be mounted prior to be used.
+The HTTP storage does not require to be mounted prior to being used.
 
-Function can be used directly on any HTTP object reachable by the Pycosio host:
+The function can be used directly on any HTTP object reachable by the Pycosio
+host:
 
 .. code-block:: python
 

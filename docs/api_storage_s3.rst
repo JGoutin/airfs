@@ -15,7 +15,7 @@ arguments to pass to ``boto3.session.Session(**session_parameters)`` from the
 It can also include a sub-directory ``client`` that is used to pass arguments to
 ``boto3.session.Session.client('s3', **client_parameters)``.
 
-This example show the mount of S3 with the minimal configuration:
+This example shows the mount of S3 with the minimal configuration:
 
 .. code-block:: python
 
@@ -39,12 +39,12 @@ This example show the mount of S3 with the minimal configuration:
 Automatic mount
 ~~~~~~~~~~~~~~~
 
-It is not required to mount S3 explicitly When using pycosio on a host
+It is not required to mount S3 explicitly when using pycosio on a host
 configured to handle AWS S3 access (Through IAM policy, configuration
 files, environment variables, ...).
 
 In this case, mounting is done transparently on the first call of a Pycosio
-function on a S3 object and no configuration or extra steps are required:
+function on an S3 object and no configuration or extra steps are required:
 
 .. code-block:: python
 

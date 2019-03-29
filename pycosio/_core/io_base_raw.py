@@ -108,7 +108,7 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         Initializes file on 'a' mode.
         """
         # Require to load the full file content in buffer
-        self._write_buffer[:] = self.readall()
+        self._write_buffer[:] = self._readall()
 
         # Make initial seek position to current end of file
         self._seek = self._size
@@ -252,6 +252,9 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         Returns:
             bytes: Object content
         """
+        if not self._readable:
+            raise UnsupportedOperation('read')
+
         with self._seek_lock:
             # Get data starting from seek
             with handle_os_exceptions():
@@ -286,6 +289,9 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         Returns:
             int: number of bytes read
         """
+        if not self._readable:
+            raise UnsupportedOperation('read')
+
         # Get and update stream positions
         size = len(b)
         with self._seek_lock:

@@ -12,7 +12,7 @@ An OpenStack Swift project can be mounted using the Pycosio ``mount`` function.
 ``swiftclient.client.Connection`` class from ``python-swiftclient`` Python
 library.
 
-This example show the mount of OpenStack Swift with the minimal configuration:
+This example shows the mount of OpenStack Swift with a minimal configuration:
 
 .. code-block:: python
 
