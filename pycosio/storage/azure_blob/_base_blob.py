@@ -15,12 +15,13 @@ AZURE_BUFFERED = {}
 AZURE_RAW = {}
 
 
-def _new_blob(cls, kwargs):
+def _new_blob(cls, name, kwargs):
     """
     Used to initialize a blob class.
 
     Args:
         cls (class): Class to initialize.
+        name (str): Blob name.
         kwargs (dict): Initialization keyword arguments.
 
     Returns:
@@ -45,7 +46,7 @@ def _new_blob(cls, kwargs):
     try:
         # ALso cache file header to avoid double head call
         # (in __new__ and __init__)
-        storage_parameters['pycosio.raw_io._head'] = head = system.head('name')
+        storage_parameters['pycosio.raw_io._head'] = head = system.head(name)
     except ObjectNotFoundError:
         head = kwargs
 
@@ -81,7 +82,7 @@ class AzureBlobRawIO(_AzureStorageRawIOBase):
             return IOBase.__new__(cls)
 
         # Get subclass
-        return IOBase.__new__(AZURE_RAW[_new_blob(cls, kwargs)])
+        return IOBase.__new__(AZURE_RAW[_new_blob(cls, name, kwargs)])
 
     @property
     @memoizedmethod
@@ -125,4 +126,4 @@ class AzureBlobBufferedIO(ObjectBufferedIOBase):
             return IOBase.__new__(cls)
 
         # Get subclass
-        return IOBase.__new__(AZURE_BUFFERED[_new_blob(cls, kwargs)])
+        return IOBase.__new__(AZURE_BUFFERED[_new_blob(cls, name, kwargs)])

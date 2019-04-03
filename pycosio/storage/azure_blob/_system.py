@@ -98,13 +98,15 @@ class _AzureBlobSystem(_AzureBaseSystem):
         Returns:
             dict: client args
         """
+        # Remove query string from URL
+        path = path.split('?', 1)[0]
+
         container_name, blob_name = self.split_locator(path)
         kwargs = dict(container_name=container_name)
 
         # Blob
         if blob_name:
             kwargs['blob_name'] = blob_name
-
         return kwargs
 
     def _get_roots(self):

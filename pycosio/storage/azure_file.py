@@ -64,6 +64,9 @@ class _AzureFileSystem(_AzureBaseSystem, _FileSystemBase):
         Returns:
             dict: client args
         """
+        # Remove query string from URL
+        path = path.split('?', 1)[0]
+
         share_name, relpath = self.split_locator(path)
         kwargs = dict(share_name=share_name)
 
