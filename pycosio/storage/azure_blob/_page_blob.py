@@ -219,7 +219,7 @@ class AzurePageBlobRawIO(AzureBlobRawIO, _AzureStorageRawIORangeWriteBase):
                 buffer = memoryview(bytearray(buffer_size))
 
                 # If exists, Get aligned range from current file
-                if self._exists() and start < self._size:
+                if self._exists() == 1 and start < self._size:
                     buffer[:] = memoryview(self._read_range(
                         start, end, null_strip=False))
 

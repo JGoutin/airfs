@@ -7,18 +7,22 @@ Changelog
 
 Fixes:
 
+* Trying to open a file in ``a`` or ``x`` mode now raise ``PermissionError`` if
+  not enough permission to determinate if the file already exists.
 * Fix ``OSError`` exception conversion in ``copy`` and ``copyfile``.
 * Azure: Fix error when trying to read an existing blog due to bad name
   handling.
 * Azure: Fix query string in blob object path because not removed from URL.
+* Azure: Fix error when opening a blob in ``w`` mode if no permission to read
+  it.
 
 1.3.0 (2019/03)
 ---------------
 
 Add support for following cloud storage:
 
-* Microsoft Azure Blobs Storage
-* Microsoft Azure Files Storage
+* Microsoft Azure Blob Storage
+* Microsoft Azure File Storage
 
 Improvements:
 

@@ -4,8 +4,9 @@ from abc import abstractmethod
 from io import RawIOBase, UnsupportedOperation
 from os import SEEK_CUR, SEEK_END, SEEK_SET
 
-from pycosio._core.compat import file_exits_error
-from pycosio._core.exceptions import ObjectNotFoundError, handle_os_exceptions
+from pycosio._core.compat import file_exits_error, permission_error
+from pycosio._core.exceptions import (
+    ObjectNotFoundError, ObjectPermissionError, handle_os_exceptions)
 from pycosio._core.io_base import ObjectIOBase, memoizedmethod
 from pycosio._core.io_base_system import SystemBase
 
@@ -78,19 +79,29 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
             # Initializes starting data
             if 'a' in mode:
                 # Initialize with existing file content
-                if self._exists():
+                if self._exists() == 1:
                     with handle_os_exceptions():
                         self._init_append()
 
                 # Create new file
-                else:
+                elif self._exists() == 0:
                     with handle_os_exceptions():
                         self._create()
 
+                else:
+                    raise permission_error(
+                        "Insufficient permission to check if file already "
+                        "exists.")
+
             # Checks if object exists,
             # and raise if it is the case
-            elif 'x' in mode and self._exists():
+            elif 'x' in mode and self._exists() == 1:
                 raise file_exits_error
+
+            elif 'x' in mode and self._exists() == -1:
+                raise permission_error(
+                    "Insufficient permission to check if file already "
+                    "exists.")
 
             # Create new file
             else:
@@ -204,13 +215,16 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         Checks if file exists.
 
         Returns:
-            bool: True if file exists.
+            int: 1 if exists, 0 if not exists, -1 if can't determine file
+                existence (Because no access permission)
         """
         try:
             self._head()
-            return True
+            return 1
         except ObjectNotFoundError:
-            return False
+            return 0
+        except ObjectPermissionError:
+            return -1
 
     @staticmethod
     def _http_range(start=0, end=0):

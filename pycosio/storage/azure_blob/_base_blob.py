@@ -5,7 +5,7 @@ from __future__ import absolute_import  # Python 2: Fix azure import
 from io import IOBase
 
 from pycosio._core.io_base import memoizedmethod
-from pycosio._core.exceptions import ObjectNotFoundError
+from pycosio._core.exceptions import ObjectException
 from pycosio.io import ObjectBufferedIOBase
 from pycosio.storage.azure_blob._system import _AzureBlobSystem
 from pycosio.storage.azure import _AzureStorageRawIOBase
@@ -44,10 +44,12 @@ def _new_blob(cls, name, kwargs):
 
     # Detect if file already exists
     try:
-        # ALso cache file header to avoid double head call
+        # Also cache file header to avoid double head call
         # (in __new__ and __init__)
         storage_parameters['pycosio.raw_io._head'] = head = system.head(name)
-    except ObjectNotFoundError:
+    except ObjectException:
+        # Unable to access to the file (May not exists, or may not have read
+        # access permission), try to use arguments as blob type source.
         head = kwargs
 
     # Update file storage parameters
