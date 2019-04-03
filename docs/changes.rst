@@ -1,6 +1,16 @@
 Changelog
 =========
 
+
+1.3.1 (2019/04)
+---------------
+
+Fixes:
+
+* Azure: Fix error when trying to read an existing blog due to bad name
+  handling.
+* Azure: Fix query string in blob object path because not removed from URL.
+
 1.3.0 (2019/03)
 ---------------
 
