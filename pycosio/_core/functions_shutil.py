@@ -9,7 +9,7 @@ from pycosio._core.compat import (
 from pycosio._core.functions_io import cos_open
 from pycosio._core.functions_os_path import isdir
 from pycosio._core.functions_core import format_and_is_storage
-from pycosio._core.exceptions import ObjectException
+from pycosio._core.exceptions import ObjectException, handle_os_exceptions
 from pycosio._core.storage_manager import get_instance
 
 
@@ -107,7 +107,8 @@ def copy(src, dst):
             raise IOError("No such file or directory: '%s'" % dst)
 
     # Performs copy
-    _copy(src, dst, src_is_storage, dst_is_storage)
+    with handle_os_exceptions():
+        _copy(src, dst, src_is_storage, dst_is_storage)
 
 
 def copyfile(src, dst, follow_symlinks=True):
@@ -140,4 +141,5 @@ def copyfile(src, dst, follow_symlinks=True):
         raise IOError("No such file or directory: '%s'" % dst)
 
     # Performs copy
-    _copy(src, dst, src_is_storage, dst_is_storage)
+    with handle_os_exceptions():
+        _copy(src, dst, src_is_storage, dst_is_storage)

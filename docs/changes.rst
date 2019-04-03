@@ -7,6 +7,7 @@ Changelog
 
 Fixes:
 
+* Fix ``OSError`` exception conversion in ``copy`` and ``copyfile``.
 * Azure: Fix error when trying to read an existing blog due to bad name
   handling.
 * Azure: Fix query string in blob object path because not removed from URL.
