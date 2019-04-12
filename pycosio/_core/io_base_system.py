@@ -120,13 +120,18 @@ class SystemBase(ABC, WorkerPoolBase):
         # performed over the current machine with "shutil.copyfileobj".
         raise UnsupportedOperation
 
-    def exists(self, path=None, client_kwargs=None):
+    def exists(self, path=None, client_kwargs=None, assume_exists=None):
         """
         Return True if path refers to an existing path.
 
         Args:
             path (str): Path or URL.
             client_kwargs (dict): Client arguments.
+            assume_exists (bool or None): This value define the value to return
+                in the case there is no enough permission to determinate the
+                existing status of the file. If set to None, the permission
+                exception is reraised (Default behavior). if set to True or
+                False, return this value.
 
         Returns:
             bool: True if exists.
@@ -135,6 +140,10 @@ class SystemBase(ABC, WorkerPoolBase):
             self.head(path, client_kwargs)
         except ObjectNotFoundError:
             return False
+        except ObjectPermissionError:
+            if assume_exists is None:
+                raise
+            return assume_exists
         return True
 
     @abstractmethod
@@ -283,7 +292,8 @@ class SystemBase(ABC, WorkerPoolBase):
         else:
             raise UnsupportedOperation('getsize')
 
-    def isdir(self, path=None, client_kwargs=None, virtual_dir=True):
+    def isdir(self, path=None, client_kwargs=None, virtual_dir=True,
+              assume_exists=None):
         """
         Return True if path is an existing directory.
 
@@ -292,6 +302,11 @@ class SystemBase(ABC, WorkerPoolBase):
             client_kwargs (dict): Client arguments.
             virtual_dir (bool): If True, checks if directory exists virtually
                 if an object path if not exists as a specific object.
+            assume_exists (bool or None): This value define the value to return
+                in the case there is no enough permission to determinate the
+                existing status of the file. If set to None, the permission
+                exception is reraised (Default behavior). if set to True or
+                False, return this value.
 
         Returns:
             bool: True if directory exists.
@@ -302,7 +317,8 @@ class SystemBase(ABC, WorkerPoolBase):
             return True
 
         if path[-1] == '/' or self.is_locator(relative, relative=True):
-            exists = self.exists(path=path, client_kwargs=client_kwargs)
+            exists = self.exists(path=path, client_kwargs=client_kwargs,
+                                 assume_exists=assume_exists)
             if exists:
                 return True
 
@@ -318,13 +334,18 @@ class SystemBase(ABC, WorkerPoolBase):
                     return False
         return False
 
-    def isfile(self, path=None, client_kwargs=None):
+    def isfile(self, path=None, client_kwargs=None, assume_exists=None):
         """
         Return True if path is an existing regular file.
 
         Args:
             path (str): Path or URL.
             client_kwargs (dict): Client arguments.
+            assume_exists (bool or None): This value define the value to return
+                in the case there is no enough permission to determinate the
+                existing status of the file. If set to None, the permission
+                exception is reraised (Default behavior). if set to True or
+                False, return this value.
 
         Returns:
             bool: True if file exists.
@@ -335,7 +356,8 @@ class SystemBase(ABC, WorkerPoolBase):
             return False
 
         if path[-1] != '/' and not self.is_locator(path, relative=True):
-            return self.exists(path=path, client_kwargs=client_kwargs)
+            return self.exists(path=path, client_kwargs=client_kwargs,
+                               assume_exists=assume_exists)
         return False
 
     @property

@@ -9,7 +9,8 @@ from pycosio._core.compat import (
 from pycosio._core.functions_io import cos_open
 from pycosio._core.functions_os_path import isdir
 from pycosio._core.functions_core import format_and_is_storage
-from pycosio._core.exceptions import ObjectException, handle_os_exceptions
+from pycosio._core.exceptions import (
+    ObjectException, handle_os_exceptions, ObjectPermissionError)
 from pycosio._core.storage_manager import get_instance
 
 
@@ -96,18 +97,24 @@ def copy(src, dst):
     if not src_is_storage and not dst_is_storage:
         return shutil_copy(src, dst)
 
-    # Checks destination
-    if not hasattr(dst, 'read'):
-        # If destination is directory: defines output file
-        if isdir(dst):
-            dst = join(dst, basename(src))
-
-        # Checks if destination dir exists
-        elif not isdir(dirname(dst)):
-            raise IOError("No such file or directory: '%s'" % dst)
-
-    # Performs copy
     with handle_os_exceptions():
+        # Checks destination
+        if not hasattr(dst, 'read'):
+            try:
+                # If destination is directory: defines an output file inside it
+                if isdir(dst):
+                    dst = join(dst, basename(src))
+
+                # Checks if destination dir exists
+                elif not isdir(dirname(dst)):
+                    raise IOError("No such file or directory: '%s'" % dst)
+
+            except ObjectPermissionError:
+                # Unable to check target directory due to missing read access,
+                # but do not raise to allow to write if possible
+                pass
+
+        # Performs copy
         _copy(src, dst, src_is_storage, dst_is_storage)
 
 
@@ -136,10 +143,16 @@ def copyfile(src, dst, follow_symlinks=True):
     if not src_is_storage and not dst_is_storage:
         return shutil_copyfile(src, dst, follow_symlinks=follow_symlinks)
 
-    # Checks destination
-    if not hasattr(dst, 'read') and not isdir(dirname(dst)):
-        raise IOError("No such file or directory: '%s'" % dst)
-
-    # Performs copy
     with handle_os_exceptions():
+        # Checks destination
+        try:
+            if not hasattr(dst, 'read') and not isdir(dirname(dst)):
+                raise IOError("No such file or directory: '%s'" % dst)
+
+        except ObjectPermissionError:
+            # Unable to check target directory due to missing read access, but
+            # do not raise to allow to write if possible
+            pass
+
+        # Performs copy
         _copy(src, dst, src_is_storage, dst_is_storage)

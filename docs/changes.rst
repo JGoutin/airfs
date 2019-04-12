@@ -10,6 +10,9 @@ Fixes:
 * Trying to open a file in ``a`` or ``x`` mode now raise ``PermissionError`` if
   not enough permission to determinate if the file already exists.
 * Fix ``OSError`` exception conversion in ``copy`` and ``copyfile``.
+* ``copy`` and ``copyfile`` now tries to copy if no read access but write
+  access, instead of raising ``PermissionError`` because unable to check the
+  parent directory first.
 * Azure: Fix error when trying to read an existing blog due to bad name
   handling.
 * Azure: Fix query string in blob object path because not removed from URL.
