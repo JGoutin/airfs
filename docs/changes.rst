@@ -1,7 +1,6 @@
 Changelog
 =========
 
-
 1.3.1 (2019/04)
 ---------------
 
@@ -19,6 +18,10 @@ Fixes:
 * Azure: Fix error when opening a blob in ``w`` mode if no permission to read
   it.
 
+Contributors:
+
+* Thanks to Stewart Adam (stewartadam) for the tests and fixes for Azure.
+
 1.3.0 (2019/03)
 ---------------
 
@@ -29,7 +32,8 @@ Add support for following cloud storage:
 
 Improvements:
 
-* ``io.RawIOBase`` can now be used for storage that supports random write access.
+* ``io.RawIOBase`` can now be used for storage that supports random write
+  access.
 * OSS: Copy objects between OSS buckets without copying data on the client when
   possible.
 
@@ -47,7 +51,8 @@ Fixes:
 * Fix root URL detection in some cases.
 * Fix too many returned result when listing objects with a count limit.
 * Fix error when trying to append on a not existing file.
-* Fix ``io.RawIOBase`` not generating padding when seeking after the end of the file.
+* Fix ``io.RawIOBase`` not generating padding when seeking after the end of the
+  file.
 * OSS: Fix error when listing objects in a not existing directory.
 * OSS: Fix read error if try to read after the end of the file.
 * OSS: Fix buffered write minimum buffer size.
@@ -58,6 +63,10 @@ Fixes:
 * S3: Clean up multipart upload parts on failed uploads.
 * S3: Fix missing transfer acceleration endpoints.
 * Swift: Fix error when opening an existing file in 'a' mode.
+
+Contributors:
+
+* Thanks to Stewart Adam (stewartadam) for the early tests and fixes for Azure.
 
 1.2.0 (2018/10)
 ---------------
@@ -73,8 +82,9 @@ Improvements:
 * Copy of objects from and to the same storage is performed directly on remote
   server if possible.
 * Pycosio now raises ``io.UnsupportedOperation`` if an operation is not
-  compatible with the current storage, this applies to all newly created function
-  and following existing functions: ``getsize``,  ``getmtime``, ``mkdir``.
+  compatible with the current storage, this applies to all newly created
+  function and following existing functions: ``getsize``,  ``getmtime``,
+  ``mkdir``.
 
 Fixes:
 
