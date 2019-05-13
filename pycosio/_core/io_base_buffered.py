@@ -279,11 +279,8 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
                 self._read_queue[index] = self._workers.submit(
                     self._read_range, index, index + buffer_size)
 
-            # Update seek
-                self._seek += buffer_size
-            else:
-                self._seek = self._size
-
+            # Update seek and return buffer
+            self._seek += len(buffer)
             return buffer
 
         # Uses a prealocated buffer
