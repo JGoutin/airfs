@@ -1,6 +1,18 @@
 Changelog
 =========
 
+1.3.2 (2019/05)
+---------------
+
+Fixes:
+
+* Fix ``io.BufferedIOBase`` partially read when reading exactly by parts of the
+  buffer size.
+
+Contributors:
+
+* Thanks to Stewart Adam (stewartadam) for bug reports.
+
 1.3.1 (2019/04)
 ---------------
 
