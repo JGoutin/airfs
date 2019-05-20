@@ -8,10 +8,11 @@ Fixes:
 
 * Fix ``io.BufferedIOBase`` partially read when reading exactly by parts of the
   buffer size.
+* Fix bad permission error handling ``pycosio.copy``.
 
 Contributors:
 
-* Thanks to Stewart Adam (stewartadam) for bug reports.
+* Thanks to Stewart Adam (stewartadam)for the tests and fixes for Azure.
 
 1.3.1 (2019/04)
 ---------------

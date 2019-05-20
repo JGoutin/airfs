@@ -5,12 +5,12 @@ from os.path import join, basename, dirname
 from shutil import copy as shutil_copy, copyfileobj
 
 from pycosio._core.compat import (
-    same_file_error, copyfile as shutil_copyfile, COPY_BUFSIZE)
+    same_file_error, copyfile as shutil_copyfile, COPY_BUFSIZE,
+    permission_error)
 from pycosio._core.functions_io import cos_open
 from pycosio._core.functions_os_path import isdir
 from pycosio._core.functions_core import format_and_is_storage
-from pycosio._core.exceptions import (
-    ObjectException, handle_os_exceptions, ObjectPermissionError)
+from pycosio._core.exceptions import ObjectException, handle_os_exceptions
 from pycosio._core.storage_manager import get_instance
 
 
@@ -24,53 +24,54 @@ def _copy(src, dst, src_is_storage, dst_is_storage):
         src_is_storage (bool): Source is storage.
         dst_is_storage (bool): Destination is storage.
     """
-    # If both storage: Tries to perform same storage direct copy
-    if src_is_storage and dst_is_storage:
-        system_src = get_instance(src)
-        system_dst = get_instance(dst)
+    with handle_os_exceptions():
+        # If both storage: Tries to perform same storage direct copy
+        if src_is_storage and dst_is_storage:
+            system_src = get_instance(src)
+            system_dst = get_instance(dst)
 
-        # Same storage copy
-        if system_src is system_dst:
+            # Same storage copy
+            if system_src is system_dst:
 
-            # Checks if same file
-            if system_src.relpath(src) == system_dst.relpath(dst):
-                raise same_file_error(
-                    "'%s' and '%s' are the same file" % (src, dst))
+                # Checks if same file
+                if system_src.relpath(src) == system_dst.relpath(dst):
+                    raise same_file_error(
+                        "'%s' and '%s' are the same file" % (src, dst))
 
-            # Tries to copy
-            try:
-                return system_dst.copy(src, dst)
-            except (UnsupportedOperation, ObjectException):
-                pass
-
-        # Copy from compatible storage using "copy_from_<src_storage>" or
-        # "copy_to_<src_storage>" method if any
-        for caller, called, method in (
-                (system_dst, system_src, 'copy_from_%s'),
-                (system_src, system_dst, 'copy_to_%s')):
-            if hasattr(caller, method % called.storage):
+                # Tries to copy
                 try:
-                    return getattr(caller, method % called.storage)(
-                        src, dst, called)
+                    return system_dst.copy(src, dst)
                 except (UnsupportedOperation, ObjectException):
-                    continue
+                    pass
 
-    # At least one storage object: copies streams
-    with cos_open(src, 'rb') as fsrc:
-        with cos_open(dst, 'wb') as fdst:
+            # Copy from compatible storage using "copy_from_<src_storage>" or
+            # "copy_to_<src_storage>" method if any
+            for caller, called, method in (
+                    (system_dst, system_src, 'copy_from_%s'),
+                    (system_src, system_dst, 'copy_to_%s')):
+                if hasattr(caller, method % called.storage):
+                    try:
+                        return getattr(caller, method % called.storage)(
+                            src, dst, called)
+                    except (UnsupportedOperation, ObjectException):
+                        continue
 
-            # Get stream buffer size
-            for stream in (fsrc, fdst):
-                try:
-                    buffer_size = getattr(stream, '_buffer_size')
-                    break
-                except AttributeError:
-                    continue
-            else:
-                buffer_size = COPY_BUFSIZE
+        # At least one storage object: copies streams
+        with cos_open(src, 'rb') as fsrc:
+            with cos_open(dst, 'wb') as fdst:
 
-            # Read and write
-            copyfileobj(fsrc, fdst, buffer_size)
+                # Get stream buffer size
+                for stream in (fsrc, fdst):
+                    try:
+                        buffer_size = getattr(stream, '_buffer_size')
+                        break
+                    except AttributeError:
+                        continue
+                else:
+                    buffer_size = COPY_BUFSIZE
+
+                # Read and write
+                copyfileobj(fsrc, fdst, buffer_size)
 
 
 def copy(src, dst):
@@ -97,25 +98,25 @@ def copy(src, dst):
     if not src_is_storage and not dst_is_storage:
         return shutil_copy(src, dst)
 
-    with handle_os_exceptions():
-        # Checks destination
-        if not hasattr(dst, 'read'):
-            try:
-                # If destination is directory: defines an output file inside it
-                if isdir(dst):
-                    dst = join(dst, basename(src))
+    # Checks destination
+    if not hasattr(dst, 'read'):
+        try:
+            # If destination is directory: defines an output file inside it
+            if isdir(dst):
+                dst = join(dst, basename(src))
 
-                # Checks if destination dir exists
-                elif not isdir(dirname(dst)):
-                    raise IOError("No such file or directory: '%s'" % dst)
+            # Checks if destination dir exists
+            elif not isdir(dirname(dst)):
+                raise IOError("No such file or directory: '%s'" % dst)
 
-            except ObjectPermissionError:
-                # Unable to check target directory due to missing read access,
-                # but do not raise to allow to write if possible
-                pass
+        except permission_error:
+            # Unable to check target directory due to missing read access,
+            # but do not raise to allow to write if possible
+            print('permission_error reached')
+            pass
 
-        # Performs copy
-        _copy(src, dst, src_is_storage, dst_is_storage)
+    # Performs copy
+    _copy(src, dst, src_is_storage, dst_is_storage)
 
 
 def copyfile(src, dst, follow_symlinks=True):
@@ -143,16 +144,15 @@ def copyfile(src, dst, follow_symlinks=True):
     if not src_is_storage and not dst_is_storage:
         return shutil_copyfile(src, dst, follow_symlinks=follow_symlinks)
 
-    with handle_os_exceptions():
-        # Checks destination
-        try:
-            if not hasattr(dst, 'read') and not isdir(dirname(dst)):
-                raise IOError("No such file or directory: '%s'" % dst)
+    # Checks destination
+    try:
+        if not hasattr(dst, 'read') and not isdir(dirname(dst)):
+            raise IOError("No such file or directory: '%s'" % dst)
 
-        except ObjectPermissionError:
-            # Unable to check target directory due to missing read access, but
-            # do not raise to allow to write if possible
-            pass
+    except permission_error:
+        # Unable to check target directory due to missing read access, but
+        # do not raise to allow to write if possible
+        pass
 
-        # Performs copy
-        _copy(src, dst, src_is_storage, dst_is_storage)
+    # Performs copy
+    _copy(src, dst, src_is_storage, dst_is_storage)
