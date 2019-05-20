@@ -6,7 +6,7 @@ from shutil import copy as shutil_copy, copyfileobj
 
 from pycosio._core.compat import (
     same_file_error, copyfile as shutil_copyfile, COPY_BUFSIZE,
-    permission_error)
+    permission_error, file_not_found_error)
 from pycosio._core.functions_io import cos_open
 from pycosio._core.functions_os_path import isdir
 from pycosio._core.functions_core import format_and_is_storage
@@ -107,7 +107,8 @@ def copy(src, dst):
 
             # Checks if destination dir exists
             elif not isdir(dirname(dst)):
-                raise IOError("No such file or directory: '%s'" % dst)
+                raise file_not_found_error(
+                    "No such file or directory: '%s'" % dst)
 
         except permission_error:
             # Unable to check target directory due to missing read access,
@@ -147,7 +148,8 @@ def copyfile(src, dst, follow_symlinks=True):
     # Checks destination
     try:
         if not hasattr(dst, 'read') and not isdir(dirname(dst)):
-            raise IOError("No such file or directory: '%s'" % dst)
+            raise file_not_found_error(
+                "No such file or directory: '%s'" % dst)
 
     except permission_error:
         # Unable to check target directory due to missing read access, but

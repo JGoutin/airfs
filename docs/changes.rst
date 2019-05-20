@@ -9,6 +9,7 @@ Fixes:
 * Fix ``io.BufferedIOBase`` partially read when reading exactly by parts of the
   buffer size.
 * Fix bad permission error handling ``pycosio.copy``.
+* Fix bad exceptions risen if no parent directory found using ``pycosio.copy``.
 
 Contributors:
 
