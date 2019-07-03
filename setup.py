@@ -56,7 +56,7 @@ PACKAGE_INFO = dict(
         'swift': ['python-swiftclient[keystone]>=3.3.0']},
     setup_requires=['setuptools'],
     tests_require=['pytest'],
-    packages=find_packages(exclude=['docs', 'tests']),
+    packages=find_packages(exclude=['docs', 'tests', 'tests_storage_package']),
     zip_safe=True, command_options={})
 
 # Gets package __version__ from package

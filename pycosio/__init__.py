@@ -16,7 +16,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-__version__ = '1.3.1'
+__version__ = '1.3.3'
 __copyright__ = "Copyright 2018 Accelize"
 __licence__ = "Apache 2.0"
 

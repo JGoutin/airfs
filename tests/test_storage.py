@@ -834,7 +834,7 @@ def test_mock_storage():
     """
     Run test sequence on the mocked storage.
     """
-    from tests.storage_package.mock import (
+    from tests_storage_package.mock import (
         MockSystem, MockBufferedIO, MockRawIO)
 
     # Init mocked system

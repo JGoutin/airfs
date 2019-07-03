@@ -1,6 +1,14 @@
 Changelog
 =========
 
+1.3.3 (2019/05)
+---------------
+
+Fixes:
+
+* Fix package including `tests/storage_package` subdirectory due to packaging
+  toolchain issue.
+
 1.3.2 (2019/05)
 ---------------
 
