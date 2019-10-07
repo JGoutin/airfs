@@ -1,10 +1,11 @@
 # coding=utf-8
 """Cloud object compatibles standard library 'os' equivalent functions"""
 import os
-from os import scandir as os_scandir, fsdecode, fspath, fsencode
+from os import scandir as os_scandir, fsdecode, fsencode
 from os.path import dirname
 from stat import S_ISLNK, S_ISDIR
 
+from pycosio._core.compat import fspath
 from pycosio._core.storage_manager import get_instance
 from pycosio._core.functions_core import equivalent_to, is_storage
 from pycosio._core.exceptions import (
