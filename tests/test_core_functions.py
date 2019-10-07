@@ -69,7 +69,7 @@ def test_equivalent_functions(tmpdir):
     import pycosio._core.functions_os_path as std_os_path
     import pycosio._core.functions_os as std_os
     from pycosio._core.io_base_system import SystemBase
-    from pycosio._core.compat import fsencode
+    from os import fsencode
     from pycosio._core.exceptions import ObjectPermissionError
 
     # Mock system
@@ -359,10 +359,10 @@ def test_cos_open(tmpdir):
     from pycosio import copy, copyfile
     from pycosio._core.functions_io import cos_open
     from pycosio._core.storage_manager import MOUNTED
-    from pycosio._core.compat import same_file_error
     from pycosio._core.io_base_system import SystemBase
     from io import TextIOWrapper, UnsupportedOperation
     from os.path import isdir
+    from shutil import SameFileError
     import pycosio._core.functions_shutil as pycosio_shutil
 
     root = 'dummy_read://'
@@ -590,7 +590,7 @@ def test_cos_open(tmpdir):
         assert local_dst.read_binary() == content
 
         # copy: same file
-        with pytest.raises(same_file_error):
+        with pytest.raises(SameFileError):
             copy(cos_path, cos_path)
 
         if version_info[0] == 2:

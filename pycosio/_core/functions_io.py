@@ -3,7 +3,7 @@
 from contextlib import contextmanager
 from io import open as io_open, TextIOWrapper
 
-from pycosio._core.compat import fsdecode
+from os import fsdecode
 from pycosio._core.storage_manager import get_instance
 from pycosio._core.functions_core import is_storage
 

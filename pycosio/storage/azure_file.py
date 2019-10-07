@@ -1,7 +1,5 @@
 # coding=utf-8
 """Microsoft Azure Files Storage"""
-from __future__ import absolute_import  # Python 2: Fix azure import
-
 import re as _re
 
 from azure.storage.file import FileService as _FileService

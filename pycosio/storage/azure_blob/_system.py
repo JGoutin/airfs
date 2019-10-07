@@ -1,15 +1,12 @@
 # coding=utf-8
 """Microsoft Azure Blobs Storage: System"""
-from __future__ import absolute_import  # Python 2: Fix azure import
-
 import re as _re
 
 from azure.storage.blob import (
     PageBlobService, BlockBlobService, AppendBlobService)
 from azure.storage.blob.models import _BlobTypes
 
-from pycosio.storage.azure import (
-    _handle_azure_exception, _AzureBaseSystem)
+from pycosio.storage.azure import _handle_azure_exception, _AzureBaseSystem
 from pycosio._core.exceptions import ObjectNotFoundError
 from pycosio._core.io_base import memoizedmethod
 

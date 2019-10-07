@@ -1,13 +1,10 @@
 # coding=utf-8
 """Cloud object compatibles standard library 'os' equivalent functions"""
 import os
+from os import scandir as os_scandir, fsdecode, fspath, fsencode
 from os.path import dirname
 from stat import S_ISLNK, S_ISDIR
 
-from pycosio._core.compat import (
-    makedirs as os_makedirs, remove as os_remove, rmdir as os_rmdir,
-    is_a_directory_error, mkdir as os_mkdir, stat as os_stat, lstat as os_lstat,
-    scandir as os_scandir, fsdecode, fspath, fsencode)
 from pycosio._core.storage_manager import get_instance
 from pycosio._core.functions_core import equivalent_to, is_storage
 from pycosio._core.exceptions import (
@@ -34,7 +31,7 @@ def listdir(path='.'):
             get_instance(path).list_objects(path, first_level=True)]
 
 
-@equivalent_to(os_makedirs)
+@equivalent_to(os.makedirs)
 def makedirs(name, mode=0o777, exist_ok=False):
     """
     Super-mkdir; create a leaf directory and all intermediate ones.
@@ -65,7 +62,7 @@ def makedirs(name, mode=0o777, exist_ok=False):
     system.make_dir(name)
 
 
-@equivalent_to(os_mkdir)
+@equivalent_to(os.mkdir)
 def mkdir(path, mode=0o777, dir_fd=None):
     """
     Create a directory named path with numeric mode mode.
@@ -104,7 +101,7 @@ def mkdir(path, mode=0o777, dir_fd=None):
     system.make_dir(relative, relative=True)
 
 
-@equivalent_to(os_remove)
+@equivalent_to(os.remove)
 def remove(path, dir_fd=None):
     """
     Remove a file.
@@ -121,7 +118,7 @@ def remove(path, dir_fd=None):
 
     # Only support files
     if system.is_locator(path) or path[-1] == '/':
-        raise is_a_directory_error("Is a directory: '%s'" % path)
+        raise IsADirectoryError("Is a directory: '%s'" % path)
 
     # Remove
     system.remove(path)
@@ -131,7 +128,7 @@ def remove(path, dir_fd=None):
 unlink = remove
 
 
-@equivalent_to(os_rmdir)
+@equivalent_to(os.rmdir)
 def rmdir(path, dir_fd=None):
     """
     Remove a directory.
@@ -148,7 +145,7 @@ def rmdir(path, dir_fd=None):
     system.remove(system.ensure_dir_path(path))
 
 
-@equivalent_to(os_lstat)
+@equivalent_to(os.lstat)
 def lstat(path, dir_fd=None):
     """
     Get the status of a file or a file descriptor.
@@ -171,7 +168,7 @@ def lstat(path, dir_fd=None):
     return get_instance(path).stat(path)
 
 
-@equivalent_to(os_stat)
+@equivalent_to(os.stat)
 def stat(path, dir_fd=None, follow_symlinks=True):
     """
     Get the status of a file or a file descriptor.

@@ -4,10 +4,8 @@
 Allows to filter Pycosio generated exception and standard exceptions"""
 from contextlib import contextmanager
 from io import UnsupportedOperation
+from shutil import SameFileError
 from sys import exc_info
-
-from pycosio._core.compat import (
-    file_not_found_error, permission_error, file_exits_error, same_file_error)
 
 
 class ObjectException(Exception):
@@ -27,9 +25,9 @@ class ObjectExistsError(ObjectException):
 
 
 _OS_EXCEPTIONS = {
-    ObjectNotFoundError: file_not_found_error,
-    ObjectPermissionError: permission_error,
-    ObjectExistsError: file_exits_error}
+    ObjectNotFoundError: FileNotFoundError,
+    ObjectPermissionError: PermissionError,
+    ObjectExistsError: FileExistsError}
 
 
 @contextmanager
@@ -46,7 +44,7 @@ def handle_os_exceptions():
         raise _OS_EXCEPTIONS.get(exc_type, OSError)(exc_value)
 
     # Re-raise generic exceptions
-    except (OSError, same_file_error, UnsupportedOperation):
+    except (OSError, SameFileError, UnsupportedOperation):
         raise
 
     # Raise generic OSError for other exceptions

@@ -4,7 +4,6 @@ from abc import abstractmethod
 from io import RawIOBase, UnsupportedOperation
 from os import SEEK_CUR, SEEK_END, SEEK_SET
 
-from pycosio._core.compat import file_exits_error, permission_error
 from pycosio._core.exceptions import (
     ObjectNotFoundError, ObjectPermissionError, handle_os_exceptions)
 from pycosio._core.io_base import ObjectIOBase, memoizedmethod
@@ -92,17 +91,17 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
                         self._create()
 
                 else:
-                    raise permission_error(
+                    raise PermissionError(
                         "Insufficient permission to check if file already "
                         "exists.")
 
             # Checks if object exists,
             # and raise if it is the case
             elif 'x' in mode and self._exists() == 1:
-                raise file_exits_error
+                raise FileExistsError
 
             elif 'x' in mode and self._exists() == -1:
-                raise permission_error(
+                raise PermissionError(
                     "Insufficient permission to check if file already "
                     "exists.")
 

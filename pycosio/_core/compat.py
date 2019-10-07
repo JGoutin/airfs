@@ -1,12 +1,16 @@
 # coding=utf-8
 """Python old versions compatibility"""
-import abc as _abc
 import re as _re
 import os as _os
 import shutil as _shutil
 from sys import version_info as _py
 
+# Raise import error on incompatible versions
+if _py[0] < 3 or (_py[0] == 3 and _py[1] < 5):
+    raise ImportError('Pycosio require Python 3.5 or more.')
 
+
+# Warn about future incompatibles versions
 def _deprecation_warning():
     """
     Warn user about deprecation of this Python version in next Pycosio
@@ -18,190 +22,8 @@ def _deprecation_warning():
             _py[0], _py[1]), DeprecationWarning, stacklevel=2)
 
 
-# Python 2 compatibility
-if _py[0] == 2:
-
-    # Missing .timestamp() method of "datetime.datetime"
-    import time as _time
-
-    def to_timestamp(dt):
-        """Return POSIX timestamp as float"""
-        return _time.mktime(dt.timetuple()) + dt.microsecond / 1e6
-
-    # Missing "os.fsdecode" / "os.fsencode"
-    def fsdecode(filename):
-        """Return filename unchanged"""
-        return filename
-
-    def fsencode(filename):
-        """Return filename unchanged"""
-        return filename
-
-    # Mission "exists_ok" in "os.makedirs"
-    def makedirs(name, mode=0o777, exist_ok=False):
-        """
-        Super-mkdir; create a leaf directory and all intermediate ones.
-        Works like mkdir, except that any intermediate path segment
-        (not just the rightmost) will be created if it does not exist.
-
-        Args:
-            name (str): Path
-            mode (int): The mode parameter is passed to os.mkdir();
-                see the os.mkdir() description for how it is interpreted.
-            exist_ok (bool): Don't raises error if target directory already
-                exists.
-
-        Raises:
-            OSError: if exist_ok is False and if the target directory already
-                exists.
-        """
-        try:
-            _os.makedirs(name, mode)
-        except OSError:
-            if not exist_ok or not _os.path.isdir(name):
-                raise
-
-    # Missing "follow_symlinks" in "copyfile"
-
-    def _check_follow_symlinks(follow_symlinks):
-        """Checks follow_symlinks value
-
-        Args:
-            follow_symlinks: Must be True.
-        """
-        if follow_symlinks is not True:
-            raise TypeError('"follow_symlinks" not supported on Python 2')
-
-    def copyfile(src, dst, follow_symlinks=True):
-        """
-        Copies a source file to a destination file.
-
-        Args:
-            src (str): Source file.
-            dst (str): Destination file.
-            follow_symlinks (bool): Ignored.
-        """
-        _check_follow_symlinks(follow_symlinks)
-        _shutil.copyfile(src, dst)
-
-    # Missing "dir_fd" in "os" functions
-
-    def _check_dir_fd(dir_fd):
-        """Checks dir_fd value
-
-        Args:
-            dir_fd: Must be None.
-        """
-        if dir_fd is not None:
-            raise TypeError('"dir_fd" not supported on Python 2')
-
-    def mkdir(path, mode=0o777, dir_fd=None):
-        """
-        Create a directory named path.
-
-        Args:
-            path (str): Path.
-            mode (int): Mode.
-            dir_fd: Ignored.
-        """
-        _check_dir_fd(dir_fd)
-        _os.mkdir(path, mode)
-
-    def remove(path, dir_fd=None):
-        """
-        Remove a file.
-
-        Args:
-            path (str): Path.
-            dir_fd: Ignored.
-        """
-        _check_dir_fd(dir_fd)
-        _os.remove(path)
-
-    def rmdir(path, dir_fd=None):
-        """
-        Remove a directory.
-
-        Args:
-            path (str): Path.
-            dir_fd: Ignored.
-        """
-        _check_dir_fd(dir_fd)
-        _os.rmdir(path)
-
-    def stat(path, dir_fd=None, follow_symlinks=True):
-        """
-        Get the status of a file.
-
-        Args:
-            path (str): Path.
-            dir_fd: Ignored.
-            follow_symlinks: Ignored
-        """
-        _check_dir_fd(dir_fd)
-        _check_follow_symlinks(follow_symlinks)
-        return _os.stat(path)
-
-    def lstat(path, dir_fd=None):
-        """
-        Get the status of a file.
-
-        Args:
-            path (str): Path.
-            dir_fd: Ignored.
-        """
-        _check_dir_fd(dir_fd)
-        return _os.lstat(path)
-
-    # Missing "abc.ABC"
-    ABC = _abc.ABCMeta('ABC', (object,), {})
-
-    # Missing exceptions
-    file_not_found_error = OSError
-    permission_error = OSError
-    file_exits_error = OSError
-    same_file_error = OSError
-    is_a_directory_error = OSError
-
-    # Missing "os.scandir"
-    from scandir import scandir, walk
-
-else:
-    def to_timestamp(dt):
-        """Return POSIX timestamp as float"""
-        return dt.timestamp()
-
-    fsdecode = _os.fsdecode
-    fsencode = _os.fsencode
-    makedirs = _os.makedirs
-    mkdir = _os.mkdir
-    remove = _os.remove
-    rmdir = _os.rmdir
-    stat = _os.stat
-    lstat = _os.lstat
-    copyfile = _shutil.copyfile
-    ABC = _abc.ABC
-    file_not_found_error = FileNotFoundError
-    permission_error = PermissionError
-    file_exits_error = FileExistsError
-    same_file_error = _shutil.SameFileError
-    is_a_directory_error = IsADirectoryError
-    from os import scandir, walk
-
-# Python 2 Windows compatibility
-try:
-    from os.path import samefile
-except ImportError:
-
-    # Missing "os.path.samefile"
-
-    def samefile(*_, **__):
-        """Checks if same files."""
-        raise NotImplementedError(
-            '"os.path.samefile" not available on Windows with Python 2.')
-
 # Python < 3.6 compatibility
-if _py[0] < 3 or (_py[0] == 3 and _py[1] < 6):
+if _py[0] == 3 and _py[1] < 6:
 
     # Missing "os.fspath"
     def fspath(filename):

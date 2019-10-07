@@ -1,7 +1,5 @@
 # coding=utf-8
 """Microsoft Azure Blobs Storage: Append blobs"""
-from __future__ import absolute_import  # Python 2: Fix azure import
-
 from azure.storage.blob.models import _BlobTypes
 from azure.storage.blob import AppendBlobService
 

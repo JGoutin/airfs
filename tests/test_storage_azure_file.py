@@ -1,7 +1,5 @@
 # coding=utf-8
 """Test pycosio.storage.azure_file"""
-from __future__ import absolute_import  # Python 2: Fix azure import
-
 UNSUPPORTED_OPERATIONS = (
     'symlink',
 

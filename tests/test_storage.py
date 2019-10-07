@@ -135,7 +135,6 @@ class StorageTester:
         Tests raw IO.
         """
         from os import SEEK_END, SEEK_CUR
-        from pycosio._core.compat import file_exits_error
 
         size = 100
         file_name = 'raw_file0.dat'
@@ -352,7 +351,7 @@ class StorageTester:
                 pass
 
             # File already exists
-            with _pytest.raises(file_exits_error):
+            with _pytest.raises(FileExistsError):
                 self._raw_io(file_path, 'xb', **self._system_parameters)
 
     def _test_buffered_io(self):

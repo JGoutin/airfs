@@ -8,6 +8,9 @@ Improvements:
 
 * Use `__slots__` on all classes to improve performance and memory usage.
 
+Deprecations:
+
+* Python 2.7 and 3.4 support are removed.
 
 1.3.3 (2019/07)
 ---------------

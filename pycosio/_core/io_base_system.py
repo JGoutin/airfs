@@ -1,6 +1,6 @@
 # coding=utf-8
 """Cloud storage abstract System"""
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 from collections import OrderedDict, namedtuple
 from io import UnsupportedOperation
 from re import compile
@@ -9,7 +9,7 @@ from stat import S_IFDIR, S_IFREG, S_IFLNK
 from dateutil.parser import parse
 
 from pycosio._core.io_base import WorkerPoolBase
-from pycosio._core.compat import ABC, Pattern, to_timestamp
+from pycosio._core.compat import Pattern
 from pycosio._core.exceptions import ObjectNotFoundError, ObjectPermissionError
 
 
@@ -246,7 +246,7 @@ class SystemBase(ABC, WorkerPoolBase):
                 continue
             try:
                 # String to convert
-                return to_timestamp(parse(date_value))
+                return parse(date_value).timestamp()
             except TypeError:
                 # Already number
                 return float(date_value)

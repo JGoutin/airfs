@@ -2,8 +2,8 @@
 """Base utilities to define storage functions"""
 
 from functools import wraps
+from os import fsdecode
 
-from pycosio._core.compat import fsdecode
 from pycosio._core.exceptions import handle_os_exceptions
 
 

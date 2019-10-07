@@ -2,11 +2,11 @@
 """Cloud object compatibles standard library 'shutil' equivalent functions"""
 from io import UnsupportedOperation
 from os.path import join, basename, dirname
-from shutil import copy as shutil_copy, copyfileobj
+from shutil import (
+    copy as shutil_copy, copyfileobj, copyfile as shutil_copyfile,
+    SameFileError)
 
-from pycosio._core.compat import (
-    same_file_error, copyfile as shutil_copyfile, COPY_BUFSIZE,
-    permission_error, file_not_found_error)
+from pycosio._core.compat import COPY_BUFSIZE
 from pycosio._core.functions_io import cos_open
 from pycosio._core.functions_os_path import isdir
 from pycosio._core.functions_core import format_and_is_storage
@@ -35,7 +35,7 @@ def _copy(src, dst, src_is_storage, dst_is_storage):
 
                 # Checks if same file
                 if system_src.relpath(src) == system_dst.relpath(dst):
-                    raise same_file_error(
+                    raise SameFileError(
                         "'%s' and '%s' are the same file" % (src, dst))
 
                 # Tries to copy
@@ -107,13 +107,13 @@ def copy(src, dst):
 
             # Checks if destination dir exists
             elif not isdir(dirname(dst)):
-                raise file_not_found_error(
+                raise FileNotFoundError(
                     "No such file or directory: '%s'" % dst)
 
-        except permission_error:
+        except PermissionError:
             # Unable to check target directory due to missing read access,
             # but do not raise to allow to write if possible
-            print('permission_error reached')
+            print('PermissionError reached')
             pass
 
     # Performs copy
@@ -148,10 +148,10 @@ def copyfile(src, dst, follow_symlinks=True):
     # Checks destination
     try:
         if not hasattr(dst, 'read') and not isdir(dirname(dst)):
-            raise file_not_found_error(
+            raise FileNotFoundError(
                 "No such file or directory: '%s'" % dst)
 
-    except permission_error:
+    except PermissionError:
         # Unable to check target directory due to missing read access, but
         # do not raise to allow to write if possible
         pass

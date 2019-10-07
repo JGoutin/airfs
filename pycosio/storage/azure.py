@@ -1,7 +1,5 @@
 # coding=utf-8
 """Microsoft Azure Storage"""
-from __future__ import absolute_import  # Python 2: Fix azure import
-
 from abc import abstractmethod as _abstractmethod
 from contextlib import contextmanager as _contextmanager
 from concurrent.futures import as_completed as _as_completed
@@ -12,7 +10,6 @@ from threading import Lock as _Lock
 from azure.common import AzureHttpError as _AzureHttpError
 
 from pycosio._core.io_base import WorkerPoolBase as _WorkerPoolBase
-from pycosio._core.compat import to_timestamp as _to_timestamp
 from pycosio._core.exceptions import (
     ObjectNotFoundError as _ObjectNotFoundError,
     ObjectPermissionError as _ObjectPermissionError)
@@ -105,7 +102,7 @@ class _AzureBaseSystem(_SystemBase):
         """
         for key in keys:
             try:
-                return _to_timestamp(header.pop(key))
+                return header.pop(key).timestamp()
             except KeyError:
                 continue
 

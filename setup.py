@@ -23,8 +23,6 @@ PACKAGE_INFO = dict(
         'License :: OSI Approved :: Apache Software License',
         'Topic :: System :: Filesystems',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
@@ -38,14 +36,8 @@ PACKAGE_INFO = dict(
         'Documentation': 'https://pycosio.readthedocs.io',
         'Download': 'https://pypi.org/project/pycosio'},
     license='Apache License, Version 2.0',
-    python_requires='>=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*',
-    install_requires=[
-        'requests>=2.20.0', 'python-dateutil>=2.6.0',
-
-        # Python 2.7 compatibility
-        'futures>=3.1.1; python_version == "2.7"',
-        'scandir>=1.5; python_version == "2.7"'],
-
+    python_requires='>=3.5',
+    install_requires=['requests>=2.20.0', 'python-dateutil>=2.6.0'],
     extras_require={
         # Storage specific requirements
         'azure_blob': ['azure-storage-blob>=1.3.0'],

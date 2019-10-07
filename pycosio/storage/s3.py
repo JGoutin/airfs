@@ -7,7 +7,6 @@ import re as _re
 import boto3 as _boto3
 from botocore.exceptions import ClientError as _ClientError
 
-from pycosio._core.compat import to_timestamp as _to_timestamp
 from pycosio._core.exceptions import (
     ObjectNotFoundError as _ObjectNotFoundError,
     ObjectPermissionError as _ObjectPermissionError)
@@ -184,7 +183,7 @@ class _S3System(_SystemBase):
         """
         for key in keys:
             try:
-                return _to_timestamp(header.pop(key))
+                return header.pop(key).timestamp()
             except KeyError:
                 continue
         raise _UnsupportedOperation(name)
