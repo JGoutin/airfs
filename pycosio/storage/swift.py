@@ -291,6 +291,7 @@ class SwiftBufferedIO(_ObjectBufferedIOBase):
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
     """
+    __slots__ = ('_container', '_object_name', '_segment_name')
 
     _RAW_CLASS = SwiftRawIO
 

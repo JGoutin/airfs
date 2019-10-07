@@ -80,6 +80,8 @@ class _AzureBaseSystem(_SystemBase):
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
     """
+    __slots__ = ('_endpoint', '_endpoint_domain')
+
     _MTIME_KEYS = ('last_modified',)
     _SIZE_KEYS = ('content_length',)
 
@@ -279,6 +281,8 @@ class _AzureStorageRawIORangeWriteBase(_ObjectRawIORandomWriteBase,
     """
     Common Raw IO for Azure storage classes that have write range ability.
     """
+    __slots__ = ('_content_length',)
+
     _MAX_FLUSH_SIZE = None
 
     def __init__(self, *args, **kwargs):

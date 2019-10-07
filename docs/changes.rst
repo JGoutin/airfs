@@ -1,6 +1,14 @@
 Changelog
 =========
 
+1.4.0 (2019/??)
+---------------
+
+Improvements:
+
+* Use `__slots__` on all classes to improve performance and memory usage.
+
+
 1.3.3 (2019/07)
 ---------------
 

@@ -32,6 +32,9 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
     """
+    __slots__ = ('_system', '_path', '_client_kwargs', '_is_raw_of_buffered',
+                 '_write_buffer')
+
     # System I/O class
     _SYSTEM_CLASS = SystemBase
 

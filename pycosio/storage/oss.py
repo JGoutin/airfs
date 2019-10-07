@@ -49,6 +49,8 @@ class _OSSSystem(_SystemBase):
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
     """
+    __slots__ = ('_unsecure', '_endpoint')
+
     _CTIME_KEYS = ('Creation-Date', 'creation_date')
     _MTIME_KEYS = ('Last-Modified', 'last_modified')
 
@@ -387,6 +389,7 @@ class OSSBufferedIO(_ObjectBufferedIOBase):
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
     """
+    __slots__ = ('_bucket', '_key', '_upload_id')
 
     _RAW_CLASS = OSSRawIO
 

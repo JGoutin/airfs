@@ -59,6 +59,8 @@ class _S3System(_SystemBase):
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
     """
+    __slots__ = ('_session',)
+
     _SIZE_KEYS = ('ContentLength',)
     _CTIME_KEYS = ('CreationDate',)
     _MTIME_KEYS = ('LastModified',)
@@ -399,6 +401,7 @@ class S3BufferedIO(_ObjectBufferedIOBase):
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
     """
+    __slots__ = ('_upload_args',)
 
     _RAW_CLASS = S3RawIO
 

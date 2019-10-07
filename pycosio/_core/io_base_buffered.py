@@ -33,6 +33,10 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
     """
+    __slots__ = ('_raw', '_client_kwargs', '_buffer_size', '_max_buffers',
+                 '_buffer_seek', '_raw_flush', '_size_synched', '_size',
+                 '_size_lock', '_read_range', '_read_queue')
+
     # Raw I/O class
     _RAW_CLASS = ObjectRawIOBase
 

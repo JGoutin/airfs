@@ -38,6 +38,8 @@ class AzurePageBlobRawIO(AzureBlobRawIO, _AzureStorageRawIORangeWriteBase):
             read data and ignore padding when seeking from end
             (whence=os.SEEK_END). Default to True.
     """
+    __slots__ = ('_ignore_padding',)
+
     __DEFAULT_CLASS = False
 
     #: Maximum size of one flush operation

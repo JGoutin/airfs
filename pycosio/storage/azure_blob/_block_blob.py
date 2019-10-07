@@ -82,6 +82,8 @@ class AzureBlockBlobBufferedIO(AzureBlobBufferedIO):
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
     """
+    __slots__ = ('_blocks',)
+
     __DEFAULT_CLASS = False
     _RAW_CLASS = AzureBlockBlobRawIO
 

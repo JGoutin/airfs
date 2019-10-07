@@ -31,6 +31,8 @@ class SystemBase(ABC, WorkerPoolBase):
             transfer performance. But makes connection unsecure.
         roots (tuple): Tuple of roots to force use.
     """
+    __slots__ = ('_storage_parameters', '_unsecure', '_storage', '_client',
+                 '_cache', '_roots')
 
     # By default, assumes that information are in a standard HTTP header
     _SIZE_KEYS = ('Content-Length',)

@@ -205,6 +205,8 @@ class DirEntry:
 
     Not intended to be instantiated directly.
     """
+    __slots__ = ('_cache', '_system', '_name', '_header', '_path',
+                 '_bytes_path')
 
     def __init__(self, scandir_path, system, name, header, bytes_path):
         """

@@ -17,6 +17,8 @@ class ObjectIOBase(IOBase):
         mode (str): The mode can be 'r', 'w', 'a', 'x'
             for reading (default), writing or appending
     """
+    __slots__ = ('_name', '_mode', '_seek', '_seek_lock', '_cache', '_closed',
+                 '_writable', '_readable', '_seekable')
 
     def __init__(self, name, mode='r'):
         IOBase.__init__(self)
