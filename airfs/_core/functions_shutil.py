@@ -6,12 +6,12 @@ from shutil import (
     copy as shutil_copy, copyfileobj, copyfile as shutil_copyfile,
     SameFileError)
 
-from pycosio._core.compat import COPY_BUFSIZE
-from pycosio._core.functions_io import cos_open
-from pycosio._core.functions_os_path import isdir
-from pycosio._core.functions_core import format_and_is_storage
-from pycosio._core.exceptions import ObjectException, handle_os_exceptions
-from pycosio._core.storage_manager import get_instance
+from airfs._core.compat import COPY_BUFSIZE
+from airfs._core.functions_io import cos_open
+from airfs._core.functions_os_path import isdir
+from airfs._core.functions_core import format_and_is_storage
+from airfs._core.exceptions import ObjectException, handle_os_exceptions
+from airfs._core.storage_manager import get_instance
 
 
 def _copy(src, dst, src_is_storage, dst_is_storage):

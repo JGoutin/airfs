@@ -3,11 +3,11 @@
 from azure.storage.blob.models import _BlobTypes
 from azure.storage.blob import AppendBlobService
 
-from pycosio.storage.azure import _handle_azure_exception
-from pycosio._core.io_base import memoizedmethod
-from pycosio.io import (
+from airfs.storage.azure import _handle_azure_exception
+from airfs._core.io_base import memoizedmethod
+from airfs.io import (
     ObjectBufferedIORandomWriteBase, ObjectRawIORandomWriteBase)
-from pycosio.storage.azure_blob._base_blob import (
+from airfs.storage.azure_blob._base_blob import (
     AzureBlobRawIO, AzureBlobBufferedIO, AZURE_RAW, AZURE_BUFFERED)
 
 _BLOB_TYPE = _BlobTypes.AppendBlob

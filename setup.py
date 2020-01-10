@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 #  coding=utf-8
-"""Python Cloud Object Storage I/O setup script
+"""airfs setup script
 
 run "./setup.py --help-commands" for help.
 """
@@ -13,8 +13,8 @@ from setuptools import setup, find_packages
 
 # Sets Package information
 PACKAGE_INFO = dict(
-    name='pycosio',
-    description='Python Cloud Object Storage I/O',
+    name='airfs',
+    description='A Python library for cloud and remote file Systems',
     long_description_content_type='text/markdown; charset=UTF-8',
     classifiers=[
         # Must be listed on: https://pypi.org/classifiers/
@@ -27,14 +27,14 @@ PACKAGE_INFO = dict(
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
         'Operating System :: OS Independent'],
-    keywords='cloud cloud-storage bucket io stream',
-    author='Accelize',
-    author_email='info@accelize.com',
-    url='https://github.com/Accelize/pycosio',
+    keywords='cloud cloud-storage bucket io stream file-system',
+    author='J.Goutin',
+    url='https://github.com/JGoutin/airfs',
     project_urls={
-        'Documentation': 'https://pycosio.readthedocs.io',
-        'Download': 'https://pypi.org/project/pycosio'},
+        'Documentation': 'https://airfs.readthedocs.io',
+        'Download': 'https://pypi.org/project/airfs'},
     license='Apache License, Version 2.0',
     python_requires='>=3.5',
     install_requires=['requests>=2.20.0', 'python-dateutil>=2.6.0'],
@@ -52,7 +52,7 @@ PACKAGE_INFO = dict(
 
 # Gets package __version__ from package
 SETUP_DIR = abspath(dirname(__file__))
-with open(join(SETUP_DIR, 'pycosio', '__init__.py')) as source_file:
+with open(join(SETUP_DIR, 'airfs', '__init__.py')) as source_file:
     for line in source_file:
         if line.rstrip().startswith('__version__'):
             PACKAGE_INFO['version'] = line.split('=', 1)[1].strip(" \"\'\n")

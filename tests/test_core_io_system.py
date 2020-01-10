@@ -1,5 +1,5 @@
 # coding=utf-8
-"""Test pycosio._core.io_system"""
+"""Test airfs._core.io_system"""
 import time
 import re
 from wsgiref.handlers import format_date_time
@@ -8,9 +8,9 @@ import pytest
 
 
 def test_system_base():
-    """Tests pycosio._core.io_system.SystemBase"""
-    from pycosio._core.io_base_system import SystemBase
-    from pycosio._core.exceptions import (
+    """Tests airfs._core.io_system.SystemBase"""
+    from airfs._core.io_base_system import SystemBase
+    from airfs._core.exceptions import (
         ObjectNotFoundError, ObjectPermissionError)
     from io import UnsupportedOperation
     from stat import S_ISDIR, S_ISREG, S_ISLNK

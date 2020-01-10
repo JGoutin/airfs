@@ -1,5 +1,5 @@
 # coding=utf-8
-"""Test pycosio.storage.azure"""
+"""Test airfs.storage.azure"""
 from datetime import datetime
 from time import time
 
@@ -7,10 +7,10 @@ import pytest
 
 
 def test_handle_azure_exception():
-    """Test pycosio.storage.azure._handle_azure_exception"""
-    from pycosio.storage.azure import _handle_azure_exception
+    """Test airfs.storage.azure._handle_azure_exception"""
+    from airfs.storage.azure import _handle_azure_exception
     from azure.common import AzureHttpError
-    from pycosio._core.exceptions import (
+    from airfs._core.exceptions import (
         ObjectNotFoundError, ObjectPermissionError)
 
     # Any error
@@ -30,9 +30,9 @@ def test_handle_azure_exception():
 
 
 def test_mount_redirect():
-    """Test pycosio.storage.azure.MOUNT_REDIRECT"""
+    """Test airfs.storage.azure.MOUNT_REDIRECT"""
     from collections import OrderedDict
-    import pycosio._core.storage_manager as manager
+    import airfs._core.storage_manager as manager
 
     # Mocks mounted
     manager_mounted = manager.MOUNTED
@@ -66,9 +66,9 @@ def test_mount_redirect():
 
 def test_update_listing_client_kwargs():
     """
-    Test pycosio.storage.azure._AzureBaseSystem._update_listing_client_kwargs
+    Test airfs.storage.azure._AzureBaseSystem._update_listing_client_kwargs
     """
-    from pycosio.storage.azure import _AzureBaseSystem
+    from airfs.storage.azure import _AzureBaseSystem
 
     params = dict(arg=1)
     assert _AzureBaseSystem._update_listing_client_kwargs(params, 10) == dict(
@@ -78,8 +78,8 @@ def test_update_listing_client_kwargs():
 
 
 def test_model_to_dict():
-    """Test pycosio.storage.azure._AzureBaseSystem._model_to_dict"""
-    from pycosio.storage.azure import _AzureBaseSystem
+    """Test airfs.storage.azure._AzureBaseSystem._model_to_dict"""
+    from airfs.storage.azure import _AzureBaseSystem
     from azure.storage.file import models
 
     last_modified = datetime.now()
@@ -94,8 +94,8 @@ def test_model_to_dict():
 
 
 def test_get_time():
-    """Test pycosio.storage.azure._AzureBaseSystem._get_time"""
-    from pycosio.storage.azure import _AzureBaseSystem
+    """Test airfs.storage.azure._AzureBaseSystem._get_time"""
+    from airfs.storage.azure import _AzureBaseSystem
     from io import UnsupportedOperation
 
     m_time = time()

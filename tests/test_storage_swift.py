@@ -1,5 +1,5 @@
 # coding=utf-8
-"""Test pycosio.storage.swift"""
+"""Test airfs.storage.swift"""
 import pytest
 
 UNSUPPORTED_OPERATIONS = (
@@ -11,10 +11,10 @@ UNSUPPORTED_OPERATIONS = (
 
 
 def test_handle_client_exception():
-    """Test pycosio.swift._handle_client_exception"""
-    from pycosio.storage.swift import _handle_client_exception
+    """Test airfs.swift._handle_client_exception"""
+    from airfs.storage.swift import _handle_client_exception
     from swiftclient import ClientException
-    from pycosio._core.exceptions import (
+    from airfs._core.exceptions import (
         ObjectNotFoundError, ObjectPermissionError)
 
     # No error
@@ -38,10 +38,10 @@ def test_handle_client_exception():
 
 
 def test_mocked_storage():
-    """Tests pycosio.swift with a mock"""
+    """Tests airfs.swift with a mock"""
     from json import loads
     import swiftclient
-    from pycosio.storage.swift import SwiftRawIO, _SwiftSystem, SwiftBufferedIO
+    from airfs.storage.swift import SwiftRawIO, _SwiftSystem, SwiftBufferedIO
 
     from tests.test_storage import StorageTester
     from tests.storage_mock import ObjectStorageMock

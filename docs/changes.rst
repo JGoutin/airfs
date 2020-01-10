@@ -1,8 +1,14 @@
 Changelog
 =========
 
-1.4.0 (2019/??)
+1.4.0 (2020/01)
 ---------------
+
+Fork from "pycosio" unmaintained project:
+
+* Namespace to import changed from `pycosio` to `airfs`. It is possible to
+  upgrade by replacing all `pycosio` code occurrences by `airfs` or doing
+  `import airfs as pycosio`.
 
 Improvements:
 
@@ -27,8 +33,8 @@ Fixes:
 
 * Fix ``io.BufferedIOBase`` partially read when reading exactly by parts of the
   buffer size.
-* Fix bad permission error handling ``pycosio.copy``.
-* Fix bad exceptions risen if no parent directory found using ``pycosio.copy``.
+* Fix bad permission error handling ``airfs.copy``.
+* Fix bad exceptions risen if no parent directory found using ``airfs.copy``.
 
 Contributors:
 
@@ -114,7 +120,7 @@ Improvements:
 
 * Copy of objects from and to the same storage is performed directly on remote
   server if possible.
-* Pycosio now raises ``io.UnsupportedOperation`` if an operation is not
+* airfs now raises ``io.UnsupportedOperation`` if an operation is not
   compatible with the current storage, this applies to all newly created
   function and following existing functions: ``getsize``,  ``getmtime``,
   ``mkdir``.

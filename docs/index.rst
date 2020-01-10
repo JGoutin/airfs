@@ -1,7 +1,7 @@
-Pycosio (Python Cloud Object Storage I/O)
-=========================================
+airfs: A Python library for cloud and remote file Systems
+=========================================================
 
-Pycosio brings standard Python I/O to cloud objects by providing:
+airfs brings standard Python I/O to cloud objects by providing:
 
 * Abstract classes of Cloud objects with the complete ``io.RawIOBase`` and
   ``io.BufferedIOBase`` standard interfaces.
@@ -22,29 +22,29 @@ Example of code:
 
 .. code-block:: python
 
-    import pycosio
+    import airfs
 
     # Open an object on AWS S3 as text for reading
-    with pycosio.open('s3://my_bucket/my_object.txt', 'rt') as file:
+    with airfs.open('s3://my_bucket/my_object.txt', 'rt') as file:
         text = file.read()
 
     # Open an object on AWS S3 as binary for writing
-    with pycosio.open('s3://my_bucket/my_object.bin', 'wb') as file:
+    with airfs.open('s3://my_bucket/my_object.bin', 'wb') as file:
         file.write(b'binary_data')
 
     # Copy file from the local file system to OpenStack Swift
-    pycosio.copy(
+    airfs.copy(
         'my_file',
         'https://objects.my_cloud.com/v1/12345678912345/my_container/my_object')
 
     # Get size of a file over internet
-    pycosio.getsize('https://www.example.org/any_object')
+    airfs.getsize('https://www.example.org/any_object')
     >>> 956
 
 Supported Cloud storage
 -----------------------
 
-Pycosio is compatible with the following cloud objects storage services:
+airfs is compatible with the following cloud objects storage services:
 
 * Alibaba Cloud OSS
 * Amazon Web Services S3
@@ -52,7 +52,7 @@ Pycosio is compatible with the following cloud objects storage services:
 * Microsoft Azure Files Storage
 * OpenStack Swift
 
-Pycosio can also access any publicly accessible file via HTTP/HTTPS
+airfs can also access any publicly accessible file via HTTP/HTTPS
 (Read only).
 
 Limitations
@@ -64,7 +64,6 @@ Cloud object storage is not file systems and has the following limitations:
 - Cloud objects must be written entirely at once.
 - Cloud objects are not locked when accessed.
 - The cloud object attributes available are more limited.
-
 
 .. toctree::
    :maxdepth: 2
@@ -78,8 +77,8 @@ Cloud object storage is not file systems and has the following limitations:
    :maxdepth: 2
    :caption: Links
 
-   Pycosio on GitHub <https://github.com/Accelize/pycosio>
-   Pycosio on PyPI <https://pypi.org/project/pycosio>
+   airfs on GitHub <https://github.com/JGoutin/airfs>
+   airfs on PyPI <https://pypi.org/project/airfs>
 
 Indices and tables
 ==================

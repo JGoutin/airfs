@@ -4,8 +4,8 @@ from contextlib import contextmanager
 from io import open as io_open, TextIOWrapper
 
 from os import fsdecode
-from pycosio._core.storage_manager import get_instance
-from pycosio._core.functions_core import is_storage
+from airfs._core.storage_manager import get_instance
+from airfs._core.functions_core import is_storage
 
 
 @contextmanager

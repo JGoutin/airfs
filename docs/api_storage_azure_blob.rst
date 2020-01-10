@@ -1,12 +1,12 @@
-pycosio.storage.azure_blob
-==========================
+airfs.storage.azure_blob
+========================
 
 Microsoft Azure Storage Blob
 
 Mount
 -----
 
-An Azure storage account can be mounted using the Pycosio ``mount`` function.
+An Azure storage account can be mounted using the airfs ``mount`` function.
 
 ``storage_parameters`` await arguments to pass to the
 ``azure.storage.blob.baseblobservice.BaseBlobService`` class from
@@ -17,17 +17,17 @@ configuration:
 
 .. code-block:: python
 
-    import pycosio
+    import airfs
 
     # Mount Azure Storage Blob manually (Minimal configuration)
-    pycosio.mount(storage='azure_blob', storage_parameters=dict(
+    airfs.mount(storage='azure_blob', storage_parameters=dict(
             account_name='my_account_name',
             account_key='my_account_key'
         )
     )
 
-    # Call of pycosio on an Azure Storage blob.
-    with pycosio.open(
+    # Call of airfs on an Azure Storage blob.
+    with airfs.open(
             'https://my_account.blob.core.windows.net/my_container/my_blob',
             'rt') as file:
         text = file.read()
@@ -37,7 +37,7 @@ argument of the ``BaseBlobService`` class is required to allow blob and files
 copies across different accounts.
 
 It is possible to mount Azure Storage Blob and Azure Storage File with a single
-``pycosio.mount`` call by using ``storage='azure'`` instead of
+``airfs.mount`` call by using ``storage='azure'`` instead of
 ``storage='azure_blob'``.
 
 Limitation
@@ -58,9 +58,9 @@ The default blob type can be set when mounting the storage
 
 .. code-block:: python
 
-    import pycosio
+    import airfs
 
-    pycosio.mount(storage='azure_blob', storage_parameters=dict(
+    airfs.mount(storage='azure_blob', storage_parameters=dict(
             account_name='my_account_name', account_key='my_account_key',
 
             # Using PageBlob by default for new files
@@ -73,7 +73,7 @@ It can also be selected for a specific file when opening it in write mode:
 .. code-block:: python
 
     # Open a new file in write mode as PageBlob
-    with pycosio.open(
+    with airfs.open(
             'https://my_account.blob.core.windows.net/my_container/my_blob',
             'wb', blob_type='PageBlob') as file:
         file.write(b'0')
@@ -86,7 +86,7 @@ The page blob supports the following specific features.
 Preallocating pages
 ~~~~~~~~~~~~~~~~~~~
 
-When flushing a page blob out of its current size, pycosio first resize the
+When flushing a page blob out of its current size, airfs first resize the
 blob to allow the flush of the new data.
 
 In case of multiple flushes on a raw IO or when using a buffered IO, this is
@@ -100,13 +100,13 @@ size when opening it in write mode:
 .. code-block:: python
 
     # Open a new page blob and preallocate it with 1024 bytes.
-    with pycosio.open(
+    with airfs.open(
             'https://my_account.blob.core.windows.net/my_container/my_blob',
             'wb', blob_type='PageBlob', content_length=1024) as file:
         file.write(b'1')
 
     # Append on an existing page blob and pre-resize it to 2048 bytes.
-    with pycosio.open(
+    with airfs.open(
             'https://my_account.blob.core.windows.net/my_container/my_blob',
             'ab', blob_type='PageBlob', content_length=2048) as file:
         file.write(b'1')
@@ -116,7 +116,7 @@ The preallocation is done with padding of null characters (``b'\0'``).
 End page padding handling
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-By default, Pycosio tries to handle page blobs like standard files by ignoring
+By default, airfs tries to handle page blobs like standard files by ignoring
 trailing page padding of null characters:
 
 * When opening a file in append mode (Seek to the end of file after ignoring
@@ -132,7 +132,7 @@ opening the page blob.
 Files objects classes
 ---------------------
 
-.. automodule:: pycosio.storage.azure_blob
+.. automodule:: airfs.storage.azure_blob
    :members:
    :inherited-members:
 

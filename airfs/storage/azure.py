@@ -9,15 +9,15 @@ from threading import Lock as _Lock
 
 from azure.common import AzureHttpError as _AzureHttpError
 
-from pycosio._core.io_base import WorkerPoolBase as _WorkerPoolBase
-from pycosio._core.exceptions import (
+from airfs._core.io_base import WorkerPoolBase as _WorkerPoolBase
+from airfs._core.exceptions import (
     ObjectNotFoundError as _ObjectNotFoundError,
     ObjectPermissionError as _ObjectPermissionError)
-from pycosio.io import (
+from airfs.io import (
     SystemBase as _SystemBase, ObjectRawIOBase as _ObjectRawIOBase,
     ObjectRawIORandomWriteBase as _ObjectRawIORandomWriteBase)
 
-#: 'azure' can be used to mount following storage at once with pycosio.mount
+#: 'azure' can be used to mount following storage at once with airfs.mount
 MOUNT_REDIRECT = ('azure_blob', 'azure_file')
 
 _ERROR_CODES = {
@@ -116,7 +116,7 @@ class _AzureBaseSystem(_SystemBase):
         to define roots.
 
         Args:
-            self (pycosio._core.io_system.SystemBase subclass): System.
+            self (airfs._core.io_system.SystemBase subclass): System.
             sub_domain (str): Azure storage sub-domain.
 
         Returns:
@@ -159,7 +159,7 @@ class _AzureBaseSystem(_SystemBase):
 
         Args:
             path (str): Path or URL.
-            caller_system (pycosio.storage.azure._AzureBaseSystem subclass):
+            caller_system (airfs.storage.azure._AzureBaseSystem subclass):
                 System calling this method (Can be another Azure system).
 
         Returns:

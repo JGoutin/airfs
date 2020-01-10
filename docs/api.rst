@@ -1,9 +1,9 @@
-Pycosio API
-===========
+airfs API
+=========
 
-This section describes the ``pycosio`` Python package API.
+This section describes the ``airfs`` Python package API.
 
-.. automodule:: pycosio
+.. automodule:: airfs
    :members:
    :inherited-members:
 

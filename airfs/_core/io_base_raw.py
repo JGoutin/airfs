@@ -4,10 +4,10 @@ from abc import abstractmethod
 from io import RawIOBase, UnsupportedOperation
 from os import SEEK_CUR, SEEK_END, SEEK_SET
 
-from pycosio._core.exceptions import (
+from airfs._core.exceptions import (
     ObjectNotFoundError, ObjectPermissionError, handle_os_exceptions)
-from pycosio._core.io_base import ObjectIOBase, memoizedmethod
-from pycosio._core.io_base_system import SystemBase
+from airfs._core.io_base import ObjectIOBase, memoizedmethod
+from airfs._core.io_base_system import SystemBase
 
 
 class ObjectRawIOBase(RawIOBase, ObjectIOBase):
@@ -51,14 +51,14 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         # Try to get cached head for this file
         try:
             self._cache['_head'] = storage_parameters.pop(
-                'pycosio.raw_io._head')
+                'airfs.raw_io._head')
         except (AttributeError, KeyError):
             pass
 
         # Initializes system
         try:
             # Try to get cached system
-            self._system = storage_parameters.pop('pycosio.system_cached')
+            self._system = storage_parameters.pop('airfs.system_cached')
         except (AttributeError, KeyError):
             self._system = None
 

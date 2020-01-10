@@ -1,11 +1,11 @@
 # coding=utf-8
-"""Test pycosio._core.io_base"""
+"""Test airfs._core.io_base"""
 import pytest
 
 
 def test_object_base_io():
-    """Tests pycosio._core.io_base.ObjectIOBase"""
-    from pycosio._core.io_base import ObjectIOBase
+    """Tests airfs._core.io_base.ObjectIOBase"""
+    from airfs._core.io_base import ObjectIOBase
 
     name = 'name'
 
@@ -35,8 +35,8 @@ def test_object_base_io():
 
 
 def test_memoizedmethod():
-    """Tests pycosio._core.utilities.memoizedmethod"""
-    from pycosio._core.io_base import memoizedmethod
+    """Tests airfs._core.utilities.memoizedmethod"""
+    from airfs._core.io_base import memoizedmethod
 
     # Tests _memoize
     class Dummy:

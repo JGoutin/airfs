@@ -1,5 +1,5 @@
 # coding=utf-8
-"""Test pycosio.storage.s3"""
+"""Test airfs.storage.s3"""
 import pytest
 
 UNSUPPORTED_OPERATIONS = (
@@ -11,10 +11,10 @@ UNSUPPORTED_OPERATIONS = (
 
 
 def test_handle_client_error():
-    """Test pycosio.s3._handle_client_error"""
-    from pycosio.storage.s3 import _handle_client_error
+    """Test airfs.s3._handle_client_error"""
+    from airfs.storage.s3 import _handle_client_error
     from botocore.exceptions import ClientError
-    from pycosio._core.exceptions import (
+    from airfs._core.exceptions import (
         ObjectNotFoundError, ObjectPermissionError)
 
     response = {'Error': {'Code': 'ErrorCode', 'Message': 'Error'}}
@@ -38,11 +38,11 @@ def test_handle_client_error():
 
 
 def test_mocked_storage():
-    """Tests pycosio.s3 with a mock"""
+    """Tests airfs.s3 with a mock"""
     from datetime import datetime
     from io import BytesIO, UnsupportedOperation
 
-    from pycosio.storage.s3 import S3RawIO, _S3System, S3BufferedIO
+    from airfs.storage.s3 import S3RawIO, _S3System, S3BufferedIO
 
     from botocore.exceptions import ClientError
     import boto3

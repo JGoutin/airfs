@@ -2,7 +2,7 @@
 """File System using true file hierarchy"""
 from abc import abstractmethod
 
-from pycosio._core.io_base_system import SystemBase
+from airfs._core.io_base_system import SystemBase
 
 
 class FileSystemBase(SystemBase):

@@ -7,18 +7,18 @@ from sys import version_info as _py
 
 # Raise import error on incompatible versions
 if _py[0] < 3 or (_py[0] == 3 and _py[1] < 5):
-    raise ImportError('Pycosio require Python 3.5 or more.')
+    raise ImportError('airfs require Python 3.5 or more.')
 
 
 # Warn about future incompatibles versions
 def _deprecation_warning():
     """
-    Warn user about deprecation of this Python version in next Pycosio
+    Warn user about deprecation of this Python version in next airfs
     version.
     """
     import warnings
     warnings.warn(
-        "Next Pycosio version will not support Python %d.%d." % (
+        "Next airfs version will not support Python %d.%d." % (
             _py[0], _py[1]), DeprecationWarning, stacklevel=2)
 
 

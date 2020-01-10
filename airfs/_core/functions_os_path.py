@@ -3,9 +3,9 @@
 import os
 from os.path import relpath as os_path_relpath, samefile as os_path_samefile
 
-from pycosio._core.storage_manager import get_instance
-from pycosio._core.functions_core import equivalent_to, format_and_is_storage
-from pycosio._core.exceptions import handle_os_exceptions
+from airfs._core.storage_manager import get_instance
+from airfs._core.functions_core import equivalent_to, format_and_is_storage
+from airfs._core.exceptions import handle_os_exceptions
 
 
 @equivalent_to(os.path.exists)

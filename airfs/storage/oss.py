@@ -7,11 +7,11 @@ import oss2 as _oss
 from oss2.models import PartInfo as _PartInfo
 from oss2.exceptions import OssError as _OssError
 
-from pycosio._core.io_base import memoizedmethod as _memoizedmethod
-from pycosio._core.exceptions import (
+from airfs._core.io_base import memoizedmethod as _memoizedmethod
+from airfs._core.exceptions import (
     ObjectNotFoundError as _ObjectNotFoundError,
     ObjectPermissionError as _ObjectPermissionError)
-from pycosio.io import (
+from airfs.io import (
     ObjectRawIOBase as _ObjectRawIOBase,
     ObjectBufferedIOBase as _ObjectBufferedIOBase,
     SystemBase as _SystemBase)
@@ -73,7 +73,7 @@ class _OSSSystem(_SystemBase):
         Args:
             src (str): Path or URL.
             dst (str): Path or URL.
-            other_system (pycosio._core.io_system.SystemBase subclass): Unused.
+            other_system (airfs._core.io_system.SystemBase subclass): Unused.
         """
         copy_source = self.get_client_kwargs(src)
         copy_destination = self.get_client_kwargs(dst)

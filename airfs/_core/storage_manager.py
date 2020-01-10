@@ -4,13 +4,13 @@ from collections import OrderedDict
 from importlib import import_module
 from threading import RLock
 
-from pycosio._core.io_base_raw import ObjectRawIOBase
-from pycosio._core.io_base_buffered import ObjectBufferedIOBase
-from pycosio._core.io_base_system import SystemBase
-from pycosio._core.compat import Pattern
+from airfs._core.io_base_raw import ObjectRawIOBase
+from airfs._core.io_base_buffered import ObjectBufferedIOBase
+from airfs._core.io_base_system import SystemBase
+from airfs._core.compat import Pattern
 
 # Packages where to search for storage
-STORAGE_PACKAGE = ['pycosio.storage']
+STORAGE_PACKAGE = ['airfs.storage']
 
 # Mounted storage
 MOUNTED = OrderedDict()
@@ -45,7 +45,7 @@ def get_instance(name, cls='system', storage=None, storage_parameters=None,
         args, kwargs: Instance arguments
 
     Returns:
-        pycosio._core.io_base.ObjectIOBase subclass: Instance
+        airfs._core.io_base.ObjectIOBase subclass: Instance
     """
     system_parameters = _system_parameters(
         unsecure=unsecure, storage_parameters=storage_parameters)
@@ -93,7 +93,7 @@ def get_instance(name, cls='system', storage=None, storage_parameters=None,
         if 'storage_parameters' not in system_parameters:
             system_parameters['storage_parameters'] = dict()
         system_parameters['storage_parameters'][
-            'pycosio.system_cached'] = info['system_cached']
+            'airfs.system_cached'] = info['system_cached']
 
     kwargs.update(system_parameters)
     return info[cls](name=name, *args, **kwargs)

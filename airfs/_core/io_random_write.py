@@ -6,9 +6,9 @@ from io import UnsupportedOperation
 from os import SEEK_SET
 from time import sleep
 
-from pycosio._core.io_base_raw import ObjectRawIOBase
-from pycosio._core.io_base_buffered import ObjectBufferedIOBase
-from pycosio._core.exceptions import handle_os_exceptions, ObjectNotFoundError
+from airfs._core.io_base_raw import ObjectRawIOBase
+from airfs._core.io_base_buffered import ObjectBufferedIOBase
+from airfs._core.exceptions import handle_os_exceptions, ObjectNotFoundError
 
 
 class ObjectRawIORandomWriteBase(ObjectRawIOBase):

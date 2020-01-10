@@ -1,12 +1,12 @@
-pycosio.storage.azure_file
-==========================
+airfs.storage.azure_file
+========================
 
 Microsoft Azure Storage File
 
 Mount
 -----
 
-An Azure storage account can be mounted using the Pycosio ``mount`` function.
+An Azure storage account can be mounted using the airfs ``mount`` function.
 
 ``storage_parameters`` await arguments to pass to the
 ``azure.storage.file.fileservice.FileService`` class from
@@ -17,17 +17,17 @@ configuration:
 
 .. code-block:: python
 
-    import pycosio
+    import airfs
 
     # Mount Azure Storage File manually (Minimal configuration)
-    pycosio.mount(storage='azure_file', storage_parameters=dict(
+    airfs.mount(storage='azure_file', storage_parameters=dict(
             account_name='my_account_name',
             account_key='my_account_key'
         )
     )
 
-    # Call of pycosio on an Azure Storage file.
-    with pycosio.open(
+    # Call of airfs on an Azure Storage file.
+    with airfs.open(
             '//my_account.file.core.windows.net/my_share/my_file',
             'rt') as file:
         text = file.read()
@@ -37,7 +37,7 @@ argument of the ``FileService`` class is required to allow blob and files
 copies across different accounts.
 
 It is possible to mount Azure Storage Blob and Azure Storage File with a single
-``pycosio.mount`` call by using ``storage='azure'`` instead of
+``airfs.mount`` call by using ``storage='azure'`` instead of
 ``storage='azure_file'``.
 
 Limitation
@@ -48,7 +48,7 @@ Only one configuration per Azure Storage account can be mounted simultaneously.
 Preallocating files
 -------------------
 
-When flushing a file out of its current size, pycosio first resize the
+When flushing a file out of its current size, airfs first resize the
 file to allow the flush of the new data.
 
 In case of multiple flushes on a raw IO or when using a buffered IO, this is
@@ -62,13 +62,13 @@ size when opening it in write mode:
 .. code-block:: python
 
     # Open a new file and preallocate it with 1024 bytes.
-    with pycosio.open(
+    with airfs.open(
             '//my_account.file.core.windows.net/my_share/my_file',
             'wb', content_length=1024) as file:
         file.write(b'1')
 
     # Append on an existing file and pre-resize it to 2048 bytes.
-    with pycosio.open(
+    with airfs.open(
             '//my_account.file.core.windows.net/my_share/my_file',
             'ab', content_length=2048) as file:
         file.write(b'1')
@@ -79,7 +79,7 @@ The preallocation is done with padding of null characters (``b'\0'``).
 Files objects classes
 ---------------------
 
-.. automodule:: pycosio.storage.azure_file
+.. automodule:: airfs.storage.azure_file
    :members:
    :inherited-members:
 

@@ -1,5 +1,5 @@
 # coding=utf-8
-"""Test pycosio._core.function_*"""
+"""Test airfs._core.function_*"""
 
 from io import BytesIO
 from platform import platform
@@ -9,9 +9,9 @@ import pytest
 
 
 def test_equivalent_to():
-    """Tests pycosio._core.functions_core.equivalent_to"""
-    from pycosio._core.functions_core import equivalent_to
-    from pycosio._core.exceptions import ObjectNotFoundError
+    """Tests airfs._core.functions_core.equivalent_to"""
+    from airfs._core.functions_core import equivalent_to
+    from airfs._core.exceptions import ObjectNotFoundError
     from sys import version_info
 
     std = 'std'
@@ -63,14 +63,14 @@ def test_equivalent_to():
 
 
 def test_equivalent_functions(tmpdir):
-    """Tests functions using pycosio._core.functions_core.equivalent_to"""
-    import pycosio
-    from pycosio._core.storage_manager import MOUNTED
-    import pycosio._core.functions_os_path as std_os_path
-    import pycosio._core.functions_os as std_os
-    from pycosio._core.io_base_system import SystemBase
+    """Tests functions using airfs._core.functions_core.equivalent_to"""
+    import airfs
+    from airfs._core.storage_manager import MOUNTED
+    import airfs._core.functions_os_path as std_os_path
+    import airfs._core.functions_os as std_os
+    from airfs._core.io_base_system import SystemBase
     from os import fsencode
-    from pycosio._core.exceptions import ObjectPermissionError
+    from airfs._core.exceptions import ObjectPermissionError
 
     # Mock system
 
@@ -226,21 +226,21 @@ def test_equivalent_functions(tmpdir):
 
         # makesdirs
         assert not dir_created
-        pycosio.makedirs('dummy://locator/dir1', exist_ok=True)
+        airfs.makedirs('dummy://locator/dir1', exist_ok=True)
         assert dir_created
 
         dir_created = []
         with pytest.raises(OSError):
-            pycosio.makedirs('dummy://locator/dir1')
+            airfs.makedirs('dummy://locator/dir1')
         assert not dir_created
 
         directory = tmpdir.join('directory')
         assert not directory.check()
-        pycosio.makedirs(str(directory))
+        airfs.makedirs(str(directory))
         assert directory.check()
         with pytest.raises(OSError):
-            pycosio.makedirs(str(directory))
-        pycosio.makedirs(str(directory), exist_ok=True)
+            airfs.makedirs(str(directory))
+        airfs.makedirs(str(directory), exist_ok=True)
         directory.remove()
 
         # mkdir
@@ -248,70 +248,70 @@ def test_equivalent_functions(tmpdir):
         dirs_exists.add('dummy://')
 
         with pytest.raises(OSError):
-            pycosio.mkdir('dummy://locator/dir_not_exists/dir1')
+            airfs.mkdir('dummy://locator/dir_not_exists/dir1')
         assert not dir_created
 
-        pycosio.mkdir('dummy://locator/dir1/dir2')
+        airfs.mkdir('dummy://locator/dir1/dir2')
         assert dir_created
 
         dir_created = []
         check_ending_slash = False
         with pytest.raises(OSError):
-            pycosio.mkdir('dummy://locator/dir1')
+            airfs.mkdir('dummy://locator/dir1')
         assert not dir_created
 
         dir_created = []
-        pycosio.mkdir('dummy://locator2/')
+        airfs.mkdir('dummy://locator2/')
         assert dir_created
 
         directory = tmpdir.join('directory')
         assert not directory.check()
-        pycosio.mkdir(str(directory))
+        airfs.mkdir(str(directory))
         assert directory.check()
         directory.remove()
 
         if version_info[0] == 2:
             with pytest.raises(TypeError):
-                pycosio.mkdir(str(directory), dir_fd=1)
+                airfs.mkdir(str(directory), dir_fd=1)
 
         # remove/unlink
-        assert pycosio.remove is pycosio.unlink
+        assert airfs.remove is airfs.unlink
 
         removed = []
-        pycosio.remove('dummy://locator/file')
+        airfs.remove('dummy://locator/file')
         assert removed
 
         with pytest.raises(OSError):
-            pycosio.remove('dummy://locator')
+            airfs.remove('dummy://locator')
 
         with pytest.raises(OSError):
-            pycosio.remove('dummy://locator/dir/')
+            airfs.remove('dummy://locator/dir/')
 
         with pytest.raises(OSError):
-            pycosio.remove('dummy://')
+            airfs.remove('dummy://')
 
         file = tmpdir.ensure('file')
         assert file.check()
-        pycosio.remove(str(file))
+        airfs.remove(str(file))
         assert not file.check()
 
         # rmdir
         removed = []
-        pycosio.rmdir('dummy://locator/dir')
+        airfs.rmdir('dummy://locator/dir')
         assert removed
 
         directory = tmpdir.mkdir('directory')
         assert directory.check()
-        pycosio.rmdir(str(directory))
+        airfs.rmdir(str(directory))
         assert not directory.check()
 
         # listdir
-        assert pycosio.listdir('dummy://locator/dir') == [
+        assert airfs.listdir('dummy://locator/dir') == [
             name for name, _ in first_level_objects_list]
 
         # scandir
         parent = 'dummy://locator/dir'
-        for index, dir_entry in enumerate(pycosio.scandir(parent)):
+        for index, dir_entry in enumerate(airfs.scandir(parent)):
             name = first_level_objects_list[index][0]
             assert dir_entry.name == name
             assert dir_entry.path == '/'.join((parent, name))
@@ -322,7 +322,7 @@ def test_equivalent_functions(tmpdir):
             assert dir_entry.stat().st_size == 0
             assert name in str(dir_entry)
 
-        for index, dir_entry in enumerate(pycosio.scandir(fsencode(parent))):
+        for index, dir_entry in enumerate(airfs.scandir(fsencode(parent))):
             name = first_level_objects_list[index][0]
             assert dir_entry.name == fsencode(name)
             assert dir_entry.path == fsencode('/'.join((parent, name)))
@@ -333,18 +333,18 @@ def test_equivalent_functions(tmpdir):
             assert dir_entry.stat().st_size == 0
             assert name in str(dir_entry)
 
-        for dir_entry in pycosio.scandir(str(tmpdir)):
+        for dir_entry in airfs.scandir(str(tmpdir)):
             assert dir_entry
 
         is_dir_no_access = True
-        for dir_entry in pycosio.scandir(fsencode(parent)):
+        for dir_entry in airfs.scandir(fsencode(parent)):
             assert dir_entry.is_dir() == True
 
         is_dir_no_access = False
 
         # stat
-        assert pycosio.stat(str(tmpdir))
-        assert pycosio.lstat(str(tmpdir))
+        assert airfs.stat(str(tmpdir))
+        assert airfs.lstat(str(tmpdir))
 
     # Clean up
     finally:
@@ -353,17 +353,17 @@ def test_equivalent_functions(tmpdir):
 
 def test_cos_open(tmpdir):
     """
-    Tests  pycosio._core.functions_io.cos_open and
-    pycosio._core.functions_shutil.copy
+    Tests  airfs._core.functions_io.cos_open and
+    airfs._core.functions_shutil.copy
     """
-    from pycosio import copy, copyfile
-    from pycosio._core.functions_io import cos_open
-    from pycosio._core.storage_manager import MOUNTED
-    from pycosio._core.io_base_system import SystemBase
+    from airfs import copy, copyfile
+    from airfs._core.functions_io import cos_open
+    from airfs._core.storage_manager import MOUNTED
+    from airfs._core.io_base_system import SystemBase
     from io import TextIOWrapper, UnsupportedOperation
     from os.path import isdir
     from shutil import SameFileError
-    import pycosio._core.functions_shutil as pycosio_shutil
+    import airfs._core.functions_shutil as rfs_shutil
 
     root = 'dummy_read://'
     root2 = 'dummy_read2://'
@@ -458,8 +458,8 @@ def test_cos_open(tmpdir):
             return False
         return isdir(path)
 
-    pycosio_shutil_isdir = pycosio_shutil.isdir
-    pycosio_shutil.isdir = dummy_isdir
+    rfs_shutil_isdir = rfs_shutil.isdir
+    rfs_shutil.isdir = dummy_isdir
 
     # Tests
     try:
@@ -600,12 +600,12 @@ def test_cos_open(tmpdir):
     # Clean up
     finally:
         del MOUNTED[root]
-        pycosio_shutil.isdir = pycosio_shutil_isdir
+        rfs_shutil.isdir = rfs_shutil_isdir
 
 
 def test_is_storage():
-    """Tests pycosio._core.storage_manager.is_storage"""
-    from pycosio._core.functions_core import is_storage
+    """Tests airfs._core.storage_manager.is_storage"""
+    from airfs._core.functions_core import is_storage
 
     # Remote paths
     assert is_storage('', storage='storage')

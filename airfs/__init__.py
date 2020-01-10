@@ -1,8 +1,8 @@
 # coding=utf-8
-"""Python Cloud Object Storage I/O
+"""Python "Remote File Systems" library
 
-
-Copyright 2018 Accelize
+Copyright 2020 J.Goutin
+Copyright 2018-2019 Accelize
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,20 +16,20 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-__version__ = '1.3.3'
-__copyright__ = "Copyright 2018 Accelize"
+__version__ = '1.4.0'
+__copyright__ = "Copyright 2020 J.Goutin"
 __licence__ = "Apache 2.0"
 
 # Adds names to public interface
-# Shadowing "open" built-in name is done to provides "pycosio.open" function
-from pycosio._core.functions_io import cos_open as open
-from pycosio._core.functions_os import (
+# Shadowing "open" built-in name is done to provides "airfs.open" function
+from airfs._core.functions_io import cos_open as open
+from airfs._core.functions_os import (
     listdir, lstat, makedirs, mkdir, remove, rmdir, scandir, stat, unlink)
-from pycosio._core.functions_os_path import (
+from airfs._core.functions_os_path import (
     exists, getctime, getmtime, getsize, isabs, isdir, isfile, islink, ismount,
     relpath, samefile, splitdrive)
-from pycosio._core.functions_shutil import copy, copyfile
-from pycosio._core.storage_manager import mount
+from airfs._core.functions_shutil import copy, copyfile
+from airfs._core.storage_manager import mount
 
 __all__ = list(sorted((
     # Standard library "io"
@@ -46,7 +46,7 @@ __all__ = list(sorted((
     # Standard library "shutil"
     'copy', 'copyfile',
 
-    # Pycosio
+    # airfs
     'mount',)))
 
 # Makes cleaner namespace

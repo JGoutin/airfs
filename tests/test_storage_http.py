@@ -1,5 +1,5 @@
 # coding=utf-8
-"""Test pycosio.storage.http"""
+"""Test airfs.storage.http"""
 import pytest
 
 UNSUPPORTED_OPERATIONS = (
@@ -16,9 +16,9 @@ UNSUPPORTED_OPERATIONS = (
 
 
 def test_handle_http_errors():
-    """Test pycosio.http._handle_http_errors"""
-    from pycosio.storage.http import _handle_http_errors
-    from pycosio._core.exceptions import (
+    """Test airfs.http._handle_http_errors"""
+    from airfs.storage.http import _handle_http_errors
+    from airfs._core.exceptions import (
         ObjectNotFoundError, ObjectPermissionError)
 
     # Mocks response
@@ -55,11 +55,11 @@ def test_handle_http_errors():
 
 
 def test_mocked_storage():
-    """Tests pycosio.http with a mock"""
+    """Tests airfs.http with a mock"""
     import requests
     from requests.exceptions import HTTPError
 
-    from pycosio.storage.http import HTTPRawIO, _HTTPSystem, HTTPBufferedIO
+    from airfs.storage.http import HTTPRawIO, _HTTPSystem, HTTPBufferedIO
 
     from tests.test_storage import StorageTester
     from tests.storage_mock import ObjectStorageMock

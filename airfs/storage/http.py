@@ -4,10 +4,10 @@ from io import UnsupportedOperation as _UnsupportedOperation
 
 import requests as _requests
 
-from pycosio._core.exceptions import (
+from airfs._core.exceptions import (
     ObjectNotFoundError as _ObjectNotFoundError,
     ObjectPermissionError as _ObjectPermissionError)
-from pycosio.io import (
+from airfs.io import (
     ObjectRawIOBase as _ObjectRawIOBase,
     ObjectBufferedIOBase as _ObjectBufferedIOBase,
     SystemBase as _SystemBase)

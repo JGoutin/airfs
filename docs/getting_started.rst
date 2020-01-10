@@ -12,7 +12,7 @@ Installation is performed using PIP:
 
 .. code-block:: bash
 
-    pip install pycosio
+    pip install airfs
 
 All mandatory dependencies are automatically installed.
 You can also install these optional extras:
@@ -24,26 +24,26 @@ You can also install these optional extras:
 * ``s3``: Amazon Web Services S3 support.
 * ``swift``: OpenStack Swift support.
 
-Example of installing Pycosio with all dependencies:
+Example of installing airfs with all dependencies:
 
 .. code-block:: bash
 
-    pip install pycosio[all]
+    pip install airfs[all]
 
 Example for installing with support only for S3 and OpenStack Swift:
 
 .. code-block:: bash
 
-    pip install pycosio[swift,s3]
+    pip install airfs[swift,s3]
 
 Standard Python equivalents functions
 -------------------------------------
 
-Pycosio provides functions that use the same prototype as their equivalent of
+airfs provides functions that use the same prototype as their equivalent of
 the standard Python library. These functions are used exactly like the original
 function but support URLs of cloud objects in addition to local paths.
 
-Pycosio natively recognizes the URL/path with the following formats:
+airfs natively recognizes the URL/path with the following formats:
 
 * Local path, or URL with the``file`` scheme:
   ``file:///home/user/my_file`` or ``/home/user/my_file``.
@@ -55,24 +55,24 @@ Pycosio natively recognizes the URL/path with the following formats:
   ``http://www.example.org/any_object`` or
   ``https://www.example.org/any_object``.
 
-All available functions are in the ``pycosio`` namespace.
+All available functions are in the ``airfs`` namespace.
 
 Examples of functions:
 
 .. code-block:: python
 
-    import pycosio
+    import airfs
 
     # Open a cloud object in text mode
-    with pycosio.open('https://my_cloud.com/object', 'rt') as file:
+    with airfs.open('https://my_cloud.com/object', 'rt') as file:
         text = file.read()
 
     # Copy a cloud object to local
-    pycosio.copy(
+    airfs.copy(
         'https://my_cloud.com/object', '/home/user/local_object')
 
     # Get size of a cloud object
-    pycosio.getsize('https://my_cloud.com/object')
+    airfs.getsize('https://my_cloud.com/object')
     >>> 956
 
 Cloud storage configuration
@@ -87,8 +87,8 @@ targeted storage documentation.
 Storage that does not require configuration is automatically mounted.
 
 All storage parameters must be defined in a ``storage_parameters`` dictionary.
-This dictionary must be transmitted either to the ``pycosio.mount`` function
-or when a file is opened using the ``pycosio.open`` function.
+This dictionary must be transmitted either to the ``airfs.mount`` function
+or when a file is opened using the ``airfs.open`` function.
 
 Once mounted, all functions can be used without the needs to pass
 the ``storage_parameters`` dictionary.
@@ -99,36 +99,36 @@ the ``storage_parameters`` dictionary.
 
 .. code-block:: python
 
-    import pycosio
+    import airfs
 
     # "storage_parameters" is the cloud storage configuration
     storage_parameters = dict(
         client_id='my_client_id', secret_id='my_secret_id')
 
     # Mount "my_cloud" storage with "mount" function
-    pycosio.mount(
+    airfs.mount(
         storage='my_cloud', storage_parameters=storage_parameters)
 
     # _Storage files can now be used transparently
-    with pycosio.open('https://my_cloud.com/object', 'rt') as file:
+    with airfs.open('https://my_cloud.com/object', 'rt') as file:
         file.read()
 
 **On first cloud object open:**
 
 .. code-block:: python
 
-    import pycosio
+    import airfs
 
     storage_parameters = dict(
         client_id='my_client_id', secret_id='my_secret_id')
 
     # The storage is mounted on first use by passing "storage_parameters"
-    with pycosio.open('https://my_cloud.com/my_object', 'rt',
+    with airfs.open('https://my_cloud.com/my_object', 'rt',
                       storage='my_cloud',
                       storage_parameters=storage_parameters) as file:
         file.read()
 
     # Next calls use mounted storage transparently
-    with pycosio.open(
+    with airfs.open(
             'https://my_cloud.com/my_other_object', 'rt') as file:
         file.read()

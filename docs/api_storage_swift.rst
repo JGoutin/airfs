@@ -1,12 +1,12 @@
-pycosio.storage.swift
-=====================
+airfs.storage.swift
+===================
 
 OpenStack Swift
 
 Mount
 -----
 
-An OpenStack Swift project can be mounted using the Pycosio ``mount`` function.
+An OpenStack Swift project can be mounted using the airfs ``mount`` function.
 
 ``storage_parameters`` await arguments to pass to the
 ``swiftclient.client.Connection`` class from ``python-swiftclient`` Python
@@ -16,10 +16,10 @@ This example shows the mount of OpenStack Swift with a minimal configuration:
 
 .. code-block:: python
 
-    import pycosio
+    import airfs
 
     # Mount OpenStack Swift manually (Minimal configuration)
-    pycosio.mount(storage='swift', storage_parameters=dict(
+    airfs.mount(storage='swift', storage_parameters=dict(
             authurl='my_auth_url',
             user='my_user',
             key='my_key',
@@ -31,8 +31,8 @@ This example shows the mount of OpenStack Swift with a minimal configuration:
         )
     )
 
-    # Call of pycosio on an OpenStack Swift object.
-    with pycosio.open(
+    # Call of airfs on an OpenStack Swift object.
+    with airfs.open(
             'https://objects.my_cloud.com/v1/my_project/my_container/my_object',
             'rt') as file:
         text = file.read()
@@ -46,7 +46,7 @@ Only one configuration per OpenStack project can be mounted simultaneously.
 Files objects classes
 ---------------------
 
-.. automodule:: pycosio.storage.swift
+.. automodule:: airfs.storage.swift
    :members:
    :inherited-members:
 

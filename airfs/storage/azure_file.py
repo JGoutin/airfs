@@ -5,10 +5,10 @@ import re as _re
 from azure.storage.file import FileService as _FileService
 from azure.storage.file.models import Directory as _Directory
 
-from pycosio._core.io_base import memoizedmethod as _memoizedmethod
-from pycosio.storage.azure import (
+from airfs._core.io_base import memoizedmethod as _memoizedmethod
+from airfs.storage.azure import (
     _handle_azure_exception, _AzureBaseSystem, _AzureStorageRawIORangeWriteBase)
-from pycosio.io import (
+from airfs.io import (
     ObjectBufferedIORandomWriteBase as _ObjectBufferedIORandomWriteBase,
     FileSystemBase as _FileSystemBase)
 
@@ -32,7 +32,7 @@ class _AzureFileSystem(_AzureBaseSystem, _FileSystemBase):
         Args:
             src (str): Path or URL.
             dst (str): Path or URL.
-            other_system (pycosio.storage.azure._AzureBaseSystem subclass):
+            other_system (airfs.storage.azure._AzureBaseSystem subclass):
                 The source storage system.
         """
         with _handle_azure_exception():

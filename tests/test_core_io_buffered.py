@@ -1,14 +1,14 @@
 # coding=utf-8
-"""Test pycosio._core.io_buffered"""
+"""Test airfs._core.io_buffered"""
 import os
 import time
 
 
 def test_object_buffered_base_io():
-    """Tests pycosio._core.io_buffered.ObjectBufferedIOBase"""
-    from pycosio._core.io_base_raw import ObjectRawIOBase
-    from pycosio._core.io_base_buffered import ObjectBufferedIOBase
-    from pycosio._core.io_random_write import (
+    """Tests airfs._core.io_buffered.ObjectBufferedIOBase"""
+    from airfs._core.io_base_raw import ObjectRawIOBase
+    from airfs._core.io_base_buffered import ObjectBufferedIOBase
+    from airfs._core.io_random_write import (
         ObjectRawIORandomWriteBase, ObjectBufferedIORandomWriteBase)
 
     # Mock sub class

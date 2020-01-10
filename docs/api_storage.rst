@@ -1,5 +1,5 @@
-pycosio.storage
-===============
+airfs.storage
+=============
 
 Supported features
 ------------------
@@ -17,7 +17,7 @@ API
 
 The following pages describe each storage.
 
-.. automodule:: pycosio.storage
+.. automodule:: airfs.storage
    :members:
    :inherited-members:
 

@@ -1,7 +1,7 @@
-pycosio.io
-==========
+airfs.io
+========
 
-.. automodule:: pycosio.io
+.. automodule:: airfs.io
    :members:
    :inherited-members:
 

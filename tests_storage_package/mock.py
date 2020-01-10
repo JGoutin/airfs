@@ -1,11 +1,11 @@
 # coding=utf-8
-"""Pycosio storage based on tests.storage_mock"""
+"""airfs storage based on tests.storage_mock"""
 
-from pycosio.io import (
+from airfs.io import (
     SystemBase as _SystemBase,
     ObjectRawIORandomWriteBase as _ObjectRawIORandomWriteBase,
     ObjectBufferedIORandomWriteBase as _ObjectBufferedIORandomWriteBase)
-from pycosio._core import exceptions as _exc
+from airfs._core import exceptions as _exc
 
 from tests.storage_mock import ObjectStorageMock as _ObjectStorageMock
 
@@ -102,7 +102,7 @@ class MockSystem(_SystemBase):
         Args:
             src (str): Path or URL.
             dst (str): Path or URL.
-            other_system (pycosio._core.io_system.SystemBase subclass):
+            other_system (airfs._core.io_system.SystemBase subclass):
                 Other storage system. May be required for some storage.
         """
         self.client.copy_object(

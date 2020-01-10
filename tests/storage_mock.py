@@ -1,5 +1,5 @@
 # coding=utf-8
-"""Test pycosio.storage"""
+"""Test airfs.storage"""
 from contextlib import contextmanager as _contextmanager
 from copy import deepcopy as _deepcopy
 from threading import Lock as _Lock
@@ -43,7 +43,7 @@ class ObjectStorageMock:
         Attach IO system to use.
 
         Args:
-            system (pycosio._core.io_system.SystemBase subclass):
+            system (airfs._core.io_system.SystemBase subclass):
                 IO system to use.
         """
         self._system = system

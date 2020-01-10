@@ -1,5 +1,5 @@
 # coding=utf-8
-"""Test pycosio.storage.oss"""
+"""Test airfs.storage.oss"""
 import pytest
 
 UNSUPPORTED_OPERATIONS = (
@@ -9,10 +9,10 @@ UNSUPPORTED_OPERATIONS = (
 
 
 def test_handle_oss_error():
-    """Test pycosio.oss._handle_oss_error"""
-    from pycosio.storage.oss import _handle_oss_error
+    """Test airfs.oss._handle_oss_error"""
+    from airfs.storage.oss import _handle_oss_error
     from oss2.exceptions import OssError
-    from pycosio._core.exceptions import (
+    from airfs._core.exceptions import (
         ObjectNotFoundError, ObjectPermissionError)
 
     kwargs = dict(headers={}, body=None, details={'Message': ''})
@@ -34,10 +34,10 @@ def test_handle_oss_error():
 
 
 def test_mocked_storage():
-    """Tests pycosio.oss with a mock"""
+    """Tests airfs.oss with a mock"""
     from io import BytesIO
 
-    from pycosio.storage.oss import OSSRawIO, _OSSSystem, OSSBufferedIO
+    from airfs.storage.oss import OSSRawIO, _OSSSystem, OSSBufferedIO
 
     from oss2.exceptions import OssError
     from oss2.models import HeadObjectResult

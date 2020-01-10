@@ -5,13 +5,13 @@ from os import scandir as os_scandir, fsdecode, fsencode
 from os.path import dirname
 from stat import S_ISLNK, S_ISDIR
 
-from pycosio._core.compat import fspath
-from pycosio._core.storage_manager import get_instance
-from pycosio._core.functions_core import equivalent_to, is_storage
-from pycosio._core.exceptions import (
+from airfs._core.compat import fspath
+from airfs._core.storage_manager import get_instance
+from airfs._core.functions_core import equivalent_to, is_storage
+from airfs._core.exceptions import (
     ObjectExistsError, ObjectNotFoundError, handle_os_exceptions,
     ObjectPermissionError)
-from pycosio._core.io_base import memoizedmethod
+from airfs._core.io_base import memoizedmethod
 
 
 @equivalent_to(os.listdir)
@@ -212,7 +212,7 @@ class DirEntry:
 
         Args:
             scandir_path (str): scandir path argument.
-            system (pycosio._core.io_system.SystemBase subclass):
+            system (airfs._core.io_system.SystemBase subclass):
                 Storage system.
             name (str): Name of the object relative to "scandir_path".
             header (dict): Object header
@@ -368,7 +368,7 @@ class DirEntry:
             header=self._header)
 
 
-DirEntry.__module__ = 'pycosio'
+DirEntry.__module__ = 'airfs'
 
 
 def scandir(path='.'):
@@ -407,7 +407,7 @@ def _scandir_generator(is_bytes, scandir_path, system):
     Args:
         is_bytes (bool): True if DirEntry must handle path as bytes.
         scandir_path (str): Path.
-        system (pycosio._core.io_system.SystemBase subclass):
+        system (airfs._core.io_system.SystemBase subclass):
             Storage system.
 
     Yields:

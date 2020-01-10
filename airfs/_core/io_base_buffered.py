@@ -8,9 +8,9 @@ from os import SEEK_SET
 from threading import Lock
 from time import sleep
 
-from pycosio._core.io_base import ObjectIOBase, WorkerPoolBase
-from pycosio._core.io_base_raw import ObjectRawIOBase
-from pycosio._core.exceptions import handle_os_exceptions
+from airfs._core.io_base import ObjectIOBase, WorkerPoolBase
+from airfs._core.io_base_raw import ObjectRawIOBase
+from airfs._core.exceptions import handle_os_exceptions
 
 
 class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
@@ -57,7 +57,7 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
         if 'a' in mode:
             # TODO: Implement append mode and remove this exception
             raise NotImplementedError(
-                'Not implemented yet in Pycosio')
+                'Not implemented yet in airfs')
 
         BufferedIOBase.__init__(self)
         ObjectIOBase.__init__(self, name, mode=mode)

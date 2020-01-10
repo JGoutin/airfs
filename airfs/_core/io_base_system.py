@@ -8,9 +8,9 @@ from stat import S_IFDIR, S_IFREG, S_IFLNK
 
 from dateutil.parser import parse
 
-from pycosio._core.io_base import WorkerPoolBase
-from pycosio._core.compat import Pattern
-from pycosio._core.exceptions import ObjectNotFoundError, ObjectPermissionError
+from airfs._core.io_base import WorkerPoolBase
+from airfs._core.compat import Pattern
+from airfs._core.exceptions import ObjectNotFoundError, ObjectPermissionError
 
 
 class SystemBase(ABC, WorkerPoolBase):
@@ -50,9 +50,9 @@ class SystemBase(ABC, WorkerPoolBase):
         # Save storage parameters
         if storage_parameters:
             storage_parameters = storage_parameters.copy()
-            # Drop pycosio internal keys
+            # Drop airfs internal keys
             for key in tuple(storage_parameters):
-                if key.startswith('pycosio.'):
+                if key.startswith('airfs.'):
                     del storage_parameters[key]
         else:
             storage_parameters = dict()
@@ -102,7 +102,7 @@ class SystemBase(ABC, WorkerPoolBase):
         Args:
             src (str): Path or URL.
             dst (str): Path or URL.
-            other_system (pycosio._core.io_system.SystemBase subclass):
+            other_system (airfs._core.io_system.SystemBase subclass):
                 Other storage system. May be required for some storage.
         """
         # This method is intended to copy objects to and from a same storage
@@ -766,5 +766,5 @@ class SystemBase(ABC, WorkerPoolBase):
         # Convert to "os.stat_result" like object
         stat_result = namedtuple('stat_result', tuple(stat))
         stat_result.__name__ = 'os.stat_result'
-        stat_result.__module__ = 'pycosio'
+        stat_result.__module__ = 'airfs'
         return stat_result(**stat)

@@ -1,5 +1,5 @@
 # coding=utf-8
-"""Test pycosio.storage.azure_file"""
+"""Test airfs.storage.azure_file"""
 UNSUPPORTED_OPERATIONS = (
     'symlink',
 
@@ -9,13 +9,13 @@ UNSUPPORTED_OPERATIONS = (
 
 
 def test_mocked_storage():
-    """Tests pycosio.azure_file with a mock"""
+    """Tests airfs.azure_file with a mock"""
     from azure.storage.file.models import (
         Share, File, Directory, ShareProperties, FileProperties,
         DirectoryProperties)
 
-    import pycosio.storage.azure_file as azure_file
-    from pycosio.storage.azure_file import (
+    import airfs.storage.azure_file as azure_file
+    from airfs.storage.azure_file import (
         AzureFileRawIO, _AzureFileSystem, AzureFileBufferedIO)
 
     from tests.test_storage import StorageTester

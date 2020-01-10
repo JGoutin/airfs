@@ -6,11 +6,11 @@ from json import dumps as _dumps
 import swiftclient as _swift
 from swiftclient.exceptions import ClientException as _ClientException
 
-from pycosio._core.io_base import memoizedmethod as _memoizedmethod
-from pycosio._core.exceptions import (
+from airfs._core.io_base import memoizedmethod as _memoizedmethod
+from airfs._core.exceptions import (
     ObjectNotFoundError as _ObjectNotFoundError,
     ObjectPermissionError as _ObjectPermissionError)
-from pycosio.io import (
+from airfs.io import (
     ObjectRawIOBase as _ObjectRawIOBase,
     ObjectBufferedIOBase as _ObjectBufferedIOBase,
     SystemBase as _SystemBase)
@@ -60,7 +60,7 @@ class _SwiftSystem(_SystemBase):
         Args:
             src (str): Path or URL.
             dst (str): Path or URL.
-            other_system (pycosio._core.io_system.SystemBase subclass): Unused.
+            other_system (airfs._core.io_system.SystemBase subclass): Unused.
         """
         container, obj = self.split_locator(src)
         with _handle_client_exception():

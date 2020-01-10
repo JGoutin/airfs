@@ -6,10 +6,10 @@ from string import ascii_lowercase as _ascii_lowercase
 from azure.storage.blob import BlobBlock
 from azure.storage.blob.models import _BlobTypes
 
-from pycosio.storage.azure import _handle_azure_exception
-from pycosio._core.io_base import memoizedmethod
-from pycosio.io import ObjectBufferedIOBase
-from pycosio.storage.azure_blob._base_blob import (
+from airfs.storage.azure import _handle_azure_exception
+from airfs._core.io_base import memoizedmethod
+from airfs.io import ObjectBufferedIOBase
+from airfs.storage.azure_blob._base_blob import (
     AzureBlobRawIO, AzureBlobBufferedIO, AZURE_RAW, AZURE_BUFFERED)
 
 _BLOB_TYPE = _BlobTypes.BlockBlob

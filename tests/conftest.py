@@ -34,7 +34,7 @@ def pytest_generate_tests(metafunc):
         if filter_id:
             filter_id = filter_id.split(',')
 
-        from pycosio import mount
+        from airfs import mount
         argvalues = []
         ids = []
         for storage_kwargs in configs:

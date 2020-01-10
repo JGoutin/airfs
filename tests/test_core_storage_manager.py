@@ -1,15 +1,15 @@
 # coding=utf-8
-"""Test pycosio._core.storage_manager"""
+"""Test airfs._core.storage_manager"""
 import re
 
 import pytest
 
 
 def test_mount():
-    """Tests pycosio._core.storage_manager.mount and get_instance"""
-    from pycosio._core.storage_manager import (
+    """Tests airfs._core.storage_manager.mount and get_instance"""
+    from airfs._core.storage_manager import (
         mount, MOUNTED, get_instance, _compare_root)
-    from pycosio.storage.http import (
+    from airfs.storage.http import (
         HTTPRawIO, _HTTPSystem, HTTPBufferedIO)
     import requests
 

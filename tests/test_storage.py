@@ -1,5 +1,5 @@
 # coding=utf-8
-"""Test pycosio.storage"""
+"""Test airfs.storage"""
 from copy import deepcopy as _deepcopy
 from io import UnsupportedOperation as _UnsupportedOperation
 from os import urandom as _os_urandom
@@ -27,15 +27,15 @@ class StorageTester:
     Class that contain common set of tests for storage.
 
     Args:
-        system (pycosio._core.io_system.SystemBase instance):
+        system (airfs._core.io_system.SystemBase instance):
             System to test.
-        raw_io (pycosio._core.io_raw.ObjectRawIOBase subclass):
+        raw_io (airfs._core.io_raw.ObjectRawIOBase subclass):
             Raw IO class.
-        buffered_io (pycosio._core.io_buffered.ObjectBufferedIOBase subclass):
+        buffered_io (airfs._core.io_buffered.ObjectBufferedIOBase subclass):
             Buffered IO class.
         storage_mock (tests.storage_mock.ObjectStorageMock instance):
             Storage mock in use, if any.
-        storage_info (dict): Storage information from pycosio.mount.
+        storage_info (dict): Storage information from airfs.mount.
     """
 
     def __init__(self, system=None, raw_io=None, buffered_io=None,
@@ -58,7 +58,7 @@ class StorageTester:
 
         self._system_parameters = system_parameters
         self._system_parameters['storage_parameters'][
-            'pycosio.system_cached'] = system
+            'airfs.system_cached'] = system
         self._system = system
         self._raw_io = raw_io
         self._buffered_io = buffered_io
@@ -84,7 +84,7 @@ class StorageTester:
         return self
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
-        from pycosio._core.exceptions import ObjectNotFoundError
+        from airfs._core.exceptions import ObjectNotFoundError
 
         # Remove objects, and once empty the locator
         for obj in reversed(sorted(self._objects, key=str.lower)):
@@ -102,7 +102,7 @@ class StorageTester:
         self._test_system_objects()
         self._test_raw_io()
         self._test_buffered_io()
-        # TODO: Add pycosio public functions tests
+        # TODO: Add airfs public functions tests
 
         # Only if mocked
         if self._storage_mock is not None:
@@ -128,7 +128,7 @@ class StorageTester:
         Returns:
             str: id
         """
-        return 'pycosio%s' % (str(_uuid()).replace('-', ''))
+        return 'airfs%s' % (str(_uuid()).replace('-', ''))
 
     def _test_raw_io(self):
         """
@@ -358,7 +358,7 @@ class StorageTester:
         """
         Tests buffered IO.
         """
-        from pycosio.io import ObjectBufferedIOBase
+        from airfs.io import ObjectBufferedIOBase
 
         # Set buffer size
         buffer_size = 16 * 1024
@@ -460,11 +460,11 @@ class StorageTester:
             # Test: Flush has no effect in read mode
             file.flush()
 
-            # Check if pycosio subclass
-            is_pycosio_subclass = isinstance(file, ObjectBufferedIOBase)
+            # Check if airfs subclass
+            is_rfs_subclass = isinstance(file, ObjectBufferedIOBase)
 
         # Test: Buffer limits and default values
-        if is_pycosio_subclass:
+        if is_rfs_subclass:
             with self._buffered_io(
                     file_path, **self._system_parameters) as file:
                 assert file._buffer_size == file.DEFAULT_BUFFER_SIZE, \
@@ -568,7 +568,7 @@ class StorageTester:
         """
         Test system internals related to objects.
         """
-        from pycosio._core.exceptions import ObjectNotFoundError
+        from airfs._core.exceptions import ObjectNotFoundError
 
         system = self._system
 

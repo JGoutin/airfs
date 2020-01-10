@@ -1,5 +1,6 @@
 environment:
     matrix:
+        - PYTHON: "C:\\Python38-x64"
         - PYTHON: "C:\\Python37-x64"
         - PYTHON: "C:\\Python36-x64"
         - PYTHON: "C:\\Python35-x64"
@@ -18,7 +19,7 @@ install:
 
 test_script:
     # Runs tests
-    - "py.test -v --cov=pycosio --cov-report=term-missing"
+    - "py.test -v --cov=airfs --cov-report=term-missing"
 
 after_test:
     # Sends coverage to codecov.io

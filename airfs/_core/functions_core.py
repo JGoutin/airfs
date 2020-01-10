@@ -4,7 +4,7 @@
 from functools import wraps
 from os import fsdecode
 
-from pycosio._core.exceptions import handle_os_exceptions
+from airfs._core.exceptions import handle_os_exceptions
 
 
 def is_storage(url, storage=None):

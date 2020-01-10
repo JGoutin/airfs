@@ -6,9 +6,9 @@ from azure.storage.blob import (
     PageBlobService, BlockBlobService, AppendBlobService)
 from azure.storage.blob.models import _BlobTypes
 
-from pycosio.storage.azure import _handle_azure_exception, _AzureBaseSystem
-from pycosio._core.exceptions import ObjectNotFoundError
-from pycosio._core.io_base import memoizedmethod
+from airfs.storage.azure import _handle_azure_exception, _AzureBaseSystem
+from airfs._core.exceptions import ObjectNotFoundError
+from airfs._core.io_base import memoizedmethod
 
 # Default blob type
 _DEFAULT_BLOB_TYPE = _BlobTypes.BlockBlob
@@ -34,7 +34,7 @@ class _AzureBlobSystem(_AzureBaseSystem):
         Args:
             src (str): Path or URL.
             dst (str): Path or URL.
-            other_system (pycosio.storage.azure._AzureBaseSystem subclass):
+            other_system (airfs.storage.azure._AzureBaseSystem subclass):
                 The source storage system.
         """
         with _handle_azure_exception():
@@ -52,7 +52,7 @@ class _AzureBlobSystem(_AzureBaseSystem):
         """
         parameters = self._secured_storage_parameters().copy()
 
-        # Parameter added by pycosio and unsupported by blob services.
+        # Parameter added by airfs and unsupported by blob services.
         try:
             del parameters['blob_type']
         except KeyError:
