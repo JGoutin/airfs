@@ -2,6 +2,8 @@
 """Test airfs.storage.s3"""
 import pytest
 
+pytest.importorskip("boto3")
+
 UNSUPPORTED_OPERATIONS = (
     'symlink',
 

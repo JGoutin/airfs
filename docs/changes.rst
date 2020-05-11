@@ -1,6 +1,17 @@
 Changelog
 =========
 
+1.5.0 (2020/05)
+---------------
+
+Improvements:
+
+* Add `airfs.os`, `airfs.os.path` and `airfs.shutil` namespaces that mimic
+  standards library namespaces. Names that are not available in Airfs fall back
+  to their standard library equivalent.
+* Add `st_atime_ns`, `st_mtime_ns` and `st_ctime_ns`, in the `os.stat_result`
+  like named tuple returned by `airfs.stat` and `airfs.lstat`.
+
 1.4.0 (2020/01)
 ---------------
 

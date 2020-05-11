@@ -2,6 +2,8 @@
 """Test airfs.storage.oss"""
 import pytest
 
+pytest.importorskip("oss2")
+
 UNSUPPORTED_OPERATIONS = (
     # Not supported on some objects
     'getctime',

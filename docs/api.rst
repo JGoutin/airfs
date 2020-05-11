@@ -11,4 +11,7 @@ This section describes the ``airfs`` Python package API.
    :maxdepth: 2
 
    api_io
+   api_os
+   api_os_path
+   api_shutil
    api_storage

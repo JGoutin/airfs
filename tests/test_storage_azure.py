@@ -5,6 +5,9 @@ from time import time
 
 import pytest
 
+pytest.importorskip("azure.storage.blob")
+pytest.importorskip("azure.storage.file")
+
 
 def test_handle_azure_exception():
     """Test airfs.storage.azure._handle_azure_exception"""
