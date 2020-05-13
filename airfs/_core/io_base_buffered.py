@@ -1,4 +1,3 @@
-# coding=utf-8
 """Cloud storage abstract buffered IO class"""
 from abc import abstractmethod
 from concurrent.futures import as_completed

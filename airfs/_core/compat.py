@@ -1,4 +1,3 @@
-# coding=utf-8
 """Python old versions compatibility"""
 import re as _re
 import os as _os

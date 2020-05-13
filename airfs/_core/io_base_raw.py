@@ -1,4 +1,3 @@
-# coding=utf-8
 """Cloud storage abstract Raw IO class"""
 from abc import abstractmethod
 from io import RawIOBase, UnsupportedOperation

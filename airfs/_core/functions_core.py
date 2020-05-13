@@ -1,4 +1,3 @@
-# coding=utf-8
 """Base utilities to define storage functions"""
 
 from functools import wraps

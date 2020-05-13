@@ -1,4 +1,3 @@
-# coding=utf-8
 """Standard library "shutil" equivalents"""
 
 from shutil import *  # noqa

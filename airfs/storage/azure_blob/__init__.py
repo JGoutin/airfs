@@ -1,4 +1,3 @@
-# coding=utf-8
 """Microsoft Azure Blobs Storage"""
 
 # Generic classes

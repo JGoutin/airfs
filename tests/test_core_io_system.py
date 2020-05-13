@@ -1,4 +1,3 @@
-# coding=utf-8
 """Test airfs._core.io_system"""
 import time
 import re

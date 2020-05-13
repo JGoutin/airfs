@@ -1,4 +1,3 @@
-# coding=utf-8
 """Cloud storage abstract System"""
 from abc import abstractmethod, ABC
 from collections import OrderedDict, namedtuple

@@ -1,4 +1,3 @@
-# coding=utf-8
 """Test airfs.storage.swift"""
 import pytest
 

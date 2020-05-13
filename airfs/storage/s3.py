@@ -1,4 +1,3 @@
-# coding=utf-8
 """Amazon Web Services S3"""
 from contextlib import contextmanager as _contextmanager
 from io import UnsupportedOperation as _UnsupportedOperation

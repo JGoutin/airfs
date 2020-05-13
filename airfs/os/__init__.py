@@ -1,4 +1,3 @@
-# coding=utf-8
 """Standard library "os" equivalents"""
 
 from os import *  # noqa

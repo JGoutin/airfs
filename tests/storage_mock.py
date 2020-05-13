@@ -1,4 +1,3 @@
-# coding=utf-8
 """Test airfs.storage"""
 from contextlib import contextmanager as _contextmanager
 from copy import deepcopy as _deepcopy

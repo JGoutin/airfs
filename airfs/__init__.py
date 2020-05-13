@@ -1,4 +1,3 @@
-# coding=utf-8
 """Python "Remote File Systems" library
 
 Copyright 2020 J.Goutin

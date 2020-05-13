@@ -1,4 +1,3 @@
-# coding=utf-8
 """Microsoft Azure Blobs Storage: Pages blobs"""
 from os import SEEK_SET, SEEK_END
 

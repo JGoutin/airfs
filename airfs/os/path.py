@@ -1,4 +1,3 @@
-# coding=utf-8
 """Standard library "os.path" equivalents"""
 
 from os.path import *  # noqa

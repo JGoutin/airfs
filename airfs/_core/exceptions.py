@@ -1,4 +1,3 @@
-# coding=utf-8
 """airfs internal exceptions.
 
 Allows to filter airfs generated exception and standard exceptions"""

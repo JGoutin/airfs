@@ -1,4 +1,3 @@
-# coding=utf-8
 """Handle storage classes"""
 from collections import OrderedDict
 from importlib import import_module

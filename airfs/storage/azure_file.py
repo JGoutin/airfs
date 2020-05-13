@@ -1,4 +1,3 @@
-# coding=utf-8
 """Microsoft Azure Files Storage"""
 import re as _re
 

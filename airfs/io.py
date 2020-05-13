@@ -1,4 +1,3 @@
-# coding=utf-8
 """Cloud storage abstract IO classes
 
 Theses abstract classes are used as base to implement storage specific IO

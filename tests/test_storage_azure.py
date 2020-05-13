@@ -1,4 +1,3 @@
-# coding=utf-8
 """Test airfs.storage.azure"""
 from datetime import datetime
 from time import time

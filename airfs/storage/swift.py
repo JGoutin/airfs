@@ -1,4 +1,3 @@
-# coding=utf-8
 """OpenStack Swift"""
 from contextlib import contextmanager as _contextmanager
 from json import dumps as _dumps

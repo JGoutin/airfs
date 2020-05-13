@@ -1,4 +1,3 @@
-# coding=utf-8
 """Test airfs._core.storage_manager"""
 import re
 

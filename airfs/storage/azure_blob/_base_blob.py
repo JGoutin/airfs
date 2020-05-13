@@ -1,4 +1,3 @@
-# coding=utf-8
 """Microsoft Azure Blobs Storage: Base for all blob types"""
 from io import IOBase
 

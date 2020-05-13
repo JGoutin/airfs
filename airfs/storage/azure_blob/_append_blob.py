@@ -1,4 +1,3 @@
-# coding=utf-8
 """Microsoft Azure Blobs Storage: Append blobs"""
 from azure.storage.blob.models import _BlobTypes
 from azure.storage.blob import AppendBlobService

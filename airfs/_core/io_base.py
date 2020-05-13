@@ -1,4 +1,3 @@
-# coding=utf-8
 """Cloud storage abstract IO Base class"""
 from concurrent.futures import ThreadPoolExecutor
 from functools import wraps

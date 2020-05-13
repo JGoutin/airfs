@@ -1,4 +1,3 @@
-# coding=utf-8
 """Test airfs.storage"""
 from copy import deepcopy as _deepcopy
 from io import UnsupportedOperation as _UnsupportedOperation

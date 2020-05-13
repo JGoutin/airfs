@@ -1,4 +1,3 @@
-# coding=utf-8
 """airfs storage based on tests.storage_mock"""
 
 from airfs.io import (

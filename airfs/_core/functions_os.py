@@ -1,4 +1,3 @@
-# coding=utf-8
 """Cloud object compatibles standard library 'os' equivalent functions"""
 import os
 from os import scandir as os_scandir, fsdecode, fsencode

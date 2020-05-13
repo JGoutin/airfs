@@ -1,4 +1,3 @@
-# coding=utf-8
 """Microsoft Azure Storage"""
 from abc import abstractmethod as _abstractmethod
 from contextlib import contextmanager as _contextmanager
