@@ -726,24 +726,32 @@ class SystemBase(ABC, WorkerPoolBase):
             header (dict): Object header.
 
         Returns:
-            os.stat_result: Stat result object
+            namedtuple: Stat result object. Follow the "os.stat_result"
+                specification and may contain storage dependent extra entries.
         """
         # Should contain at least the strict minimum of os.stat_result
         stat = OrderedDict((
             ("st_mode", 0), ("st_ino", 0), ("st_dev", 0), ("st_nlink", 0),
             ("st_uid", 0), ("st_gid", 0), ("st_size", 0), ("st_atime", 0),
-            ("st_mtime", 0), ("st_ctime", 0)))
+            ("st_mtime", 0), ("st_ctime", 0), ("st_atime_ns", 0),
+            ("st_mtime_ns", 0), ("st_ctime_ns", 0)))
 
         # Populate standard os.stat_result values with object header content
         header = self.head(path, client_kwargs, header)
-        for key, method in (
-                ('st_size', self._getsize_from_header),
-                ('st_ctime', self._getctime_from_header),
-                ('st_mtime', self._getmtime_from_header),):
+        try:
+            stat["st_size"] = int(self._getsize_from_header(header))
+        except UnsupportedOperation:
+            pass
+
+        for st_time, st_time_ns, method in (
+                ('st_mtime', 'st_mtime_ns', self._getmtime_from_header),
+                ('st_ctime', 'st_ctime_ns', self._getctime_from_header)):
             try:
-                stat[key] = int(method(header))
+                time_value = self._getsize_from_header(header)
             except UnsupportedOperation:
                 continue
+            stat[st_time] = int(time_value)
+            stat[st_time_ns] = int(time_value * 1000000000)
 
         # File mode
         if self.islink(path=path, header=header):
