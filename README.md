@@ -25,16 +25,16 @@ Buffered cloud objects also support the following features:
 * Write or read lock depending on memory usage limitation.
 * Maximization of bandwidth using parallels connections.
 
-Supported Cloud storage
------------------------
+Supported storage
+-----------------
 
-airfs is compatible with the following cloud objects storage services:
+airfs is compatible with the following storage services:
 
 * Alibaba Cloud OSS
 * Amazon Web Services S3
 * Microsoft Azure Blobs Storage
 * Microsoft Azure Files Storage
-* OpenStack Swift
+* OpenStack Swift / Object Store
 
 airfs can also access any publicly accessible file via HTTP/HTTPS
 (Read only).

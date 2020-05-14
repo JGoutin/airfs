@@ -1,7 +1,7 @@
 airfs.storage.swift
 ===================
 
-OpenStack Swift
+OpenStack Swift / Object Store
 
 Mount
 -----

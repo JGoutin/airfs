@@ -41,16 +41,16 @@ Example of code:
     airfs.getsize('https://www.example.org/any_object')
     >>> 956
 
-Supported Cloud storage
------------------------
+Supported storage
+-----------------
 
-airfs is compatible with the following cloud objects storage services:
+airfs is compatible with the following storage services:
 
 * Alibaba Cloud OSS
 * Amazon Web Services S3
 * Microsoft Azure Blobs Storage
 * Microsoft Azure Files Storage
-* OpenStack Swift
+* OpenStack Swift / Object Store
 
 airfs can also access any publicly accessible file via HTTP/HTTPS
 (Read only).
