@@ -1,7 +1,7 @@
 """Access file over HTTP"""
 from io import UnsupportedOperation as _UnsupportedOperation
 
-import requests as _requests
+from requests import Session as _Session
 
 from airfs._core.exceptions import (
     ObjectNotFoundError as _ObjectNotFoundError,
@@ -60,7 +60,7 @@ class _HTTPSystem(_SystemBase):
         Returns:
             requests.Session: client
         """
-        return _requests.Session()
+        return _Session()
 
     def _get_roots(self):
         """

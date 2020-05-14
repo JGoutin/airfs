@@ -8,6 +8,7 @@ def test_mount():
     """Tests airfs._core.storage_manager.mount and get_instance"""
     from airfs._core.storage_manager import (
         mount, MOUNTED, get_instance, _compare_root)
+    import airfs.storage.http
     from airfs.storage.http import (
         HTTPRawIO, _HTTPSystem, HTTPBufferedIO)
     import requests
@@ -42,7 +43,7 @@ def test_mount():
             return Response()
 
     requests_session = requests.Session
-    requests.Session = Session
+    airfs.storage.http._Session = Session
 
     # Tests mount:
     try:
@@ -144,4 +145,4 @@ def test_mount():
 
     # Restore mocked functions
     finally:
-        requests.Session = requests_session
+        airfs.storage.http._Session = requests_session

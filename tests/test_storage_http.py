@@ -58,6 +58,7 @@ def test_mocked_storage():
     import requests
     from requests.exceptions import HTTPError
 
+    import airfs.storage.http
     from airfs.storage.http import HTTPRawIO, _HTTPSystem, HTTPBufferedIO
 
     from tests.test_storage import StorageTester
@@ -136,7 +137,7 @@ def test_mocked_storage():
                 return Response(status_code=exception.status_code)
 
     requests_session = requests.Session
-    requests.Session = Session
+    airfs.storage.http._Session = Session
 
     # Tests
     try:
@@ -154,4 +155,4 @@ def test_mocked_storage():
 
     # Restore mocked functions
     finally:
-        requests.Session = requests_session
+        airfs.storage.http._Session = requests_session
