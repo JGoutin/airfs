@@ -747,7 +747,7 @@ class SystemBase(ABC, WorkerPoolBase):
                 ('st_mtime', 'st_mtime_ns', self._getmtime_from_header),
                 ('st_ctime', 'st_ctime_ns', self._getctime_from_header)):
             try:
-                time_value = self._getsize_from_header(header)
+                time_value = method(header)
             except UnsupportedOperation:
                 continue
             stat[st_time] = int(time_value)

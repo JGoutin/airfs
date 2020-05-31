@@ -23,10 +23,20 @@ class ObjectExistsError(ObjectException):
     """Reraised as "FileExistsError" by handle_os_exceptions"""
 
 
+class ObjectNotADirectoryError(ObjectException):
+    """Reraised as "NotADirectoryError" by handle_os_exceptions"""
+
+
+class ObjectWarning(UserWarning):
+    """airfs base warning"""
+
+
 _OS_EXCEPTIONS = {
     ObjectNotFoundError: FileNotFoundError,
     ObjectPermissionError: PermissionError,
-    ObjectExistsError: FileExistsError}
+    ObjectExistsError: FileExistsError,
+    ObjectNotADirectoryError: NotADirectoryError
+}
 
 
 @contextmanager
