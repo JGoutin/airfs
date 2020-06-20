@@ -10,12 +10,11 @@ OSS can be mounted using the airfs ``mount`` function.
 
 ``storage_parameters`` await arguments to pass to
 ``oss2.Auth``, ``oss2.AnonymousAuth`` or ``oss2.StsAuth`` classes from
-``oss2`` Python library (The class selection is done automatically based on
-parameters found in ``storage_parameters``).
+``oss2`` Python library (The class selection is done automatically based on parameters
+found in ``storage_parameters``).
 
-airfs also requires one extra argument, the ``endpoint``, which is basically
-the URL of the OSS Alibaba region to use. (See ``endpoint`` argument of the
-``oss2.Bucket`` class)
+airfs also requires one extra argument, the ``endpoint``, which is basically the URL of
+the OSS Alibaba region to use. (See ``endpoint`` argument of the ``oss2.Bucket`` class)
 
 This example shows the mount of OSS with the minimal configuration:
 
@@ -24,7 +23,9 @@ This example shows the mount of OSS with the minimal configuration:
     import airfs
 
     # Mount OSS manually (Minimal configuration)
-    airfs.mount(storage='oss', storage_parameters=dict(
+    airfs.mount(
+        storage='oss',
+        storage_parameters=dict(
             access_key_id='my_access_key_id',
             access_key_secret='my_access_key_secret',
             endpoint='http://oss-my_region.aliyuncs.com

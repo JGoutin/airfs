@@ -39,21 +39,19 @@ Example for installing with support only for S3 and OpenStack Swift:
 Standard Python equivalents functions
 -------------------------------------
 
-airfs provides functions that use the same prototype as their equivalent of
-the standard Python library. These functions are used exactly like the original
-function but support URLs of cloud objects in addition to local paths.
+airfs provides functions that use the same prototype as their equivalent of the standard
+Python library. These functions are used exactly like the original function but support
+URLs of storage objects in addition to local paths.
 
 airfs natively recognizes the URL/path with the following formats:
 
 * Local path, or URL with the``file`` scheme:
   ``file:///home/user/my_file`` or ``/home/user/my_file``.
-* Configured cloud storage domains (See below for storage configuration):
+* Configured storage domains (See below for storage configuration):
   ``https://objects.my_cloud.com/v1/12345678912345/my_container/my_object``.
-* Cloud storage URL with specific schemes:
-  ``s3://my_bucket/my_object``.
-* Others classic HTTP/HTTPS URLs (That are not cloud domains):
-  ``http://www.example.org/any_object`` or
-  ``https://www.example.org/any_object``.
+* Cloud storage URL with specific schemes: ``s3://my_bucket/my_object``.
+* Others classic HTTP/HTTPS URLs (That are not storage domains):
+  ``http://www.example.org/any_object`` or ``https://www.example.org/any_object``.
 
 All available functions are in the ``airfs`` namespace.
 
@@ -63,16 +61,18 @@ Examples of functions:
 
     import airfs
 
-    # Open a cloud object in text mode
-    with airfs.open('https://my_cloud.com/object', 'rt') as file:
+    # Open a storage object in text mode
+    with airfs.open('https://my_storage.com/object', 'rt') as file:
         text = file.read()
 
-    # Copy a cloud object to local
+    # Copy a storage object to local
     airfs.copy(
-        'https://my_cloud.com/object', '/home/user/local_object')
+        'https://my_storage.com/object',
+        '/home/user/local_object'
+        )
 
-    # Get size of a cloud object
-    airfs.getsize('https://my_cloud.com/object')
+    # Get size of a storage object
+    airfs.getsize('https://my_storage.com/object')
     >>> 956
 
 Cloud storage configuration
@@ -81,19 +81,19 @@ Cloud storage configuration
 Like with file systems, Cloud storage needs to be *mounted* to be used.
 
 Some storage requires configuration before use (such as user access keys).
-For the required parameter detail, see the targeted storage class or the
-targeted storage documentation.
+For the required parameter detail, see the targeted storage class or the targeted
+storage documentation.
 
 Storage that does not require configuration is automatically mounted.
 
 All storage parameters must be defined in a ``storage_parameters`` dictionary.
-This dictionary must be transmitted either to the ``airfs.mount`` function
-or when a file is opened using the ``airfs.open`` function.
+This dictionary must be transmitted either to the ``airfs.mount`` function or when a
+file is opened using the ``airfs.open`` function.
 
-Once mounted, all functions can be used without the needs to pass
-the ``storage_parameters`` dictionary.
+Once mounted, all functions can be used without the needs to pass the
+``storage_parameters`` dictionary.
 
-``my_cloud`` storage is mounted as follows:
+``my_storage`` storage is mounted as follows:
 
 **With ``mount`` function:**
 
@@ -101,19 +101,23 @@ the ``storage_parameters`` dictionary.
 
     import airfs
 
-    # "storage_parameters" is the cloud storage configuration
+    # "storage_parameters" is the storage configuration
     storage_parameters = dict(
-        client_id='my_client_id', secret_id='my_secret_id')
+        client_id='my_client_id',
+        secret_id='my_secret_id'
+        )
 
-    # Mount "my_cloud" storage with "mount" function
+    # Mount "my_storage" storage with "mount" function
     airfs.mount(
-        storage='my_cloud', storage_parameters=storage_parameters)
+        storage='my_storage',
+        storage_parameters=storage_parameters
+        )
 
     # _Storage files can now be used transparently
-    with airfs.open('https://my_cloud.com/object', 'rt') as file:
+    with airfs.open('https://my_storage.com/object', 'rt') as file:
         file.read()
 
-**On first cloud object open:**
+**On first storage object open:**
 
 .. code-block:: python
 
@@ -123,12 +127,14 @@ the ``storage_parameters`` dictionary.
         client_id='my_client_id', secret_id='my_secret_id')
 
     # The storage is mounted on first use by passing "storage_parameters"
-    with airfs.open('https://my_cloud.com/my_object', 'rt',
-                      storage='my_cloud',
+    with airfs.open('https://my_storage.com/my_object', 'rt',
+                      storage='my_storage',
                       storage_parameters=storage_parameters) as file:
         file.read()
 
     # Next calls use mounted storage transparently
     with airfs.open(
-            'https://my_cloud.com/my_other_object', 'rt') as file:
+            'https://my_storage.com/my_other_object',
+            'rt'
+            ) as file:
         file.read()

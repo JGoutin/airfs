@@ -7,18 +7,18 @@
 airfs: A Python library for cloud and remote file Systems
 =========================================================
 
-airfs brings standard Python I/O to cloud objects and other remote file systems
-by providing:
+airfs brings standard Python I/O to various storage (like cloud objects storage, remote
+file-systems, ...) by providing:
 
 * Abstract classes of Cloud objects with the complete ``io.RawIOBase`` and
   ``io.BufferedIOBase`` standard interfaces.
 * Features equivalent to the standard library (``io``, ``os``, ``os.path``,
-  ``shutil``) for seamlessly managing cloud objects and local files.
+  ``shutil``) for seamlessly managing storage objects and local files.
 
 These functions are source agnostic and always provide the same interface for
-all files from cloud storage or local file systems.
+all files from storage or local file systems.
 
-Buffered cloud objects also support the following features:
+Buffered storage objects also support the following features:
 
 * Buffered asynchronous writing of any object size.
 * Buffered asynchronous preloading in reading mode.
@@ -32,6 +32,7 @@ airfs is compatible with the following storage services:
 
 * Alibaba Cloud OSS
 * Amazon Web Services S3
+* GitHub (Read Only)
 * Microsoft Azure Blobs Storage
 * Microsoft Azure Files Storage
 * OpenStack Swift / Object Store

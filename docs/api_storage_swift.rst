@@ -9,8 +9,7 @@ Mount
 An OpenStack Swift project can be mounted using the airfs ``mount`` function.
 
 ``storage_parameters`` await arguments to pass to the
-``swiftclient.client.Connection`` class from ``python-swiftclient`` Python
-library.
+``swiftclient.client.Connection`` class from ``python-swiftclient`` Python library.
 
 This example shows the mount of OpenStack Swift with a minimal configuration:
 
@@ -19,7 +18,9 @@ This example shows the mount of OpenStack Swift with a minimal configuration:
     import airfs
 
     # Mount OpenStack Swift manually (Minimal configuration)
-    airfs.mount(storage='swift', storage_parameters=dict(
+    airfs.mount(
+        storage='swift',
+        storage_parameters=dict(
             authurl='my_auth_url',
             user='my_user',
             key='my_key',
@@ -34,7 +35,8 @@ This example shows the mount of OpenStack Swift with a minimal configuration:
     # Call of airfs on an OpenStack Swift object.
     with airfs.open(
             'https://objects.my_cloud.com/v1/my_project/my_container/my_object',
-            'rt') as file:
+            'rt'
+            ) as file:
         text = file.read()
 
 

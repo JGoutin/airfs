@@ -1,17 +1,18 @@
 airfs: A Python library for cloud and remote file Systems
 =========================================================
 
-airfs brings standard Python I/O to cloud objects by providing:
+airfs brings standard Python I/O to various storage (like cloud objects storage, remote
+file-systems, ...) by providing:
 
 * Abstract classes of Cloud objects with the complete ``io.RawIOBase`` and
   ``io.BufferedIOBase`` standard interfaces.
-* Features equivalent to the standard library (``io``, ``os``, ``os.path``,
-  ``shutil``) for seamlessly managing cloud objects and local files.
+* Features equivalent to the standard library (``io``, ``os``, ``os.path``, ``shutil``)
+  for seamlessly managing storage objects and local files.
 
-These functions are source agnostic and always provide the same interface for
-all files from cloud storage or local file systems.
+These functions are source agnostic and always provide the same interface for all files
+from storage or local file systems.
 
-Buffered cloud objects also support the following features:
+Buffered storage objects also support the following features:
 
 * Buffered asynchronous writing of any object size.
 * Buffered asynchronous preloading in reading mode.
@@ -35,7 +36,8 @@ Example of code:
     # Copy file from the local file system to OpenStack Swift
     airfs.copy(
         'my_file',
-        'https://objects.my_cloud.com/v1/12345678912345/my_container/my_object')
+        'https://objects.my_cloud.com/v1/12345678912345/my_container/my_object'
+        )
 
     # Get size of a file over internet
     airfs.getsize('https://www.example.org/any_object')
@@ -48,22 +50,24 @@ airfs is compatible with the following storage services:
 
 * Alibaba Cloud OSS
 * Amazon Web Services S3
+* GitHub (Read Only)
 * Microsoft Azure Blobs Storage
 * Microsoft Azure Files Storage
 * OpenStack Swift / Object Store
 
-airfs can also access any publicly accessible file via HTTP/HTTPS
-(Read only).
+airfs can also access any publicly accessible file via HTTP/HTTPS (Read only).
 
 Limitations
 -----------
 
-Cloud object storage is not file systems and has the following limitations:
+All storage are not real file systems and may have the following limitations (
+Depending on the selected storage):
 
-- Cloud objects are not seekable in write mode.
-- Cloud objects must be written entirely at once.
-- Cloud objects are not locked when accessed.
-- The cloud object attributes available are more limited.
+- Storage objects may not be seekable in write mode.
+- Storage objects may be written entirely at once.
+- Storage objects may not be locked when accessed.
+- Storage object attributes available may be more limited.
+- Some file-system features like symbolic links may ne be present
 
 .. toctree::
    :maxdepth: 2

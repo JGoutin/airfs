@@ -8,9 +8,8 @@ Mount
 
 AWS S3 can be mounted using the airfs ``mount`` function.
 
-``storage_parameters`` contain a sub-directory ``session`` that await
-arguments to pass to ``boto3.session.Session(**session_parameters)`` from the
-``boto3`` Python library.
+``storage_parameters`` contain a sub-directory ``session`` that await arguments to pass
+to ``boto3.session.Session(**session_parameters)`` from the ``boto3`` Python library.
 
 It can also include a sub-directory ``client`` that is used to pass arguments to
 ``boto3.session.Session.client('s3', **client_parameters)``.
@@ -22,7 +21,9 @@ This example shows the mount of S3 with the minimal configuration:
     import airfs
 
     # Mount S3 manually (Minimal configuration)
-    airfs.mount(storage='s3', storage_parameters=dict(
+    airfs.mount(
+        storage='s3',
+        storage_parameters=dict(
             # "boto3.session.Session" arguments
             session=dict(
                 aws_access_key_id='my_access_key',
@@ -39,12 +40,12 @@ This example shows the mount of S3 with the minimal configuration:
 Automatic mount
 ~~~~~~~~~~~~~~~
 
-It is not required to mount S3 explicitly when using airfs on a host
-configured to handle AWS S3 access (Through IAM policy, configuration
-files, environment variables, ...).
+It is not required to mount S3 explicitly when using airfs on a host configured to
+handle AWS S3 access (Through IAM policy, configuration files, environment variables,
+...).
 
-In this case, mounting is done transparently on the first call of a airfs
-function on an S3 object and no configuration or extra steps are required:
+In this case, mounting is done transparently on the first call of a airfs function on
+an S3 object and no configuration or extra steps are required:
 
 .. code-block:: python
 
