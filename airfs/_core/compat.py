@@ -34,6 +34,9 @@ if _py[0] == 3 and _py[1] < 6:
     # Missing hashlib.black2b, replace it by SHA1 since only used for cache files names
     from hashlib import sha1 as blake2b  # noqa
 
+    # Deprecated on 2020-09-13
+    _deprecation_warning()
+
 else:
     fspath = _os.fspath
     from hashlib import blake2b  # noqa

@@ -41,6 +41,10 @@ Fixes:
 * airfs now let correctly `ImportError` from dependencies be raised instead of hidding
   it by raising an exception saying that the storage is not available.
 
+Deprecations:
+
+* Warn about Python 3.5 deprecation in next version.
+
 1.4.0 (2020/01)
 ---------------
 
