@@ -9,17 +9,27 @@ from threading import Lock
 
 class ObjectIOBase(IOBase):
     """
-    Base class to handle cloud object.
+    Base class to handle storage object.
 
     Args:
         name (path-like object): URL or path to the file which will be opened.
-        mode (str): The mode can be 'r', 'w', 'a', 'x'
-            for reading (default), writing or appending
+        mode (str): The mode can be 'r', 'w', 'a', 'x' for reading (default),
+            writing, appending or creation.
     """
-    __slots__ = ('_name', '_mode', '_seek', '_seek_lock', '_cache', '_closed',
-                 '_writable', '_readable', '_seekable')
 
-    def __init__(self, name, mode='r'):
+    __slots__ = (
+        "_name",
+        "_mode",
+        "_seek",
+        "_seek_lock",
+        "_cache",
+        "_closed",
+        "_writable",
+        "_readable",
+        "_seekable",
+    )
+
+    def __init__(self, name, mode="r"):
         IOBase.__init__(self)
 
         self._name = fsdecode(name)
@@ -40,10 +50,10 @@ class ObjectIOBase(IOBase):
         self._readable = False
         self._seekable = True
 
-        if 'w' in mode or 'a' in mode or 'x' in mode:
+        if "w" in mode or "a" in mode or "x" in mode:
             self._writable = True
 
-        elif 'r' in mode:
+        elif "r" in mode:
             self._readable = True
 
         else:
@@ -51,8 +61,11 @@ class ObjectIOBase(IOBase):
 
     def __str__(self):
         return "<%s.%s name='%s' mode='%s'>" % (
-            self.__class__.__module__, self.__class__.__name__,
-            self._name, self._mode)
+            self.__class__.__module__,
+            self.__class__.__name__,
+            self._name,
+            self._mode,
+        )
 
     __repr__ = __str__
 
@@ -97,12 +110,14 @@ class ObjectIOBase(IOBase):
         return self._seekable
 
     def tell(self):
-        """Return the current stream position.
+        """
+        Return the current stream position.
 
         Returns:
-            int: Stream position."""
+            int: Stream position.
+        """
         if not self._seekable:
-            raise UnsupportedOperation('tell')
+            raise UnsupportedOperation("tell")
 
         with self._seek_lock:
             return self._seek
@@ -144,8 +159,7 @@ def memoizedmethod(method):
 
         # Evaluates and cache value
         except KeyError:
-            result = self._cache[method_name] = method(
-                self, *args, **kwargs)
+            result = self._cache[method_name] = method(self, *args, **kwargs)
             return result
 
     return patched
@@ -181,8 +195,7 @@ class WorkerPoolBase:
             generator (iterable): A generator function.
 
         Returns:
-            iterable: The generator function with first element evaluated
-                in background.
+            iterable: The generator function with first element evaluated in background.
         """
         first_value_future = self._workers.submit(next, generator)
 

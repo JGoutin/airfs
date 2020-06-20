@@ -8,26 +8,28 @@ from botocore.exceptions import ClientError as _ClientError
 
 from airfs._core.exceptions import (
     ObjectNotFoundError as _ObjectNotFoundError,
-    ObjectPermissionError as _ObjectPermissionError)
+    ObjectPermissionError as _ObjectPermissionError,
+)
 from airfs.io import (
     ObjectRawIOBase as _ObjectRawIOBase,
     ObjectBufferedIOBase as _ObjectBufferedIOBase,
-    SystemBase as _SystemBase)
+    SystemBase as _SystemBase,
+)
 
 _ERROR_CODES = {
-    'AccessDenied': _ObjectPermissionError,
-    'NoSuchKey': _ObjectNotFoundError,
-    'InvalidBucketName': _ObjectNotFoundError,
-    'NoSuchBucket': _ObjectNotFoundError,
-    '403': _ObjectPermissionError,
-    '404': _ObjectNotFoundError}
+    "AccessDenied": _ObjectPermissionError,
+    "NoSuchKey": _ObjectNotFoundError,
+    "InvalidBucketName": _ObjectNotFoundError,
+    "NoSuchBucket": _ObjectNotFoundError,
+    "403": _ObjectPermissionError,
+    "404": _ObjectNotFoundError,
+}
 
 
 @_contextmanager
 def _handle_client_error():
     """
-    Handle boto exception and convert to class
-    IO exceptions
+    Handle boto exception and convert to class IO exceptions.
 
     Raises:
         OSError subclasses: IO error.
@@ -36,9 +38,9 @@ def _handle_client_error():
         yield
 
     except _ClientError as exception:
-        error = exception.response['Error']
-        if error['Code'] in _ERROR_CODES:
-            raise _ERROR_CODES[error['Code']](error['Message'])
+        error = exception.response["Error"]
+        if error["Code"] in _ERROR_CODES:
+            raise _ERROR_CODES[error["Code"]](error["Message"])
         raise
 
 
@@ -50,18 +52,18 @@ class _S3System(_SystemBase):
         storage_parameters (dict): Boto3 Session keyword arguments.
             This is generally AWS credentials and configuration.
             This dict should contain two sub-dicts:
-            'session': That pass its arguments to "boto3.session.Session"
-            ; 'client': That pass its arguments to
-            "boto3.session.Session.client".
-            May be optional if running on AWS EC2 instances.
-        unsecure (bool): If True, disables TLS/SSL to improves
-            transfer performance. But makes connection unsecure.
+            'session': That pass its arguments to "boto3.session.Session";
+            'client': That pass its arguments to "boto3.session.Session.client".
+            May be optional if already configured on host.
+        unsecure (bool): If True, disables TLS/SSL to improves transfer performance.
+            But makes connection unsecure.
     """
-    __slots__ = ('_session',)
 
-    _SIZE_KEYS = ('ContentLength',)
-    _CTIME_KEYS = ('CreationDate',)
-    _MTIME_KEYS = ('LastModified',)
+    __slots__ = ("_session",)
+
+    _SIZE_KEYS = ("ContentLength",)
+    _CTIME_KEYS = ("CreationDate",)
+    _MTIME_KEYS = ("LastModified",)
 
     def __init__(self, *args, **kwargs):
         self._session = None
@@ -83,8 +85,7 @@ class _S3System(_SystemBase):
 
     def get_client_kwargs(self, path):
         """
-        Get base keyword arguments for client for a
-        specific path.
+        Get base keyword arguments for client for a specific path.
 
         Args:
             path (str): Absolute path or URL.
@@ -95,7 +96,7 @@ class _S3System(_SystemBase):
         bucket_name, key = self.split_locator(path)
         kwargs = dict(Bucket=bucket_name)
         if key:
-            kwargs['Key'] = key
+            kwargs["Key"] = key
         return kwargs
 
     def _get_session(self):
@@ -107,7 +108,8 @@ class _S3System(_SystemBase):
         """
         if self._session is None:
             self._session = _boto3.session.Session(
-                **self._storage_parameters.get('session', dict()))
+                **self._storage_parameters.get("session", dict())
+            )
         return self._session
 
     def _get_client(self):
@@ -117,12 +119,12 @@ class _S3System(_SystemBase):
         Returns:
             boto3.session.Session.client: client
         """
-        client_kwargs = self._storage_parameters.get('client', dict())
+        client_kwargs = self._storage_parameters.get("client", dict())
 
         # Handles unsecure mode
         if self._unsecure:
             client_kwargs = client_kwargs.copy()
-            client_kwargs['use_ssl'] = False
+            client_kwargs["use_ssl"] = False
 
         return self._get_session().client("s3", **client_kwargs)
 
@@ -133,39 +135,33 @@ class _S3System(_SystemBase):
         Returns:
             tuple of str or re.Pattern: URL roots
         """
-        region = self._get_session().region_name or r'[\w-]+'
+        region = self._get_session().region_name or r"[\w-]+"
         return (
-                # S3 scheme
-                # - s3://<bucket>/<key>
-                's3://',
-
-                # Virtual-hosted–style URL
-                # - http://<bucket>.s3.amazonaws.com/<key>
-                # - https://<bucket>.s3.amazonaws.com/<key>
-                # - http://<bucket>.s3-<region>.amazonaws.com/<key>
-                # - https://<bucket>.s3-<region>.amazonaws.com/<key>
-                _re.compile(r'https?://[\w.-]+\.s3\.amazonaws\.com'),
-                _re.compile(
-                    r'https?://[\w.-]+\.s3-%s\.amazonaws\.com' % region),
-
-                # Path-hosted–style URL
-                # - http://s3.amazonaws.com/<bucket>/<key>
-                # - https://s3.amazonaws.com/<bucket>/<key>
-                # - http://s3-<region>.amazonaws.com/<bucket>/<key>
-                # - https://s3-<region>.amazonaws.com/<bucket>/<key>
-                _re.compile(r'https?://s3\.amazonaws\.com'),
-                _re.compile(r'https?://s3-%s\.amazonaws\.com' % region),
-
-                # Transfer acceleration URL
-                # - http://<bucket>.s3-accelerate.amazonaws.com
-                # - https://<bucket>.s3-accelerate.amazonaws.com
-                # - http://<bucket>.s3-accelerate.dualstack.amazonaws.com
-                # - https://<bucket>.s3-accelerate.dualstack.amazonaws.com
-                _re.compile(
-                    r'https?://[\w.-]+\.s3-accelerate\.amazonaws\.com'),
-                _re.compile(
-                    r'https?://[\w.-]+\.s3-accelerate\.dualstack'
-                    r'\.amazonaws\.com'))
+            # S3 scheme
+            # - s3://<bucket>/<key>
+            "s3://",
+            # Virtual-hosted–style URL
+            # - http://<bucket>.s3.amazonaws.com/<key>
+            # - https://<bucket>.s3.amazonaws.com/<key>
+            # - http://<bucket>.s3-<region>.amazonaws.com/<key>
+            # - https://<bucket>.s3-<region>.amazonaws.com/<key>
+            _re.compile(r"https?://[\w.-]+\.s3\.amazonaws\.com"),
+            _re.compile(r"https?://[\w.-]+\.s3-%s\.amazonaws\.com" % region),
+            # Path-hosted–style URL
+            # - http://s3.amazonaws.com/<bucket>/<key>
+            # - https://s3.amazonaws.com/<bucket>/<key>
+            # - http://s3-<region>.amazonaws.com/<bucket>/<key>
+            # - https://s3-<region>.amazonaws.com/<bucket>/<key>
+            _re.compile(r"https?://s3\.amazonaws\.com"),
+            _re.compile(r"https?://s3-%s\.amazonaws\.com" % region),
+            # Transfer acceleration URL
+            # - http://<bucket>.s3-accelerate.amazonaws.com
+            # - https://<bucket>.s3-accelerate.amazonaws.com
+            # - http://<bucket>.s3-accelerate.dualstack.amazonaws.com
+            # - https://<bucket>.s3-accelerate.dualstack.amazonaws.com
+            _re.compile(r"https?://[\w.-]+\.s3-accelerate\.amazonaws\.com"),
+            _re.compile(r"https?://[\w.-]+\.s3-accelerate\.dualstack\.amazonaws\.com"),
+        )
 
     @staticmethod
     def _get_time(header, keys, name):
@@ -198,9 +194,9 @@ class _S3System(_SystemBase):
             int: Size in bytes.
         """
         try:
-            return header.pop('ContentLength')
+            return header.pop("ContentLength")
         except KeyError:
-            raise _UnsupportedOperation('getsize')
+            raise _UnsupportedOperation("getsize")
 
     def _head(self, client_kwargs):
         """
@@ -214,7 +210,7 @@ class _S3System(_SystemBase):
         """
         with _handle_client_error():
             # Object
-            if 'Key' in client_kwargs:
+            if "Key" in client_kwargs:
                 header = self.client.head_object(**client_kwargs)
 
             # Bucket
@@ -222,7 +218,7 @@ class _S3System(_SystemBase):
                 header = self.client.head_bucket(**client_kwargs)
 
         # Clean up HTTP request information
-        for key in ('AcceptRanges', 'ResponseMetadata'):
+        for key in ("AcceptRanges", "ResponseMetadata"):
             header.pop(key, None)
         return header
 
@@ -235,14 +231,16 @@ class _S3System(_SystemBase):
         """
         with _handle_client_error():
             # Object
-            if 'Key' in client_kwargs:
-                return self.client.put_object(Body=b'', **client_kwargs)
+            if "Key" in client_kwargs:
+                return self.client.put_object(Body=b"", **client_kwargs)
 
             # Bucket
             return self.client.create_bucket(
-                Bucket=client_kwargs['Bucket'],
+                Bucket=client_kwargs["Bucket"],
                 CreateBucketConfiguration=dict(
-                    LocationConstraint=self._get_session().region_name))
+                    LocationConstraint=self._get_session().region_name
+                ),
+            )
 
     def _remove(self, client_kwargs):
         """
@@ -253,11 +251,11 @@ class _S3System(_SystemBase):
         """
         with _handle_client_error():
             # Object
-            if 'Key' in client_kwargs:
+            if "Key" in client_kwargs:
                 return self.client.delete_object(**client_kwargs)
 
             # Bucket
-            return self.client.delete_bucket(Bucket=client_kwargs['Bucket'])
+            return self.client.delete_bucket(Bucket=client_kwargs["Bucket"])
 
     def _list_locators(self):
         """
@@ -269,8 +267,8 @@ class _S3System(_SystemBase):
         with _handle_client_error():
             response = self.client.list_buckets()
 
-        for bucket in response['Buckets']:
-            yield bucket.pop('Name'), bucket
+        for bucket in response["Buckets"]:
+            yield bucket.pop("Name"), bucket
 
     def _list_objects(self, client_kwargs, path, max_request_entries):
         """
@@ -279,31 +277,29 @@ class _S3System(_SystemBase):
         args:
             client_kwargs (dict): Client arguments.
             path (str): Path relative to current locator.
-            max_request_entries (int): If specified, maximum entries returned
-                by request.
+            max_request_entries (int): If specified, maximum entries returned by the
+                request.
 
         Returns:
             generator of tuple: object name str, object header dict
         """
         client_kwargs = client_kwargs.copy()
         if max_request_entries:
-            client_kwargs['MaxKeys'] = max_request_entries
+            client_kwargs["MaxKeys"] = max_request_entries
 
         while True:
             with _handle_client_error():
-                response = self.client.list_objects_v2(
-                    Prefix=path, **client_kwargs)
+                response = self.client.list_objects_v2(Prefix=path, **client_kwargs)
 
             try:
-                for obj in response['Contents']:
-                    yield obj.pop('Key'), obj
+                for obj in response["Contents"]:
+                    yield obj.pop("Key"), obj
             except KeyError:
-                raise _ObjectNotFoundError('Not found: %s' % path)
+                raise _ObjectNotFoundError("Not found: %s" % path)
 
             # Handles results on more than one page
             try:
-                client_kwargs['ContinuationToken'] = response[
-                    'NextContinuationToken']
+                client_kwargs["ContinuationToken"] = response["NextContinuationToken"]
             except KeyError:
                 # End of results
                 break
@@ -314,18 +310,18 @@ class S3RawIO(_ObjectRawIOBase):
 
     Args:
         name (path-like object): URL or path to the file which will be opened.
-        mode (str): The mode can be 'r', 'w', 'a'
-            for reading (default), writing or appending
+        mode (str): The mode can be 'r', 'w', 'a' for reading (default), writing or
+            appending.
         storage_parameters (dict): Boto3 Session keyword arguments.
             This is generally AWS credentials and configuration.
             This dict should contain two sub-dicts:
-            'session': That pass its arguments to "boto3.session.Session"
-            ; 'client': That pass its arguments to
-            "boto3.session.Session.client".
-            May be optional if running on AWS EC2 instances.
-        unsecure (bool): If True, disables TLS/SSL to improves
-            transfer performance. But makes connection unsecure.
+            'session': That pass its arguments to "boto3.session.Session";
+            'client': That pass its arguments to "boto3.session.Session.client".
+            May be optional if already configured on host.
+        unsecure (bool): If True, disables TLS/SSL to improves transfer performance.
+            But makes connection unsecure.
     """
+
     _SYSTEM_CLASS = _S3System
 
     def _read_range(self, start, end=0):
@@ -334,8 +330,7 @@ class S3RawIO(_ObjectRawIOBase):
 
         Args:
             start (int): Start stream position.
-            end (int): End stream position.
-                0 To not specify end.
+            end (int): End stream position. 0 To not specify end.
 
         Returns:
             bytes: number of bytes read
@@ -344,17 +339,18 @@ class S3RawIO(_ObjectRawIOBase):
         try:
             with _handle_client_error():
                 response = self._client.get_object(
-                    Range=self._http_range(start, end), **self._client_kwargs)
+                    Range=self._http_range(start, end), **self._client_kwargs
+                )
 
         # Check for end of file
         except _ClientError as exception:
-            if exception.response['Error']['Code'] == 'InvalidRange':
+            if exception.response["Error"]["Code"] == "InvalidRange":
                 # EOF
                 return bytes()
             raise
 
         # Get object content
-        return response['Body'].read()
+        return response["Body"].read()
 
     def _readall(self):
         """
@@ -364,7 +360,7 @@ class S3RawIO(_ObjectRawIOBase):
             bytes: Object content
         """
         with _handle_client_error():
-            return self._client.get_object(**self._client_kwargs)['Body'].read()
+            return self._client.get_object(**self._client_kwargs)["Body"].read()
 
     def _flush(self, buffer):
         """
@@ -374,8 +370,7 @@ class S3RawIO(_ObjectRawIOBase):
             buffer (memoryview): Buffer content.
         """
         with _handle_client_error():
-            self._client.put_object(
-                Body=buffer.tobytes(), **self._client_kwargs)
+            self._client.put_object(Body=buffer.tobytes(), **self._client_kwargs)
 
 
 class S3BufferedIO(_ObjectBufferedIOBase):
@@ -385,21 +380,21 @@ class S3BufferedIO(_ObjectBufferedIOBase):
         name (path-like object): URL or path to the file which will be opened.
         mode (str): The mode can be 'r', 'w' for reading (default) or writing
         buffer_size (int): The size of buffer.
-        max_buffers (int): The maximum number of buffers to preload in read mode
-            or awaiting flush in write mode. 0 for no limit.
-        max_workers (int): The maximum number of threads that can be used to
-            execute the given calls.
+        max_buffers (int): The maximum number of buffers to preload in read mode or
+            awaiting flush in write mode. 0 for no limit.
+        max_workers (int): The maximum number of threads that can be used to execute the
+            given calls.
         storage_parameters (dict): Boto3 Session keyword arguments.
             This is generally AWS credentials and configuration.
             This dict should contain two sub-dicts:
-            'session': That pass its arguments to "boto3.session.Session"
-            ; 'client': That pass its arguments to
-            "boto3.session.Session.client".
-            May be optional if running on AWS EC2 instances.
-        unsecure (bool): If True, disables TLS/SSL to improves
-            transfer performance. But makes connection unsecure.
+            'session': That pass its arguments to "boto3.session.Session";
+            'client': That pass its arguments to "boto3.session.Session.client".
+            May be optional if already configured on host.
+        unsecure (bool): If True, disables TLS/SSL to improves transfer performance.
+            But makes connection unsecure.
     """
-    __slots__ = ('_upload_args',)
+
+    __slots__ = ("_upload_args",)
 
     _RAW_CLASS = S3RawIO
 
@@ -419,20 +414,22 @@ class S3BufferedIO(_ObjectBufferedIOBase):
         Flush the write buffers of the stream.
         """
         # Initialize multi-part upload
-        if 'UploadId' not in self._upload_args:
+        if "UploadId" not in self._upload_args:
             with _handle_client_error():
-                self._upload_args[
-                    'UploadId'] = self._client.create_multipart_upload(
-                    **self._client_kwargs)['UploadId']
+                self._upload_args["UploadId"] = self._client.create_multipart_upload(
+                    **self._client_kwargs
+                )["UploadId"]
 
         # Upload part with workers
         response = self._workers.submit(
-            self._client.upload_part, Body=self._get_buffer().tobytes(),
-            PartNumber=self._seek, **self._upload_args)
+            self._client.upload_part,
+            Body=self._get_buffer().tobytes(),
+            PartNumber=self._seek,
+            **self._upload_args,
+        )
 
         # Save part information
-        self._write_futures.append(
-            dict(response=response, PartNumber=self._seek))
+        self._write_futures.append(dict(response=response, PartNumber=self._seek))
 
     def _close_writable(self):
         """
@@ -440,18 +437,19 @@ class S3BufferedIO(_ObjectBufferedIOBase):
         """
         # Wait parts upload completion
         for part in self._write_futures:
-            part['ETag'] = part.pop('response').result()['ETag']
+            part["ETag"] = part.pop("response").result()["ETag"]
 
         # Complete multipart upload
         with _handle_client_error():
             try:
                 self._client.complete_multipart_upload(
-                    MultipartUpload={'Parts': self._write_futures},
-                    UploadId=self._upload_args['UploadId'],
-                    **self._client_kwargs)
+                    MultipartUpload={"Parts": self._write_futures},
+                    UploadId=self._upload_args["UploadId"],
+                    **self._client_kwargs,
+                )
             except _ClientError:
                 # Clean up if failure
                 self._client.abort_multipart_upload(
-                    UploadId=self._upload_args['UploadId'],
-                    **self._client_kwargs)
+                    UploadId=self._upload_args["UploadId"], **self._client_kwargs
+                )
                 raise

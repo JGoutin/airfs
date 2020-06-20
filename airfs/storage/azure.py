@@ -2,8 +2,7 @@
 from abc import abstractmethod as _abstractmethod
 from contextlib import contextmanager as _contextmanager
 from concurrent.futures import as_completed as _as_completed
-from io import (
-    UnsupportedOperation as _UnsupportedOperation, BytesIO as _BytesIO)
+from io import UnsupportedOperation as _UnsupportedOperation, BytesIO as _BytesIO
 from threading import Lock as _Lock
 
 from azure.common import AzureHttpError as _AzureHttpError
@@ -11,17 +10,18 @@ from azure.common import AzureHttpError as _AzureHttpError
 from airfs._core.io_base import WorkerPoolBase as _WorkerPoolBase
 from airfs._core.exceptions import (
     ObjectNotFoundError as _ObjectNotFoundError,
-    ObjectPermissionError as _ObjectPermissionError)
+    ObjectPermissionError as _ObjectPermissionError,
+)
 from airfs.io import (
-    SystemBase as _SystemBase, ObjectRawIOBase as _ObjectRawIOBase,
-    ObjectRawIORandomWriteBase as _ObjectRawIORandomWriteBase)
+    SystemBase as _SystemBase,
+    ObjectRawIOBase as _ObjectRawIOBase,
+    ObjectRawIORandomWriteBase as _ObjectRawIORandomWriteBase,
+)
 
 #: 'azure' can be used to mount following storage at once with airfs.mount
-MOUNT_REDIRECT = ('azure_blob', 'azure_file')
+MOUNT_REDIRECT = ("azure_blob", "azure_file")
 
-_ERROR_CODES = {
-    403: _ObjectPermissionError,
-    404: _ObjectNotFoundError}
+_ERROR_CODES = {403: _ObjectPermissionError, 404: _ObjectNotFoundError}
 
 
 @_contextmanager
@@ -55,7 +55,7 @@ def _properties_model_to_dict(properties):
     for attr in properties.__dict__:
         value = getattr(properties, attr)
 
-        if hasattr(value, '__module__') and 'models' in value.__module__:
+        if hasattr(value, "__module__") and "models" in value.__module__:
             value = _properties_model_to_dict(value)
 
         if not (value is None or (isinstance(value, dict) and not value)):
@@ -71,15 +71,15 @@ class _AzureBaseSystem(_SystemBase):
     Args:
         storage_parameters (dict): Azure service keyword arguments.
             This is generally Azure credentials and configuration. See
-            "azure.storage.blob.baseblobservice.BaseBlobService" for more
-            information.
+            "azure.storage.blob.baseblobservice.BaseBlobService" for more information.
         unsecure (bool): If True, disables TLS/SSL to improves
             transfer performance. But makes connection unsecure.
     """
-    __slots__ = ('_endpoint', '_endpoint_domain')
 
-    _MTIME_KEYS = ('last_modified',)
-    _SIZE_KEYS = ('content_length',)
+    __slots__ = ("_endpoint", "_endpoint_domain")
+
+    _MTIME_KEYS = ("last_modified",)
+    _SIZE_KEYS = ("content_length",)
 
     def __init__(self, *args, **kwargs):
         self._endpoint = None
@@ -111,8 +111,8 @@ class _AzureBaseSystem(_SystemBase):
         """
         Get endpoint information from storage parameters.
 
-        Update system with endpoint information and return information required
-        to define roots.
+        Update system with endpoint information and return information required to
+        define roots.
 
         Args:
             self (airfs._core.io_system.SystemBase subclass): System.
@@ -122,18 +122,21 @@ class _AzureBaseSystem(_SystemBase):
             tuple of str: account_name, endpoint_suffix
         """
         storage_parameters = self._storage_parameters or dict()
-        account_name = storage_parameters.get('account_name')
+        account_name = storage_parameters.get("account_name")
 
         if not account_name:
             raise ValueError('"account_name" is required for Azure storage')
 
-        suffix = storage_parameters.get(
-            'endpoint_suffix', 'core.windows.net')
+        suffix = storage_parameters.get("endpoint_suffix", "core.windows.net")
 
-        self._endpoint = 'http%s://%s.%s.%s' % (
-            '' if self._unsecure else 's', account_name, sub_domain, suffix)
+        self._endpoint = "http%s://%s.%s.%s" % (
+            "" if self._unsecure else "s",
+            account_name,
+            sub_domain,
+            suffix,
+        )
 
-        return account_name, suffix.replace('.', r'\.')
+        return account_name, suffix.replace(".", r"\.")
 
     def _secured_storage_parameters(self):
         """
@@ -147,14 +150,14 @@ class _AzureBaseSystem(_SystemBase):
         # Handles unsecure mode
         if self._unsecure:
             parameters = parameters.copy()
-            parameters['protocol'] = 'http'
+            parameters["protocol"] = "http"
 
         return parameters
 
     def _format_src_url(self, path, caller_system):
         """
-        Ensure path is absolute and use the correct URL format for use with
-        cross Azure storage account copy function.
+        Ensure path is absolute and use the correct URL format for use with cross Azure
+        storage account copy function.
 
         Args:
             path (str): Path or URL.
@@ -164,12 +167,12 @@ class _AzureBaseSystem(_SystemBase):
         Returns:
             str: URL.
         """
-        path = '%s/%s' % (self._endpoint, self.relpath(path))
+        path = "%s/%s" % (self._endpoint, self.relpath(path))
 
         # If SAS token available, use it to give cross account copy access.
         if caller_system is not self:
             try:
-                path = '%s?%s' % (path, self._storage_parameters['sas_token'])
+                path = "%s?%s" % (path, self._storage_parameters["sas_token"])
             except KeyError:
                 pass
 
@@ -182,15 +185,15 @@ class _AzureBaseSystem(_SystemBase):
 
         Args:
             client_kwargs (dict): Client arguments.
-            max_request_entries (int): If specified, maximum entries returned
-                by request.
+            max_request_entries (int): If specified, maximum entries returned by the
+            request.
 
         Returns:
             dict: Updated client_kwargs
         """
         client_kwargs = client_kwargs.copy()
         if max_request_entries:
-            client_kwargs['num_results'] = max_request_entries
+            client_kwargs["num_results"] = max_request_entries
         return client_kwargs
 
     @staticmethod
@@ -205,7 +208,7 @@ class _AzureBaseSystem(_SystemBase):
             dict: Converted model.
         """
         result = _properties_model_to_dict(obj.properties)
-        for attribute in ('metadata', 'snapshot'):
+        for attribute in ("metadata", "snapshot"):
             try:
                 value = getattr(obj, attribute)
             except AttributeError:
@@ -236,8 +239,7 @@ class _AzureStorageRawIOBase(_ObjectRawIOBase):
 
         Args:
             start (int): Start stream position.
-            end (int): End stream position.
-                0 To not specify end.
+            end (int): End stream position. 0 To not specify end.
 
         Returns:
             bytes: number of bytes read
@@ -246,8 +248,11 @@ class _AzureStorageRawIOBase(_ObjectRawIOBase):
         try:
             with _handle_azure_exception():
                 self._get_to_stream(
-                    stream=stream, start_range=start,
-                    end_range=(end - 1) if end else None, **self._client_kwargs)
+                    stream=stream,
+                    start_range=start,
+                    end_range=(end - 1) if end else None,
+                    **self._client_kwargs,
+                )
 
         # Check for end of file
         except _AzureHttpError as exception:
@@ -271,20 +276,21 @@ class _AzureStorageRawIOBase(_ObjectRawIOBase):
         return stream.getvalue()
 
 
-class _AzureStorageRawIORangeWriteBase(_ObjectRawIORandomWriteBase,
-                                       _AzureStorageRawIOBase,
-                                       _WorkerPoolBase):
+class _AzureStorageRawIORangeWriteBase(
+    _ObjectRawIORandomWriteBase, _AzureStorageRawIOBase, _WorkerPoolBase
+):
     """
     Common Raw IO for Azure storage classes that have write range ability.
     """
-    __slots__ = ('_content_length',)
+
+    __slots__ = ("_content_length",)
 
     _MAX_FLUSH_SIZE = None
 
     def __init__(self, *args, **kwargs):
 
         # If a content length is provided, allocate pages for this blob
-        self._content_length = kwargs.get('content_length', 0)
+        self._content_length = kwargs.get("content_length", 0)
 
         _ObjectRawIORandomWriteBase.__init__(self, *args, **kwargs)
         _WorkerPoolBase.__init__(self)
@@ -321,8 +327,7 @@ class _AzureStorageRawIORangeWriteBase(_ObjectRawIORandomWriteBase,
         if self._content_length:
             # Adjust size if content length specified
             with _handle_azure_exception():
-                self._resize(
-                    content_length=self._content_length, **self._client_kwargs)
+                self._resize(content_length=self._content_length, **self._client_kwargs)
                 self._reset_head()
 
         # Make initial seek position to current end of file
@@ -335,7 +340,8 @@ class _AzureStorageRawIORangeWriteBase(_ObjectRawIORandomWriteBase,
         # Create new file
         with _handle_azure_exception():
             self._create_from_size(
-                content_length=self._content_length, **self._client_kwargs)
+                content_length=self._content_length, **self._client_kwargs
+            )
 
     @_abstractmethod
     def _update_range(self, data, **kwargs):
@@ -375,19 +381,22 @@ class _AzureStorageRawIORangeWriteBase(_ObjectRawIORandomWriteBase,
             for part_start in range(0, buffer_size, self.MAX_FLUSH_SIZE):
 
                 # Split buffer
-                buffer_part = buffer[
-                      part_start:part_start + self.MAX_FLUSH_SIZE]
+                buffer_part = buffer[part_start : part_start + self.MAX_FLUSH_SIZE]
                 if not len(buffer_part):
                     # No more data
                     break
 
                 # Upload split buffer in parallel
                 start_range = start + part_start
-                futures.append(self._workers.submit(
-                    self._update_range, data=buffer_part.tobytes(),
-                    start_range=start_range,
-                    end_range=start_range + len(buffer_part) - 1,
-                    **self._client_kwargs))
+                futures.append(
+                    self._workers.submit(
+                        self._update_range,
+                        data=buffer_part.tobytes(),
+                        start_range=start_range,
+                        end_range=start_range + len(buffer_part) - 1,
+                        **self._client_kwargs,
+                    )
+                )
 
             with _handle_azure_exception():
                 # Wait for upload completion
@@ -398,5 +407,8 @@ class _AzureStorageRawIORangeWriteBase(_ObjectRawIORandomWriteBase,
             # Buffer lower than limit, do one requests.
             with _handle_azure_exception():
                 self._update_range(
-                    data=buffer.tobytes(), start_range=start,
-                    end_range=end - 1, **self._client_kwargs)
+                    data=buffer.tobytes(),
+                    start_range=start,
+                    end_range=end - 1,
+                    **self._client_kwargs,
+                )

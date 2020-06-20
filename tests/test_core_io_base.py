@@ -6,31 +6,31 @@ def test_object_base_io():
     """Tests airfs._core.io_base.ObjectIOBase"""
     from airfs._core.io_base import ObjectIOBase
 
-    name = 'name'
+    name = "name"
 
     # Tests mode
     object_io = ObjectIOBase(name)
     assert object_io.name == name
-    assert object_io.mode == 'r'
+    assert object_io.mode == "r"
     assert object_io.readable()
     assert object_io.seekable()
     assert not object_io.writable()
     assert name in str(object_io)
 
-    object_io = ObjectIOBase(name, mode='w')
-    assert object_io.mode == 'w'
+    object_io = ObjectIOBase(name, mode="w")
+    assert object_io.mode == "w"
     assert not object_io.readable()
     assert object_io.seekable()
     assert object_io.writable()
 
-    object_io = ObjectIOBase(name, mode='a')
-    assert object_io.mode == 'a'
+    object_io = ObjectIOBase(name, mode="a")
+    assert object_io.mode == "a"
     assert not object_io.readable()
     assert object_io.seekable()
     assert object_io.writable()
 
     with pytest.raises(ValueError):
-        ObjectIOBase(name, mode='z')
+        ObjectIOBase(name, mode="z")
 
 
 def test_memoizedmethod():
@@ -40,6 +40,7 @@ def test_memoizedmethod():
     # Tests _memoize
     class Dummy:
         """Dummy class"""
+
         def __init__(self):
             self._cache = {}
 
@@ -50,7 +51,7 @@ def test_memoizedmethod():
 
     dummy = Dummy()
     assert not dummy._cache
-    value = 'value'
+    value = "value"
     assert dummy.to_memoize(value) == value
-    assert dummy._cache == {'to_memoize': value}
+    assert dummy._cache == {"to_memoize": value}
     assert dummy.to_memoize(value) == value

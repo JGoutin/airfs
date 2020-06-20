@@ -9,8 +9,9 @@ class FileSystemBase(SystemBase):
     Cloud storage system handler with true file hierarchy.
     """
 
-    def list_objects(self, path='', relative=False, first_level=False,
-                     max_request_entries=None):
+    def list_objects(
+        self, path="", relative=False, first_level=False, max_request_entries=None
+    ):
         """
         List objects.
 
@@ -19,8 +20,8 @@ class FileSystemBase(SystemBase):
             relative (bool): Path is relative to current root.
             first_level (bool): It True, returns only first level objects.
                 Else, returns full tree.
-            max_request_entries (int): If specified, maximum entries returned
-                by request.
+            max_request_entries (int): If specified, maximum entries returned by the
+                request.
 
         Returns:
             generator of tuple: object name str, object header dict
@@ -39,7 +40,8 @@ class FileSystemBase(SystemBase):
         # Sub directory
         else:
             objects = self._list_objects(
-                self.get_client_kwargs(path), max_request_entries)
+                self.get_client_kwargs(path), max_request_entries
+            )
 
         # Yield file hierarchy
         for obj in objects:
@@ -53,18 +55,26 @@ class FileSystemBase(SystemBase):
 
             # Start to generate subdirectories content
             if is_directory and not first_level:
-                name = next_path = name.rstrip('/') + '/'
+                name = next_path = name.rstrip("/") + "/"
 
                 if path:
-                    next_path = '/'.join((path.rstrip('/'), name))
+                    next_path = "/".join((path.rstrip("/"), name))
 
                 if max_request_entries is not None:
                     max_request_entries_arg = max_request_entries - entries
 
-                next_values.append((
-                    name, self._generate_async(self.list_objects(
-                        next_path, relative=True,
-                        max_request_entries=max_request_entries_arg))))
+                next_values.append(
+                    (
+                        name,
+                        self._generate_async(
+                            self.list_objects(
+                                next_path,
+                                relative=True,
+                                max_request_entries=max_request_entries_arg,
+                            )
+                        ),
+                    )
+                )
 
             entries += 1
             yield name, header
@@ -76,7 +86,7 @@ class FileSystemBase(SystemBase):
             for name, header in generator:
 
                 entries += 1
-                yield '/'.join((next_name.rstrip('/'), name)), header
+                yield "/".join((next_name.rstrip("/"), name)), header
                 if entries == max_request_entries:
                     return
 
@@ -88,10 +98,9 @@ class FileSystemBase(SystemBase):
 
         args:
             client_kwargs (dict): Client arguments.
-            max_request_entries (int): If specified, maximum entries returned
-                by request.
+            max_request_entries (int): If specified, maximum entries returned by the
+                request.
 
         Returns:
-            generator of tuple: object name str, object header dict,
-            directory bool
+            generator of tuple: object name str, object header dict, directory bool
         """

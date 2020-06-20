@@ -7,35 +7,50 @@ from shutil import SameFileError
 from sys import exc_info
 
 
-class ObjectException(Exception):
+# Publicly raised exceptions
+
+
+class AirfsException(Exception):
     """airfs base exception"""
 
 
-class ObjectNotFoundError(ObjectException):
+class AirfsWarning(UserWarning):
+    """airfs base warning"""
+
+
+class MountException(Exception):
+    """airfs mount exception"""
+
+
+# Internal exceptions, should not be seen by users
+
+
+class ObjectNotFoundError(AirfsException):
     """Reraised as "FileNotFoundError" by handle_os_exceptions"""
 
 
-class ObjectPermissionError(ObjectException):
+class ObjectPermissionError(AirfsException):
     """Reraised as "PermissionError" by handle_os_exceptions"""
 
 
-class ObjectExistsError(ObjectException):
+class ObjectExistsError(AirfsException):
     """Reraised as "FileExistsError" by handle_os_exceptions"""
 
 
-class ObjectNotADirectoryError(ObjectException):
+class ObjectNotADirectoryError(AirfsException):
     """Reraised as "NotADirectoryError" by handle_os_exceptions"""
 
 
-class ObjectWarning(UserWarning):
-    """airfs base warning"""
+class ObjectIsADirectoryError(AirfsException):
+    """Reraised as "IsADirectoryError" by handle_os_exceptions"""
 
 
 _OS_EXCEPTIONS = {
     ObjectNotFoundError: FileNotFoundError,
     ObjectPermissionError: PermissionError,
     ObjectExistsError: FileExistsError,
-    ObjectNotADirectoryError: NotADirectoryError
+    ObjectNotADirectoryError: NotADirectoryError,
+    ObjectIsADirectoryError: IsADirectoryError,
 }
 
 
@@ -48,7 +63,7 @@ def handle_os_exceptions():
         yield
 
     # Convert airfs exception to equivalent OSError
-    except ObjectException:
+    except AirfsException:
         exc_type, exc_value, _ = exc_info()
         raise _OS_EXCEPTIONS.get(exc_type, OSError)(exc_value)
 
@@ -59,5 +74,4 @@ def handle_os_exceptions():
     # Raise generic OSError for other exceptions
     except Exception:
         exc_type, exc_value, _ = exc_info()
-        raise OSError('%s%s' % (
-            exc_type, (', %s' % exc_value) if exc_value else ''))
+        raise OSError("%s%s" % (exc_type, (", %s" % exc_value) if exc_value else ""))

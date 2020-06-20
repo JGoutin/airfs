@@ -4,10 +4,9 @@ import pytest
 pytest.importorskip("boto3")
 
 UNSUPPORTED_OPERATIONS = (
-    'symlink',
-
+    "symlink",
     # Not supported on some objects
-    'getctime',
+    "getctime",
 )
 
 
@@ -15,27 +14,26 @@ def test_handle_client_error():
     """Test airfs.s3._handle_client_error"""
     from airfs.storage.s3 import _handle_client_error
     from botocore.exceptions import ClientError
-    from airfs._core.exceptions import (
-        ObjectNotFoundError, ObjectPermissionError)
+    from airfs._core.exceptions import ObjectNotFoundError, ObjectPermissionError
 
-    response = {'Error': {'Code': 'ErrorCode', 'Message': 'Error'}}
+    response = {"Error": {"Code": "ErrorCode", "Message": "Error"}}
 
     # Any error
     with pytest.raises(ClientError):
         with _handle_client_error():
-            raise ClientError(response, 'testing')
+            raise ClientError(response, "testing")
 
     # 404 error
-    response['Error']['Code'] = '404'
+    response["Error"]["Code"] = "404"
     with pytest.raises(ObjectNotFoundError):
         with _handle_client_error():
-            raise ClientError(response, 'testing')
+            raise ClientError(response, "testing")
 
     # 403 error
-    response['Error']['Code'] = '403'
+    response["Error"]["Code"] = "403"
     with pytest.raises(ObjectPermissionError):
         with _handle_client_error():
-            raise ClientError(response, 'testing')
+            raise ClientError(response, "testing")
 
 
 def test_mocked_storage():
@@ -55,21 +53,21 @@ def test_mocked_storage():
 
     def raise_404():
         """Raise 404 error"""
-        raise ClientError({
-            'Error': {'Code': '404', 'Message': 'Error'}}, 'Error')
+        raise ClientError({"Error": {"Code": "404", "Message": "Error"}}, "Error")
 
     def raise_416():
         """Raise 416 error"""
-        raise ClientError({
-            'Error': {'Code': 'InvalidRange', 'Message': 'Error'}}, 'Error')
+        raise ClientError(
+            {"Error": {"Code": "InvalidRange", "Message": "Error"}}, "Error"
+        )
 
     def raise_500():
         """Raise 500 error"""
-        raise ClientError({
-            'Error': {'Code': 'Error', 'Message': 'Error'}}, 'Error')
+        raise ClientError({"Error": {"Code": "Error", "Message": "Error"}}, "Error")
 
     storage_mock = ObjectStorageMock(
-        raise_404, raise_416, raise_500, format_date=datetime.fromtimestamp)
+        raise_404, raise_416, raise_500, format_date=datetime.fromtimestamp
+    )
 
     no_head = False
 
@@ -83,8 +81,11 @@ def test_mocked_storage():
         @staticmethod
         def get_object(Bucket=None, Key=None, Range=None, **_):
             """boto3.client.get_object"""
-            return dict(Body=BytesIO(
-                storage_mock.get_object(Bucket, Key, header=dict(Range=Range))))
+            return dict(
+                Body=BytesIO(
+                    storage_mock.get_object(Bucket, Key, header=dict(Range=Range))
+                )
+            )
 
         @staticmethod
         def head_object(Bucket=None, Key=None, **_):
@@ -117,8 +118,11 @@ def test_mocked_storage():
         def copy_object(Bucket=None, Key=None, CopySource=None, **_):
             """boto3.client.copy_object"""
             storage_mock.copy_object(
-                CopySource['Key'], Key, dst_locator=Bucket,
-                src_locator=CopySource['Bucket'])
+                CopySource["Key"],
+                Key,
+                dst_locator=Bucket,
+                src_locator=CopySource["Bucket"],
+            )
 
         @staticmethod
         def delete_bucket(Bucket=None, **_):
@@ -131,10 +135,10 @@ def test_mocked_storage():
             objects = []
 
             for name, header in storage_mock.get_locator(
-                    Bucket, prefix=Prefix, limit=MaxKeys,
-                    raise_404_if_empty=False).items():
+                Bucket, prefix=Prefix, limit=MaxKeys, raise_404_if_empty=False
+            ).items():
 
-                header['Key'] = name
+                header["Key"] = name
                 objects.append(header)
 
             if not objects:
@@ -146,7 +150,7 @@ def test_mocked_storage():
             """boto3.client.list_buckets"""
             objects = []
             for name, header in storage_mock.get_locators().items():
-                header['Name'] = name
+                header["Name"] = name
                 objects.append(header)
 
             return dict(Buckets=objects)
@@ -158,31 +162,32 @@ def test_mocked_storage():
 
         @staticmethod
         def complete_multipart_upload(
-                Bucket=None, Key=None, MultipartUpload=None,
-                UploadId=None, **_):
+            Bucket=None, Key=None, MultipartUpload=None, UploadId=None, **_
+        ):
             """boto3.client.complete_multipart_upload"""
-            uploaded_parts = MultipartUpload['Parts']
+            uploaded_parts = MultipartUpload["Parts"]
             assert UploadId == 123
 
             parts = []
             for part in uploaded_parts:
-                parts.append(Key + str(part['PartNumber']))
-                assert part['ETag']
+                parts.append(Key + str(part["PartNumber"]))
+                assert part["ETag"]
 
             storage_mock.concat_objects(Bucket, Key, parts)
 
         @staticmethod
-        def upload_part(Bucket=None, Key=None, PartNumber=None,
-                        Body=None, UploadId=None, **_):
+        def upload_part(
+            Bucket=None, Key=None, PartNumber=None, Body=None, UploadId=None, **_
+        ):
             """boto3.client.upload_part"""
             assert UploadId == 123
-            return storage_mock.put_object(
-                Bucket, Key + str(PartNumber), Body)
+            return storage_mock.put_object(Bucket, Key + str(PartNumber), Body)
 
     class Session:
         """boto3.session.Session"""
+
         client = Client
-        region_name = ''
+        region_name = ""
 
         def __init__(self, *_, **__):
             """boto3.session.Session.__init__"""
@@ -200,16 +205,20 @@ def test_mocked_storage():
 
         # Tests
         with StorageTester(
-                system, S3RawIO, S3BufferedIO, storage_mock,
-                unsupported_operations=UNSUPPORTED_OPERATIONS) as tester:
+            system,
+            S3RawIO,
+            S3BufferedIO,
+            storage_mock,
+            unsupported_operations=UNSUPPORTED_OPERATIONS,
+        ) as tester:
 
             # Common tests
             tester.test_common()
 
             # Test: Unsecure mode
-            file_path = tester.base_dir_path + 'file0.dat'
+            file_path = tester.base_dir_path + "file0.dat"
             with S3RawIO(file_path, unsecure=True) as file:
-                assert file._client.kwargs['use_ssl'] is False
+                assert file._client.kwargs["use_ssl"] is False
 
             # Test: Header values may be missing
             no_head = True

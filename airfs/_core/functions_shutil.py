@@ -2,14 +2,17 @@
 from io import UnsupportedOperation
 from os.path import join, basename, dirname
 from shutil import (
-    copy as shutil_copy, copyfileobj, copyfile as shutil_copyfile,
-    SameFileError)
+    copy as shutil_copy,
+    copyfileobj,
+    copyfile as shutil_copyfile,
+    SameFileError,
+)
 
 from airfs._core.compat import COPY_BUFSIZE
 from airfs._core.functions_io import cos_open
 from airfs._core.functions_os_path import isdir
 from airfs._core.functions_core import format_and_is_storage
-from airfs._core.exceptions import ObjectException, handle_os_exceptions
+from airfs._core.exceptions import AirfsException, handle_os_exceptions
 from airfs._core.storage_manager import get_instance
 
 
@@ -34,43 +37,52 @@ def _copy(src, dst, src_is_storage, dst_is_storage):
 
                 # Checks if same file
                 if system_src.relpath(src) == system_dst.relpath(dst):
-                    raise SameFileError(
-                        "'%s' and '%s' are the same file" % (src, dst))
+                    raise SameFileError("'%s' and '%s' are the same file" % (src, dst))
 
                 # Tries to copy
                 try:
                     return system_dst.copy(src, dst)
-                except (UnsupportedOperation, ObjectException):
+                except (UnsupportedOperation, AirfsException):
                     pass
 
             # Copy from compatible storage using "copy_from_<src_storage>" or
             # "copy_to_<src_storage>" method if any
             for caller, called, method in (
-                    (system_dst, system_src, 'copy_from_%s'),
-                    (system_src, system_dst, 'copy_to_%s')):
+                (system_dst, system_src, "copy_from_%s"),
+                (system_src, system_dst, "copy_to_%s"),
+            ):
                 if hasattr(caller, method % called.storage):
                     try:
                         return getattr(caller, method % called.storage)(
-                            src, dst, called)
-                    except (UnsupportedOperation, ObjectException):
+                            src, dst, called
+                        )
+                    except (UnsupportedOperation, AirfsException):
                         continue
 
         # At least one storage object: copies streams
-        with cos_open(src, 'rb') as fsrc:
-            with cos_open(dst, 'wb') as fdst:
+        _copy_stream(dst, src)
 
-                # Get stream buffer size
-                for stream in (fsrc, fdst):
-                    try:
-                        buffer_size = getattr(stream, '_buffer_size')
-                        break
-                    except AttributeError:
-                        continue
-                else:
-                    buffer_size = COPY_BUFSIZE
 
-                # Read and write
-                copyfileobj(fsrc, fdst, buffer_size)
+def _copy_stream(dst, src):
+    """
+    Copy files by streaming content from source to destination.
+
+    Args:
+        src (str or file-like object): Source file.
+        dst (str or file-like object): Destination file.
+    """
+    with cos_open(src, "rb") as fsrc:
+        with cos_open(dst, "wb") as fdst:
+            for stream in (fsrc, fdst):
+                # Try to get the best buffer size
+                try:
+                    buffer_size = getattr(stream, "_buffer_size")
+                    break
+                except AttributeError:
+                    continue
+            else:
+                buffer_size = COPY_BUFSIZE
+            copyfileobj(fsrc, fdst, buffer_size)
 
 
 def copy(src, dst):
@@ -83,8 +95,7 @@ def copy(src, dst):
 
     Args:
         src (path-like object or file-like object): Source file.
-        dst (path-like object or file-like object):
-            Destination file or directory.
+        dst (path-like object or file-like object): Destination file or directory.
 
     Raises:
          IOError: Destination directory not found.
@@ -98,7 +109,7 @@ def copy(src, dst):
         return shutil_copy(src, dst)
 
     # Checks destination
-    if not hasattr(dst, 'read'):
+    if not hasattr(dst, "read"):
         try:
             # If destination is directory: defines an output file inside it
             if isdir(dst):
@@ -106,13 +117,12 @@ def copy(src, dst):
 
             # Checks if destination dir exists
             elif not isdir(dirname(dst)):
-                raise FileNotFoundError(
-                    "No such file or directory: '%s'" % dst)
+                raise FileNotFoundError("No such file or directory: '%s'" % dst)
 
         except PermissionError:
-            # Unable to check target directory due to missing read access,
-            # but do not raise to allow to write if possible
-            print('PermissionError reached')
+            # Unable to check target directory due to missing read access, but do not
+            # raise to allow to write if possible
+            print("PermissionError reached")
             pass
 
     # Performs copy
@@ -131,7 +141,7 @@ def copyfile(src, dst, follow_symlinks=True):
         src (path-like object or file-like object): Source file.
         dst (path-like object or file-like object): Destination file.
         follow_symlinks (bool): Follow symlinks.
-            Not supported on cloud storage objects.
+            Not supported on storage objects.
 
     Raises:
          IOError: Destination directory not found.
@@ -146,13 +156,12 @@ def copyfile(src, dst, follow_symlinks=True):
 
     # Checks destination
     try:
-        if not hasattr(dst, 'read') and not isdir(dirname(dst)):
-            raise FileNotFoundError(
-                "No such file or directory: '%s'" % dst)
+        if not hasattr(dst, "read") and not isdir(dirname(dst)):
+            raise FileNotFoundError("No such file or directory: '%s'" % dst)
 
     except PermissionError:
-        # Unable to check target directory due to missing read access, but
-        # do not raise to allow to write if possible
+        # Unable to check target directory due to missing read access, but do not raise
+        # to allow to write if possible
         pass
 
     # Performs copy

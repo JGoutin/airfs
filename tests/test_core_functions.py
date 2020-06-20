@@ -11,49 +11,49 @@ def test_equivalent_to():
     """Tests airfs._core.functions_core.equivalent_to"""
     from airfs._core.functions_core import equivalent_to
     from airfs._core.exceptions import ObjectNotFoundError
+    from os import fsdecode
     from sys import version_info
 
-    std = 'std'
-    cos = 'cos'
-    local_path = 'path'
-    storage_path = 'http://path'
+    std = "std"
+    cos = "cos"
+    local_path = "path"
+    storage_path = "http://path"
     dummy_args = (1, 2, 3)
-    dummy_kwargs = {'args1': 1, 'args2': 2}
+    dummy_kwargs = {"args1": 1, "args2": 2}
     raises_exception = False
 
     # Mocks a standard function and is storage equivalent
 
     def std_function(path, *args, **kwargs):
         """Checks arguments and returns fake result"""
-        assert path == local_path
-        assert args == dummy_args
-        assert kwargs == dummy_kwargs
+        assert fsdecode(path) == local_path, "std_function, path"
+        assert args == dummy_args, "std_function, args"
+        assert kwargs == dummy_kwargs, "std_function, kwargs"
         return std
 
     @equivalent_to(std_function)
     def cos_function(path, *args, **kwargs):
         """Checks arguments and returns fake result"""
-        assert path == storage_path
-        assert args == dummy_args
-        assert kwargs == dummy_kwargs
+        assert path == storage_path, "cos_function, path"
+        assert args == dummy_args, "cos_function, args"
+        assert kwargs == dummy_kwargs, "cos_function, kwargs"
         if raises_exception:
-            raise ObjectNotFoundError('Error')
+            raise ObjectNotFoundError("Error")
         return cos
 
     # Tests storage function
-    assert cos_function(
-        storage_path, *dummy_args, **dummy_kwargs) == cos
+    assert cos_function(storage_path, *dummy_args, **dummy_kwargs) == cos
 
     # Tests fall back to standard function
-    assert cos_function(
-        local_path, *dummy_args, **dummy_kwargs) == std
+    assert cos_function(local_path, *dummy_args, **dummy_kwargs) == std
 
     # Tests path-like object compatibility
     if (version_info[0] == 3 and version_info[1] >= 6) or version_info[0] > 3:
         import pathlib
 
-        assert cos_function(
-            pathlib.Path(local_path), *dummy_args, **dummy_kwargs) == std
+        assert (
+            cos_function(pathlib.Path(local_path), *dummy_args, **dummy_kwargs) == std
+        )
 
     # Tests exception conversion
     raises_exception = True
@@ -73,20 +73,21 @@ def test_equivalent_functions(tmpdir):
 
     # Mock system
 
-    root = 'dummy://'
-    relative = 'dir1/dir2/dir3'
+    root = "dummy://"
+    relative = "dir1/dir2/dir3"
     dummy_path = root + relative
     excepted_path = dummy_path
-    result = 'result'
+    result = "result"
     dirs_exists = set()
     dir_created = []
     removed = []
     check_ending_slash = True
     first_level_objects_list = [
-        ('isfile1', {}),
-        ('isfile2', {}),
-        ('isdir1', {}),
-        ('isdir2', {})]
+        ("isfile1", {}),
+        ("isfile2", {}),
+        ("isdir1", {}),
+        ("isdir2", {}),
+    ]
     objects_list = []
     is_dir_no_access = False
 
@@ -97,7 +98,7 @@ def test_equivalent_functions(tmpdir):
             """Checks arguments and returns fake result"""
             if excepted_path:
                 assert path.startswith(excepted_path)
-            return path.split(root)[1].strip('/')
+            return path.split(root)[1].strip("/")
 
         @staticmethod
         def isdir(path=None, *_, **__):
@@ -105,19 +106,18 @@ def test_equivalent_functions(tmpdir):
             if is_dir_no_access:
                 raise ObjectPermissionError
             if check_ending_slash:
-                assert path[-1] == '/'
-            return path in dirs_exists or 'isdir' in path
+                assert path[-1] == "/"
+            return path in dirs_exists or "isdir" in path
 
         @staticmethod
         def isfile(path=None, *_, **__):
             """Checks arguments and returns fake result"""
-            return 'isfile' in path
+            return "isfile" in path
 
         @staticmethod
-        def list_objects(path='', first_level=False, **__):
+        def list_objects(path="", first_level=False, **__):
             """Checks arguments and returns fake result"""
-            for obj in (
-                    first_level_objects_list if first_level else objects_list):
+            for obj in first_level_objects_list if first_level else objects_list:
                 yield obj
 
         @staticmethod
@@ -137,7 +137,7 @@ def test_equivalent_functions(tmpdir):
         @staticmethod
         def _get_roots(*_, **__):
             """Do nothing"""
-            return root,
+            return (root,)
 
         @staticmethod
         def _get_client(*_, **__):
@@ -158,13 +158,15 @@ def test_equivalent_functions(tmpdir):
             assert path == excepted_path
             return result
 
-        aliases = {'lstat': 'stat'}
+        aliases = {"lstat": "stat"}
 
         for std_lib, names in (
-                (std_os_path,
-                 ('exists', 'getsize', 'getctime', 'getmtime', 'isfile',
-                  'islink')),
-                (std_os, ('stat', 'lstat'))):
+            (
+                std_os_path,
+                ("exists", "getsize", "getctime", "getmtime", "isfile", "islink"),
+            ),
+            (std_os, ("stat", "lstat")),
+        ):
 
             for name in names:
                 system = System()
@@ -176,7 +178,7 @@ def test_equivalent_functions(tmpdir):
 
         # relpath
         assert std_os_path.relpath(dummy_path) == relative
-        assert std_os_path.relpath(dummy_path, start='dir1/') == 'dir2/dir3'
+        assert std_os_path.relpath(dummy_path, start="dir1/") == "dir2/dir3"
 
         # ismount
         assert std_os_path.ismount(dummy_path) is False
@@ -194,14 +196,14 @@ def test_equivalent_functions(tmpdir):
         assert std_os_path.splitdrive(dummy_path) == (root, relative)
         old_root = root
         old_relative = relative
-        relative = 'dir2/dir3'
-        root += 'dir1'
-        assert std_os_path.splitdrive(dummy_path) == (root, '/' + relative)
+        relative = "dir2/dir3"
+        root += "dir1"
+        assert std_os_path.splitdrive(dummy_path) == (root, "/" + relative)
         root = old_root
         relative = old_relative
 
         # samefile
-        if version_info[0] == 2 and platform().startswith('Windows'):
+        if version_info[0] == 2 and platform().startswith("Windows"):
             with pytest.raises(NotImplementedError):
                 std_os_path.samefile(__file__, __file__)
         else:
@@ -210,30 +212,30 @@ def test_equivalent_functions(tmpdir):
         assert std_os_path.samefile(dummy_path, dummy_path)
         assert not std_os_path.samefile(dummy_path, relative)
         assert not std_os_path.samefile(relative, dummy_path)
-        assert std_os_path.samefile(dummy_path, dummy_path + '/')
-        assert not std_os_path.samefile(dummy_path, dummy_path + '/dir4')
+        assert std_os_path.samefile(dummy_path, dummy_path + "/")
+        assert not std_os_path.samefile(dummy_path, dummy_path + "/dir4")
 
-        root2 = 'dummy2://'
+        root2 = "dummy2://"
         MOUNTED[root2] = dict(system_cached=System())
-        excepted_path = ''
+        excepted_path = ""
         assert not std_os_path.samefile(root2 + relative, dummy_path)
 
         # isdir
-        dirs_exists.add('dummy://locator/dir1/')
-        assert std_os_path.isdir('dummy://locator/dir1/')
-        assert std_os_path.isdir('dummy://locator/dir1')
+        dirs_exists.add("dummy://locator/dir1/")
+        assert std_os_path.isdir("dummy://locator/dir1/")
+        assert std_os_path.isdir("dummy://locator/dir1")
 
         # makesdirs
         assert not dir_created
-        airfs.makedirs('dummy://locator/dir1', exist_ok=True)
+        airfs.makedirs("dummy://locator/dir1", exist_ok=True)
         assert dir_created
 
         dir_created = []
         with pytest.raises(OSError):
-            airfs.makedirs('dummy://locator/dir1')
+            airfs.makedirs("dummy://locator/dir1")
         assert not dir_created
 
-        directory = tmpdir.join('directory')
+        directory = tmpdir.join("directory")
         assert not directory.check()
         airfs.makedirs(str(directory))
         assert directory.check()
@@ -243,27 +245,27 @@ def test_equivalent_functions(tmpdir):
         directory.remove()
 
         # mkdir
-        dirs_exists.add('dummy://locator/')
-        dirs_exists.add('dummy://')
+        dirs_exists.add("dummy://locator/")
+        dirs_exists.add("dummy://")
 
         with pytest.raises(OSError):
-            airfs.mkdir('dummy://locator/dir_not_exists/dir1')
+            airfs.mkdir("dummy://locator/dir_not_exists/dir1")
         assert not dir_created
 
-        airfs.mkdir('dummy://locator/dir1/dir2')
+        airfs.mkdir("dummy://locator/dir1/dir2")
         assert dir_created
 
         dir_created = []
         check_ending_slash = False
         with pytest.raises(OSError):
-            airfs.mkdir('dummy://locator/dir1')
+            airfs.mkdir("dummy://locator/dir1")
         assert not dir_created
 
         dir_created = []
-        airfs.mkdir('dummy://locator2/')
+        airfs.mkdir("dummy://locator2/")
         assert dir_created
 
-        directory = tmpdir.join('directory')
+        directory = tmpdir.join("directory")
         assert not directory.check()
         airfs.mkdir(str(directory))
         assert directory.check()
@@ -277,46 +279,47 @@ def test_equivalent_functions(tmpdir):
         assert airfs.remove is airfs.unlink
 
         removed = []
-        airfs.remove('dummy://locator/file')
+        airfs.remove("dummy://locator/file")
         assert removed
 
         with pytest.raises(OSError):
-            airfs.remove('dummy://locator')
+            airfs.remove("dummy://locator")
 
         with pytest.raises(OSError):
-            airfs.remove('dummy://locator/dir/')
+            airfs.remove("dummy://locator/dir/")
 
         with pytest.raises(OSError):
-            airfs.remove('dummy://')
+            airfs.remove("dummy://")
 
-        file = tmpdir.ensure('file')
+        file = tmpdir.ensure("file")
         assert file.check()
         airfs.remove(str(file))
         assert not file.check()
 
         # rmdir
         removed = []
-        airfs.rmdir('dummy://locator/dir')
+        airfs.rmdir("dummy://locator/dir")
         assert removed
 
-        directory = tmpdir.mkdir('directory')
+        directory = tmpdir.mkdir("directory")
         assert directory.check()
         airfs.rmdir(str(directory))
         assert not directory.check()
 
         # listdir
-        assert airfs.listdir('dummy://locator/dir') == [
-            name for name, _ in first_level_objects_list]
+        assert airfs.listdir("dummy://locator/dir") == [
+            name for name, _ in first_level_objects_list
+        ]
 
         # scandir
-        parent = 'dummy://locator/dir'
+        parent = "dummy://locator/dir"
         for index, dir_entry in enumerate(airfs.scandir(parent)):
             name = first_level_objects_list[index][0]
             assert dir_entry.name == name
-            assert dir_entry.path == '/'.join((parent, name))
+            assert dir_entry.path == "/".join((parent, name))
             assert dir_entry.inode() == 0
-            assert dir_entry.is_dir() == ('isdir' in name)
-            assert dir_entry.is_file() == ('isfile' in name)
+            assert dir_entry.is_dir() == ("isdir" in name)
+            assert dir_entry.is_file() == ("isfile" in name)
             assert not dir_entry.is_symlink()
             assert dir_entry.stat().st_size == 0
             assert name in str(dir_entry)
@@ -324,10 +327,10 @@ def test_equivalent_functions(tmpdir):
         for index, dir_entry in enumerate(airfs.scandir(fsencode(parent))):
             name = first_level_objects_list[index][0]
             assert dir_entry.name == fsencode(name)
-            assert dir_entry.path == fsencode('/'.join((parent, name)))
+            assert dir_entry.path == fsencode("/".join((parent, name)))
             assert dir_entry.inode() == 0
-            assert dir_entry.is_dir() == ('isdir' in name)
-            assert dir_entry.is_file() == ('isfile' in name)
+            assert dir_entry.is_dir() == ("isdir" in name)
+            assert dir_entry.is_file() == ("isfile" in name)
             assert not dir_entry.is_symlink()
             assert dir_entry.stat().st_size == 0
             assert name in str(dir_entry)
@@ -337,7 +340,7 @@ def test_equivalent_functions(tmpdir):
 
         is_dir_no_access = True
         for dir_entry in airfs.scandir(fsencode(parent)):
-            assert dir_entry.is_dir() == True
+            assert dir_entry.is_dir() is True
 
         is_dir_no_access = False
 
@@ -352,8 +355,7 @@ def test_equivalent_functions(tmpdir):
 
 def test_cos_open(tmpdir):
     """
-    Tests  airfs._core.functions_io.cos_open and
-    airfs._core.functions_shutil.copy
+    Tests  airfs._core.functions_io.cos_open and airfs._core.functions_shutil.copy
     """
     from airfs import copy, copyfile
     from airfs._core.functions_io import cos_open
@@ -364,13 +366,13 @@ def test_cos_open(tmpdir):
     from shutil import SameFileError
     import airfs._core.functions_shutil as rfs_shutil
 
-    root = 'dummy_read://'
-    root2 = 'dummy_read2://'
-    root3 = 'dummy_read3://'
-    cos_path = root + 'file.txt'
-    cos_path2 = root2 + 'file.txt'
-    cos_path3 = root3 + 'file.txt'
-    content = b'dummy_content'
+    root = "dummy_read://"
+    root2 = "dummy_read2://"
+    root3 = "dummy_read3://"
+    cos_path = root + "file.txt"
+    cos_path2 = root2 + "file.txt"
+    cos_path3 = root3 + "file.txt"
+    content = b"dummy_content"
 
     # Mock storage
     class DummySystem(SystemBase):
@@ -409,7 +411,7 @@ def test_cos_open(tmpdir):
         @staticmethod
         def _get_roots(*_, **__):
             """Do nothing"""
-            return root,
+            return (root,)
 
         @staticmethod
         def _get_client(*_, **__):
@@ -432,28 +434,37 @@ def test_cos_open(tmpdir):
         """Dummy buffered IO"""
 
     system = DummySystem()
-    system._storage = 'storage1'
+    system._storage = "storage1"
     MOUNTED[root] = dict(
-        raw=DummyRawIO, buffered=DummyBufferedIO,
-        system_cached=system, storage_parameters={})
+        raw=DummyRawIO,
+        buffered=DummyBufferedIO,
+        system_cached=system,
+        storage_parameters={},
+    )
 
     system2 = DummySystem()
-    system2._storage = 'storage2'
+    system2._storage = "storage2"
     MOUNTED[root2] = dict(
-        raw=DummyRawIO, buffered=DummyBufferedIO,
-        system_cached=system2, storage_parameters={})
+        raw=DummyRawIO,
+        buffered=DummyBufferedIO,
+        system_cached=system2,
+        storage_parameters={},
+    )
 
     system3 = DummySystem()
-    system3._storage = 'storage3'
+    system3._storage = "storage3"
     MOUNTED[root3] = dict(
-        raw=DummyRawIO, buffered=DummyBufferedIO,
-        system_cached=system3, storage_parameters={})
+        raw=DummyRawIO,
+        buffered=DummyBufferedIO,
+        system_cached=system3,
+        storage_parameters={},
+    )
 
     def dummy_isdir(path):
         """Returns fake result"""
-        if path in ('dummy_read:', 'dummy_read2:', 'dummy_read3:'):
+        if path in ("dummy_read:", "dummy_read2:", "dummy_read3:"):
             return True
-        if 'dummy_read://' in path:
+        if "dummy_read://" in path:
             return False
         return isdir(path)
 
@@ -463,43 +474,43 @@ def test_cos_open(tmpdir):
     # Tests
     try:
         # open: Buffered Binary
-        with cos_open(cos_path, 'rb') as file:
+        with cos_open(cos_path, "rb") as file:
             assert isinstance(file, DummyBufferedIO)
             assert file.read() == content
 
         # open: Buffered Text
-        with cos_open(cos_path, 'rt') as file:
+        with cos_open(cos_path, "rt") as file:
             assert isinstance(file, TextIOWrapper)
             assert file.read() == content.decode()
 
         # open: Raw Binary
-        with cos_open(cos_path, 'rb', buffering=0) as file:
+        with cos_open(cos_path, "rb", buffering=0) as file:
             assert isinstance(file, DummyRawIO)
             assert file.read() == content
 
         # open: Raw Text
-        with cos_open(cos_path, 'rt', buffering=0) as file:
+        with cos_open(cos_path, "rt", buffering=0) as file:
             assert isinstance(file, TextIOWrapper)
             assert file.read() == content.decode()
 
         # open: Stream Binary
-        with cos_open(BytesIO(content), 'rb') as file:
+        with cos_open(BytesIO(content), "rb") as file:
             assert isinstance(file, BytesIO)
             assert file.read() == content
 
         # open: Stream Text
-        with cos_open(BytesIO(content), 'rt') as file:
+        with cos_open(BytesIO(content), "rt") as file:
             assert isinstance(file, TextIOWrapper)
             assert file.read() == content.decode()
 
         # open: Local file
-        local_file = tmpdir.join('file.txt')
+        local_file = tmpdir.join("file.txt")
         local_file.write(content)
-        with cos_open(str(local_file), 'rb') as file:
+        with cos_open(str(local_file), "rb") as file:
             assert file.read() == content
 
         # copy: Local file to local file
-        local_dst = tmpdir.join('file_dst.txt')
+        local_dst = tmpdir.join("file_dst.txt")
         assert not local_dst.check()
         copy(str(local_file), str(local_dst))
         assert local_dst.read_binary() == content
@@ -534,21 +545,20 @@ def test_cos_open(tmpdir):
         assert stream_dst.read() == content
 
         # copy: storage file to local directory
-        local_dir = tmpdir.mkdir('sub_dir')
+        local_dir = tmpdir.mkdir("sub_dir")
         copy(cos_path, str(local_dir))
-        assert local_dir.join(
-            cos_path.split('://')[1]).read_binary() == content
+        assert local_dir.join(cos_path.split("://")[1]).read_binary() == content
 
         # copy: destination directory not exits
         with pytest.raises(OSError):
-            copy(cos_path, str(tmpdir.join('not_exist/file.txt')))
+            copy(cos_path, str(tmpdir.join("not_exist/file.txt")))
 
         with pytest.raises(OSError):
-            copyfile(cos_path, str(tmpdir.join('not_exist/file.txt')))
+            copyfile(cos_path, str(tmpdir.join("not_exist/file.txt")))
 
         # copy: storage file to storage file
         assert not system.copied
-        copy(cos_path, cos_path + '2')
+        copy(cos_path, cos_path + "2")
         assert system.copied
         system.copied = False
 
@@ -569,7 +579,7 @@ def test_cos_open(tmpdir):
 
         # copy: No special copy function
         system.raise_on_copy = True
-        copy(cos_path, cos_path + '2')
+        copy(cos_path, cos_path + "2")
         assert not system.copied
 
         copy(cos_path, cos_path2)
@@ -607,9 +617,9 @@ def test_is_storage():
     from airfs._core.functions_core import is_storage
 
     # Remote paths
-    assert is_storage('', storage='storage')
-    assert is_storage('http://path')
+    assert is_storage("", storage="storage")
+    assert is_storage("http://path")
 
     # Local paths
-    assert not is_storage('path')
-    assert not is_storage('file://path')
+    assert not is_storage("path")
+    assert not is_storage("file://path")

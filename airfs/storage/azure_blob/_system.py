@@ -1,8 +1,7 @@
 """Microsoft Azure Blobs Storage: System"""
 import re as _re
 
-from azure.storage.blob import (
-    PageBlobService, BlockBlobService, AppendBlobService)
+from azure.storage.blob import PageBlobService, BlockBlobService, AppendBlobService
 from azure.storage.blob.models import _BlobTypes
 
 from airfs.storage.azure import _handle_azure_exception, _AzureBaseSystem
@@ -20,10 +19,9 @@ class _AzureBlobSystem(_AzureBaseSystem):
     Args:
         storage_parameters (dict): Azure service keyword arguments.
             This is generally Azure credentials and configuration. See
-            "azure.storage.blob.baseblobservice.BaseBlobService" for more
-            information.
-        unsecure (bool): If True, disables TLS/SSL to improves
-            transfer performance. But makes connection unsecure.
+            "azure.storage.blob.baseblobservice.BaseBlobService" for more information.
+        unsecure (bool): If True, disables TLS/SSL to improves transfer performance.
+            But makes connection unsecure.
     """
 
     def copy(self, src, dst, other_system=None):
@@ -33,33 +31,35 @@ class _AzureBlobSystem(_AzureBaseSystem):
         Args:
             src (str): Path or URL.
             dst (str): Path or URL.
-            other_system (airfs.storage.azure._AzureBaseSystem subclass):
-                The source storage system.
+            other_system (airfs.storage.azure._AzureBaseSystem subclass): The source
+                storage system.
         """
         with _handle_azure_exception():
             self._client_block.copy_blob(
                 copy_source=(other_system or self)._format_src_url(src, self),
-                **self.get_client_kwargs(dst))
+                **self.get_client_kwargs(dst),
+            )
 
     def _get_client(self):
         """
         Azure blob service
 
         Returns:
-            dict of azure.storage.blob.baseblobservice.BaseBlobService subclass:
-            Service
+            dict of azure.storage.blob.baseblobservice.BaseBlobService subclass: Service
         """
         parameters = self._secured_storage_parameters().copy()
 
         # Parameter added by airfs and unsupported by blob services.
         try:
-            del parameters['blob_type']
+            del parameters["blob_type"]
         except KeyError:
             pass
 
-        return {_BlobTypes.PageBlob: PageBlobService(**parameters),
-                _BlobTypes.BlockBlob: BlockBlobService(**parameters),
-                _BlobTypes.AppendBlob: AppendBlobService(**parameters)}
+        return {
+            _BlobTypes.PageBlob: PageBlobService(**parameters),
+            _BlobTypes.BlockBlob: BlockBlobService(**parameters),
+            _BlobTypes.AppendBlob: AppendBlobService(**parameters),
+        }
 
     @property
     @memoizedmethod
@@ -81,7 +81,7 @@ class _AzureBlobSystem(_AzureBaseSystem):
         Returns:
             str: Blob type.
         """
-        return self._storage_parameters.get('blob_type', _DEFAULT_BLOB_TYPE)
+        return self._storage_parameters.get("blob_type", _DEFAULT_BLOB_TYPE)
 
     def get_client_kwargs(self, path):
         """
@@ -95,14 +95,14 @@ class _AzureBlobSystem(_AzureBaseSystem):
             dict: client args
         """
         # Remove query string from URL
-        path = path.split('?', 1)[0]
+        path = path.split("?", 1)[0]
 
         container_name, blob_name = self.split_locator(path)
         kwargs = dict(container_name=container_name)
 
         # Blob
         if blob_name:
-            kwargs['blob_name'] = blob_name
+            kwargs["blob_name"] = blob_name
         return kwargs
 
     def _get_roots(self):
@@ -117,8 +117,7 @@ class _AzureBlobSystem(_AzureBaseSystem):
         # - https://<account>.blob.core.windows.net/<container>/<blob>
 
         # Note: "core.windows.net" may be replaced by another "endpoint_suffix"
-        return _re.compile(
-            r'https?://%s\.blob\.%s' % self._get_endpoint('blob')),
+        return (_re.compile(r"https?://%s\.blob\.%s" % self._get_endpoint("blob")),)
 
     def _head(self, client_kwargs):
         """
@@ -132,13 +131,12 @@ class _AzureBlobSystem(_AzureBaseSystem):
         """
         with _handle_azure_exception():
             # Blob
-            if 'blob_name' in client_kwargs:
+            if "blob_name" in client_kwargs:
                 result = self._client_block.get_blob_properties(**client_kwargs)
 
             # Container
             else:
-                result = self._client_block.get_container_properties(
-                    **client_kwargs)
+                result = self._client_block.get_container_properties(**client_kwargs)
 
         return self._model_to_dict(result)
 
@@ -160,19 +158,19 @@ class _AzureBlobSystem(_AzureBaseSystem):
         args:
             client_kwargs (dict): Client arguments.
             path (str): Path relative to current locator.
-            max_request_entries (int): If specified, maximum entries returned
-                by request.
+            max_request_entries (int): If specified, maximum entries returned by the
+                request.
 
         Returns:
             generator of tuple: object name str, object header dict
         """
         client_kwargs = self._update_listing_client_kwargs(
-            client_kwargs, max_request_entries)
+            client_kwargs, max_request_entries
+        )
 
         blob = None
         with _handle_azure_exception():
-            for blob in self._client_block.list_blobs(
-                    prefix=path, **client_kwargs):
+            for blob in self._client_block.list_blobs(prefix=path, **client_kwargs):
                 yield blob.name, self._model_to_dict(blob)
 
         # None only if path don't exists
@@ -188,9 +186,10 @@ class _AzureBlobSystem(_AzureBaseSystem):
         """
         with _handle_azure_exception():
             # Blob
-            if 'blob_name' in client_kwargs:
+            if "blob_name" in client_kwargs:
                 return self._client_block.create_blob_from_bytes(
-                    blob=b'', **client_kwargs)
+                    blob=b"", **client_kwargs
+                )
 
             # Container
             return self._client_block.create_container(**client_kwargs)
@@ -204,7 +203,7 @@ class _AzureBlobSystem(_AzureBaseSystem):
         """
         with _handle_azure_exception():
             # Blob
-            if 'blob_name' in client_kwargs:
+            if "blob_name" in client_kwargs:
                 return self._client_block.delete_blob(**client_kwargs)
 
             # Container

@@ -2,29 +2,29 @@
 import pytest
 
 UNSUPPORTED_OPERATIONS = (
-    'copy',
-    'getmtime',
-    'getctime',
-    'getsize',
-    'mkdir',
-    'listdir',
-    'remove',
-    'symlink',
-    'write'
+    "copy",
+    "getmtime",
+    "getctime",
+    "getsize",
+    "mkdir",
+    "listdir",
+    "remove",
+    "symlink",
+    "write",
 )
 
 
 def test_handle_http_errors():
     """Test airfs.http._handle_http_errors"""
     from airfs.storage.http import _handle_http_errors
-    from airfs._core.exceptions import (
-        ObjectNotFoundError, ObjectPermissionError)
+    from airfs._core.exceptions import ObjectNotFoundError, ObjectPermissionError
 
     # Mocks response
     class Response:
         """Dummy response"""
+
         status_code = 200
-        reason = 'reason'
+        reason = "reason"
         raised = False
 
         def raise_for_status(self):
@@ -91,8 +91,9 @@ def test_mocked_storage():
 
     class Response:
         """HTTP request response"""
+
         status_code = 200
-        reason = 'reason'
+        reason = "reason"
 
         def __init__(self, **attributes):
             for name, value in attributes.items():
@@ -114,23 +115,23 @@ def test_mocked_storage():
             """Check arguments and returns fake result"""
             # Remove scheme
             try:
-                url = url.split('//')[1]
+                url = url.split("//")[1]
             except IndexError:
                 pass
 
             # Split path and locator
-            locator, path = url.split('/', 1)
+            locator, path = url.split("/", 1)
 
             # Perform requests
             try:
-                if method == 'HEAD':
+                if method == "HEAD":
+                    return Response(headers=storage_mock.head_object(locator, path))
+                elif method == "GET":
                     return Response(
-                        headers=storage_mock.head_object(locator, path))
-                elif method == 'GET':
-                    return Response(content=storage_mock.get_object(
-                        locator, path, header=headers))
+                        content=storage_mock.get_object(locator, path, header=headers)
+                    )
                 else:
-                    raise ValueError('Unknown method: ' + method)
+                    raise ValueError("Unknown method: " + method)
 
             # Return exception as response with status_code
             except HTTPException as exception:
@@ -147,8 +148,12 @@ def test_mocked_storage():
 
         # Tests
         with StorageTester(
-                system, HTTPRawIO, HTTPBufferedIO, storage_mock,
-                unsupported_operations=UNSUPPORTED_OPERATIONS) as tester:
+            system,
+            HTTPRawIO,
+            HTTPBufferedIO,
+            storage_mock,
+            unsupported_operations=UNSUPPORTED_OPERATIONS,
+        ) as tester:
 
             # Common tests
             tester.test_common()

@@ -4,10 +4,9 @@ import pytest
 pytest.importorskip("swiftclient")
 
 UNSUPPORTED_OPERATIONS = (
-    'symlink',
-
+    "symlink",
     # Not supported on some objects
-    'getctime',
+    "getctime",
 )
 
 
@@ -15,8 +14,7 @@ def test_handle_client_exception():
     """Test airfs.swift._handle_client_exception"""
     from airfs.storage.swift import _handle_client_exception
     from swiftclient import ClientException
-    from airfs._core.exceptions import (
-        ObjectNotFoundError, ObjectPermissionError)
+    from airfs._core.exceptions import ObjectNotFoundError, ObjectPermissionError
 
     # No error
     with _handle_client_exception():
@@ -25,17 +23,17 @@ def test_handle_client_exception():
     # 403 error
     with pytest.raises(ObjectPermissionError):
         with _handle_client_exception():
-            raise ClientException('error', http_status=403)
+            raise ClientException("error", http_status=403)
 
     # 404 error
     with pytest.raises(ObjectNotFoundError):
         with _handle_client_exception():
-            raise ClientException('error', http_status=404)
+            raise ClientException("error", http_status=404)
 
     # Any error
     with pytest.raises(ClientException):
         with _handle_client_exception():
-            raise ClientException('error', http_status=500)
+            raise ClientException("error", http_status=500)
 
 
 def test_mocked_storage():
@@ -51,15 +49,15 @@ def test_mocked_storage():
 
     def raise_404():
         """Raise 404 error"""
-        raise swiftclient.ClientException('error', http_status=404)
+        raise swiftclient.ClientException("error", http_status=404)
 
     def raise_416():
         """Raise 416 error"""
-        raise swiftclient.ClientException('error', http_status=416)
+        raise swiftclient.ClientException("error", http_status=416)
 
     def raise_500():
         """Raise 500 error"""
-        raise swiftclient.ClientException('error', http_status=500)
+        raise swiftclient.ClientException("error", http_status=500)
 
     storage_mock = ObjectStorageMock(raise_404, raise_416, raise_500)
 
@@ -72,13 +70,15 @@ def test_mocked_storage():
         @staticmethod
         def get_auth():
             """swiftclient.client.Connection.get_auth"""
-            return '###',
+            return ("###",)
 
         @staticmethod
         def get_object(container, obj, headers=None, **_):
             """swiftclient.client.Connection.get_object"""
-            return (storage_mock.head_object(container, obj),
-                    storage_mock.get_object(container, obj, header=headers))
+            return (
+                storage_mock.head_object(container, obj),
+                storage_mock.get_object(container, obj, header=headers),
+            )
 
         @staticmethod
         def head_object(container, obj, **_):
@@ -89,26 +89,27 @@ def test_mocked_storage():
         def put_object(container, obj, contents, query_string=None, **_):
             """swiftclient.client.Connection.put_object"""
             # Concatenates object parts
-            if query_string == 'multipart-manifest=put':
+            if query_string == "multipart-manifest=put":
                 manifest = loads(contents)
                 parts = []
                 for part in manifest:
-                    path = part['path'].split(container + '/')[1]
+                    path = part["path"].split(container + "/")[1]
                     parts.append(path)
 
                     # Check manifest format
                     assert path.startswith(obj)
-                    assert part['etag']
+                    assert part["etag"]
 
                 header = storage_mock.concat_objects(container, obj, parts)
 
             # Single object upload
             else:
-                header = storage_mock.put_object(container, obj, contents,
-                                                 new_file=True)
+                header = storage_mock.put_object(
+                    container, obj, contents, new_file=True
+                )
 
             # Return Etag
-            return header['ETag']
+            return header["ETag"]
 
         @staticmethod
         def delete_object(container, obj, **_):
@@ -141,8 +142,9 @@ def test_mocked_storage():
             objects = []
 
             for name, header in storage_mock.get_locator(
-                    container, prefix=prefix, limit=limit).items():
-                header['name'] = name
+                container, prefix=prefix, limit=limit
+            ).items():
+                header["name"] = name
                 objects.append(header)
 
             return storage_mock.head_locator(container), objects
@@ -152,7 +154,7 @@ def test_mocked_storage():
             """swiftclient.client.Connection.get_account"""
             objects = []
             for name, header in storage_mock.get_locators().items():
-                header['name'] = name
+                header["name"] = name
                 objects.append(header)
 
             return {}, objects
@@ -168,16 +170,19 @@ def test_mocked_storage():
 
         # Tests
         with StorageTester(
-                system, SwiftRawIO, SwiftBufferedIO, storage_mock,
-                unsupported_operations=UNSUPPORTED_OPERATIONS) as tester:
+            system,
+            SwiftRawIO,
+            SwiftBufferedIO,
+            storage_mock,
+            unsupported_operations=UNSUPPORTED_OPERATIONS,
+        ) as tester:
 
             # Common tests
             tester.test_common()
 
             # Test: Unsecure mode
-            with SwiftRawIO(
-                    tester.base_dir_path + 'file0.dat', unsecure=True) as file:
-                assert file._client.kwargs['ssl_compression'] is False
+            with SwiftRawIO(tester.base_dir_path + "file0.dat", unsecure=True) as file:
+                assert file._client.kwargs["ssl_compression"] is False
 
     # Restore mocked functions
     finally:

@@ -5,7 +5,7 @@ pytest.importorskip("oss2")
 
 UNSUPPORTED_OPERATIONS = (
     # Not supported on some objects
-    'getctime',
+    "getctime",
 )
 
 
@@ -13,10 +13,9 @@ def test_handle_oss_error():
     """Test airfs.oss._handle_oss_error"""
     from airfs.storage.oss import _handle_oss_error
     from oss2.exceptions import OssError
-    from airfs._core.exceptions import (
-        ObjectNotFoundError, ObjectPermissionError)
+    from airfs._core.exceptions import ObjectNotFoundError, ObjectPermissionError
 
-    kwargs = dict(headers={}, body=None, details={'Message': ''})
+    kwargs = dict(headers={}, body=None, details={"Message": ""})
 
     # Any error
     with pytest.raises(OssError):
@@ -51,15 +50,15 @@ def test_mocked_storage():
 
     def raise_404():
         """Raise 404 error"""
-        raise OssError(404, headers={}, body=None, details={'Message': ''})
+        raise OssError(404, headers={}, body=None, details={"Message": ""})
 
     def raise_416():
         """Raise 416 error"""
-        raise OssError(416, headers={}, body=None, details={'Message': ''})
+        raise OssError(416, headers={}, body=None, details={"Message": ""})
 
     def raise_500():
         """Raise 500 error"""
-        raise OssError(500, headers={}, body=None, details={'Message': ''})
+        raise OssError(500, headers={}, body=None, details={"Message": ""})
 
     storage_mock = ObjectStorageMock(raise_404, raise_416, raise_500)
 
@@ -75,6 +74,7 @@ def test_mocked_storage():
 
     class Response:
         """HTTP request response"""
+
         status = 200
         request_id = 0
 
@@ -87,8 +87,9 @@ def test_mocked_storage():
         oss2.models.ListBucketsResult
         oss2.models.ListObjectsResult
         """
+
         is_truncated = False
-        next_marker = ''
+        next_marker = ""
 
     class Bucket:
         """oss2.Bucket"""
@@ -99,13 +100,15 @@ def test_mocked_storage():
 
         def get_object(self, key=None, headers=None, **_):
             """oss2.Bucket.get_object"""
-            return BytesIO(storage_mock.get_object(
-                self._bucket_name, key, header=headers))
+            return BytesIO(
+                storage_mock.get_object(self._bucket_name, key, header=headers)
+            )
 
         def head_object(self, key=None, **_):
             """oss2.Bucket.head_object"""
-            return HeadObjectResult(Response(
-                headers=storage_mock.head_object(self._bucket_name, key)))
+            return HeadObjectResult(
+                Response(headers=storage_mock.head_object(self._bucket_name, key))
+            )
 
         def put_object(self, key=None, data=None, **_):
             """oss2.Bucket.put_object"""
@@ -117,15 +120,18 @@ def test_mocked_storage():
 
         def get_bucket_info(self, **_):
             """oss2.Bucket.get_bucket_info"""
-            return Response(
-                headers=storage_mock.head_locator(self._bucket_name))
+            return Response(headers=storage_mock.head_locator(self._bucket_name))
 
-        def copy_object(self, source_bucket_name=None, source_key=None,
-                        target_key=None,**_):
+        def copy_object(
+            self, source_bucket_name=None, source_key=None, target_key=None, **_
+        ):
             """oss2.Bucket.copy_object"""
             storage_mock.copy_object(
-                src_path=source_key, src_locator=source_bucket_name,
-                dst_path=target_key, dst_locator=self._bucket_name)
+                src_path=source_key,
+                src_locator=source_bucket_name,
+                dst_path=target_key,
+                dst_locator=self._bucket_name,
+            )
 
         def create_bucket(self, **_):
             """oss2.Bucket.create_bucket"""
@@ -138,8 +144,11 @@ def test_mocked_storage():
         def list_objects(self, prefix=None, max_keys=None, **_):
             """oss2.Bucket.list_objects"""
             response = storage_mock.get_locator(
-                self._bucket_name, prefix=prefix, limit=max_keys,
-                raise_404_if_empty=False)
+                self._bucket_name,
+                prefix=prefix,
+                limit=max_keys,
+                raise_404_if_empty=False,
+            )
             object_list = []
             for key, headers in response.items():
                 obj = HeadObjectResult(Response(headers=headers))
@@ -151,22 +160,27 @@ def test_mocked_storage():
         @staticmethod
         def init_multipart_upload(*_, **__):
             """oss2.Bucket.init_multipart_upload"""
-            return Response(upload_id='123')
+            return Response(upload_id="123")
 
-        def complete_multipart_upload(
-                self, key=None, upload_id=None, parts=None, **_):
+        def complete_multipart_upload(self, key=None, upload_id=None, parts=None, **_):
             """oss2.Bucket.complete_multipart_upload"""
-            assert upload_id == '123'
-            storage_mock.concat_objects(self._bucket_name, key, [
-                key + str(part.part_number) for part in parts
-            ])
+            assert upload_id == "123"
+            storage_mock.concat_objects(
+                self._bucket_name, key, [key + str(part.part_number) for part in parts]
+            )
 
-        def upload_part(self, key=None, upload_id=None,
-                        part_number=None, data=None, **_):
+        def upload_part(
+            self, key=None, upload_id=None, part_number=None, data=None, **_
+        ):
             """oss2.Bucket.upload_part"""
-            assert upload_id == '123'
-            return HeadObjectResult(Response(headers=storage_mock.put_object(
-                self._bucket_name, key + str(part_number), data)))
+            assert upload_id == "123"
+            return HeadObjectResult(
+                Response(
+                    headers=storage_mock.put_object(
+                        self._bucket_name, key + str(part_number), data
+                    )
+                )
+            )
 
     class Service:
         """oss2.Service"""
@@ -199,16 +213,20 @@ def test_mocked_storage():
     # Tests
     try:
         # Init mocked system
-        endpoint = 'https://oss-region.aliyuncs.com'
+        endpoint = "https://oss-region.aliyuncs.com"
         system_parameters = dict(storage_parameters=dict(endpoint=endpoint))
         system = _OSSSystem(**system_parameters)
         storage_mock.attach_io_system(system)
 
         # Tests
         with StorageTester(
-                system, OSSRawIO, OSSBufferedIO, storage_mock,
-                unsupported_operations=UNSUPPORTED_OPERATIONS,
-                system_parameters=system_parameters) as tester:
+            system,
+            OSSRawIO,
+            OSSBufferedIO,
+            storage_mock,
+            unsupported_operations=UNSUPPORTED_OPERATIONS,
+            system_parameters=system_parameters,
+        ) as tester:
 
             # Common tests
             tester.test_common()
@@ -218,17 +236,18 @@ def test_mocked_storage():
                 _OSSSystem()
 
             # Test: Unsecure mode
+            assert _OSSSystem(unsecure=False, **system_parameters)._endpoint == endpoint
             assert _OSSSystem(
-                unsecure=False, **system_parameters)._endpoint == endpoint
-            assert (_OSSSystem(unsecure=True, **system_parameters)._endpoint ==
-                    endpoint.replace('https', 'http'))
+                unsecure=True, **system_parameters
+            )._endpoint == endpoint.replace("https", "http")
 
             # Test: Symlink
             # TODO: Remove and replace per proper function once implemented
             storage_mock.put_object(
-                tester.locator, 'symlink', b'', headers={'type': 'Symlink'})
-            assert system.islink(tester.locator + '/symlink')
-            assert system.islink(header={'type': 'Symlink'})
+                tester.locator, "symlink", b"", headers={"type": "Symlink"}
+            )
+            assert system.islink(tester.locator + "/symlink")
+            assert system.islink(header={"type": "Symlink"})
 
     # Restore mocked functions
     finally:

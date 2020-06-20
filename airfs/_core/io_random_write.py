@@ -12,8 +12,8 @@ from airfs._core.exceptions import handle_os_exceptions, ObjectNotFoundError
 
 class ObjectRawIORandomWriteBase(ObjectRawIOBase):
     """
-    Base class for binary cloud storage object I/O that support flushing
-    parts of file instead of requiring flushing the full file at once.
+    Base class for binary storage object I/O that support flushing parts of file
+    instead of requiring flushing the full file at once.
     """
 
     def _init_append(self):
@@ -24,8 +24,8 @@ class ObjectRawIORandomWriteBase(ObjectRawIOBase):
 
     def flush(self):
         """
-        Flush the write buffers of the stream if applicable and
-        save the object on the cloud.
+        Flush the write buffers of the stream if applicable and save the object on the
+        storage.
         """
         if self._writable:
             with self._seek_lock:
@@ -59,29 +59,26 @@ class ObjectRawIORandomWriteBase(ObjectRawIOBase):
         """
         Create the file if not exists.
         """
-        self._flush(memoryview(b''), 0, 0)
+        self._flush(memoryview(b""), 0, 0)
 
     def seek(self, offset, whence=SEEK_SET):
         """
         Change the stream position to the given byte offset.
 
         Args:
-            offset (int): Offset is interpreted relative to the position
-                indicated by whence.
-            whence (int): The default value for whence is SEEK_SET.
-                Values for whence are:
+            offset (int): Offset is interpreted relative to the position indicated by
+                whence.
+            whence (int): The default value for whence is SEEK_SET. Values are:
                 SEEK_SET or 0 – start of the stream (the default);
                 offset should be zero or positive
-                SEEK_CUR or 1 – current stream position;
-                offset may be negative
-                SEEK_END or 2 – end of the stream;
-                offset is usually negative
+                SEEK_CUR or 1 – current stream position; offset may be negative
+                SEEK_END or 2 – end of the stream; offset is usually negative
 
         Returns:
             int: The new absolute position.
         """
         if not self._seekable:
-            raise UnsupportedOperation('seek')
+            raise UnsupportedOperation("seek")
 
         # Flush before moving position
         self.flush()
@@ -91,9 +88,10 @@ class ObjectRawIORandomWriteBase(ObjectRawIOBase):
 
 class ObjectBufferedIORandomWriteBase(ObjectBufferedIOBase):
     """
-    Buffered base class for binary cloud storage object I/O that support
-    flushing parts of file instead of requiring flushing the full file at once.
+    Buffered base class for binary storage object I/O that support flushing parts
+    of file instead of requiring flushing the full file at once.
     """
+
     # Need to be flagged because it is not an abstract class
     __DEFAULT_CLASS = False
 
@@ -101,7 +99,7 @@ class ObjectBufferedIORandomWriteBase(ObjectBufferedIOBase):
         """
         Flush the write buffers of the stream if applicable.
 
-        In write mode, send the buffer content to the cloud object.
+        In write mode, send the buffer content to the storage object.
         """
         # Flush buffer to specified range
         buffer = self._get_buffer()
@@ -109,7 +107,8 @@ class ObjectBufferedIORandomWriteBase(ObjectBufferedIOBase):
         end = start + len(buffer)
 
         future = self._workers.submit(
-            self._flush_range, buffer=buffer, start=start, end=end)
+            self._flush_range, buffer=buffer, start=start, end=end
+        )
         self._write_futures.append(future)
         future.add_done_callback(partial(self._update_size, end))
 
@@ -117,11 +116,11 @@ class ObjectBufferedIORandomWriteBase(ObjectBufferedIOBase):
         """
         Keep track of the file size during writing.
 
-        If specified size value is greater than the current size, update the
-        current size using specified value.
+        If specified size value is greater than the current size, update the current
+        size using specified value.
 
-        Used as callback in default "_flush" implementation for files supporting
-        random write access.
+        Used as callback in default "_flush" implementation for files supporting random
+        write access.
 
         Args:
             size (int): Size value.
@@ -137,8 +136,8 @@ class ObjectBufferedIORandomWriteBase(ObjectBufferedIOBase):
         """
         Flush a buffer to a range of the file.
 
-        Meant to be used asynchronously, used to provides parallel flushing of
-        file parts when applicable.
+        Meant to be used asynchronously, used to provides parallel flushing of file
+        parts when applicable.
 
         Args:
             buffer (memoryview): Buffer content.
@@ -154,12 +153,10 @@ class ObjectBufferedIORandomWriteBase(ObjectBufferedIOBase):
                 except (ObjectNotFoundError, UnsupportedOperation):
                     self._size = 0
 
-        # It is not possible to flush a part if start > size:
-        # If it is the case, wait that previous parts are flushed before
-        # flushing this one
+        # It is not possible to flush a part if start > size: If it is the case, wait
+        # that previous parts are flushed before flushing this one
         while start > self._size:
             sleep(self._FLUSH_WAIT)
 
         # Flush buffer using RAW IO
         self._raw_flush(buffer, start, end)
-

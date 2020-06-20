@@ -11,14 +11,11 @@ class ObjectStorageMock:
     Mocked Object storage.
 
     Args:
-        raise_404 (callable): Function to call to raise a 404 error
-            (Not found).
+        raise_404 (callable): Function to call to raise a 404 error (Not found).
         raise_416 (callable): Function to call to raise a 416 error
             (End Of File/Out of range).
-        raise_500 (callable): Function to call to raise a 500 error
-            (Server exception).
-        base_exception (Exception subclass): Type of exception raised by the
-            500 error.
+        raise_500 (callable): Function to call to raise a 500 error (Server exception).
+        base_exception (Exception subclass): Type of exception raised by the 500 error.
     """
 
     def __init__(self, raise_404, raise_416, raise_500, format_date=None):
@@ -34,6 +31,7 @@ class ObjectStorageMock:
         self._raise_server_error = False
         if format_date is None:
             from wsgiref.handlers import format_date_time
+
             format_date = format_date_time
         self._format_date = format_date
 
@@ -42,8 +40,7 @@ class ObjectStorageMock:
         Attach IO system to use.
 
         Args:
-            system (airfs._core.io_system.SystemBase subclass):
-                IO system to use.
+            system (airfs._core.io_system.SystemBase subclass): IO system to use.
         """
         self._system = system
         try:
@@ -93,8 +90,15 @@ class ObjectStorageMock:
         except KeyError:
             self._raise_404()
 
-    def get_locator(self, locator, prefix=None, limit=None,
-                    raise_404_if_empty=True, first_level=False, relative=False):
+    def get_locator(
+        self,
+        locator,
+        prefix=None,
+        limit=None,
+        raise_404_if_empty=True,
+        first_level=False,
+        relative=False,
+    ):
         """
         Get locator content.
 
@@ -110,7 +114,7 @@ class ObjectStorageMock:
             dict: objects names, objects headers.
         """
         if prefix is None:
-            prefix = ''
+            prefix = ""
         headers = dict()
         for name, header in self._get_locator_content(locator).items():
             if name.startswith(prefix):
@@ -118,24 +122,24 @@ class ObjectStorageMock:
                 if (relative and prefix) or first_level:
                     # Relative path
                     if prefix:
-                        name = name.split(prefix)[1].lstrip('/')
+                        name = name.split(prefix)[1].lstrip("/")
 
                     # Get first level element
-                    if first_level and '/' in name.rstrip('/'):
-                        name = name.split('/', 1)[0].rstrip('/')
+                    if first_level and "/" in name.rstrip("/"):
+                        name = name.split("/", 1)[0].rstrip("/")
                         if name:
-                            name += '/'
+                            name += "/"
 
                     # Set name absolute
                     if not relative and prefix and name:
-                        name = '%s/%s' % (prefix.rstrip('/'), name)
+                        name = "%s/%s" % (prefix.rstrip("/"), name)
 
                     # Skip already existing
                     if first_level and name in headers:
                         continue
 
                 headers[name] = header.copy()
-                del headers[name]['_content']
+                del headers[name]["_content"]
 
                 if len(headers) == limit:
                     break
@@ -155,7 +159,7 @@ class ObjectStorageMock:
         headers = dict()
         for name, header in self._locators.items():
             headers[name] = header.copy()
-            del headers[name]['_content']
+            del headers[name]["_content"]
 
         if not headers:
             self._raise_404()
@@ -172,7 +176,7 @@ class ObjectStorageMock:
         Returns:
             dict: objects names, objects with header.
         """
-        return self._get_locator(locator)['_content']
+        return self._get_locator(locator)["_content"]
 
     def head_locator(self, locator):
         """
@@ -182,7 +186,7 @@ class ObjectStorageMock:
             locator (str): locator name
         """
         header = self._get_locator(locator).copy()
-        del header['_content']
+        del header["_content"]
         return header
 
     def get_locator_ctime(self, locator):
@@ -233,8 +237,9 @@ class ObjectStorageMock:
         except KeyError:
             self._raise_404()
 
-    def put_object(self, locator, path, content=None, headers=None,
-                   data_range=None, new_file=False):
+    def put_object(
+        self, locator, path, content=None, headers=None, data_range=None, new_file=False
+    ):
         """
         Put object.
 
@@ -258,10 +263,10 @@ class ObjectStorageMock:
             except KeyError:
                 # New file
                 self._get_locator_content(locator)[path] = file = {
-                    'Accept-Ranges': 'bytes',
-                    'ETag': str(_uuid()),
-                    '_content': bytearray(),
-                    '_lock': _Lock()
+                    "Accept-Ranges": "bytes",
+                    "ETag": str(_uuid()),
+                    "_content": bytearray(),
+                    "_lock": _Lock(),
                 }
 
                 if self._header_size:
@@ -271,13 +276,12 @@ class ObjectStorageMock:
                     file[self._header_ctime] = self._format_date(_time())
 
         # Update file
-        with file['_lock']:
+        with file["_lock"]:
             if content:
-                file_content = file['_content']
+                file_content = file["_content"]
 
                 # Write full content
-                if not data_range or (
-                        data_range[0] is None and data_range[1] is None):
+                if not data_range or (data_range[0] is None and data_range[1] is None):
                     file_content[:] = content
 
                 # Write content range
@@ -291,8 +295,9 @@ class ObjectStorageMock:
 
                     # Add padding if missing data
                     if start > len(file_content):
-                        file_content[len(file_content):start] = (
-                            start - len(file_content)) * b'\0'
+                        file_content[len(file_content) : start] = (
+                            start - len(file_content)
+                        ) * b"\0"
 
                     # Flush new content
                     file_content[start:end] = content
@@ -301,14 +306,14 @@ class ObjectStorageMock:
                 file.update(headers)
 
             if self._header_size:
-                file[self._header_size] = len(file['_content'])
+                file[self._header_size] = len(file["_content"])
 
             if self._header_mtime:
                 file[self._header_mtime] = self._format_date(_time())
 
             # Return Header
             header = file.copy()
-        del header['_content']
+        del header["_content"]
         return header
 
     def concat_objects(self, locator, path, parts):
@@ -328,8 +333,7 @@ class ObjectStorageMock:
             content += self.get_object(locator, part)
         return self.put_object(locator, path, content)
 
-    def copy_object(self, src_path, dst_path, src_locator=None,
-                    dst_locator=None):
+    def copy_object(self, src_path, dst_path, src_locator=None, dst_locator=None):
         """
         Copy object.
 
@@ -340,15 +344,15 @@ class ObjectStorageMock:
             dst_locator (str): Destination locator.
         """
         if src_locator is None:
-            src_locator, src_path = src_path.split('/', 1)
+            src_locator, src_path = src_path.split("/", 1)
 
         if dst_locator is None:
-            dst_locator, dst_path = dst_path.split('/', 1)
+            dst_locator, dst_path = dst_path.split("/", 1)
 
         file = self._get_object(src_locator, src_path).copy()
-        del file['_lock']
+        del file["_lock"]
         file = _deepcopy(file)
-        file['_lock'] = _Lock()
+        file["_lock"] = _Lock()
 
         self._get_locator_content(dst_locator)[dst_path] = file
 
@@ -390,13 +394,13 @@ class ObjectStorageMock:
             self._raise_500()
 
         # Read file
-        content = self._get_object(locator, path)['_content']
+        content = self._get_object(locator, path)["_content"]
         size = len(content)
 
-        if header and header.get('Range'):
+        if header and header.get("Range"):
             # Return object part
-            data_range = header['Range'].split('=')[1]
-            start, end = data_range.split('-')
+            data_range = header["Range"].split("=")[1]
+            start, end = data_range.split("-")
             start = int(start)
             try:
                 end = int(end) + 1
@@ -431,7 +435,7 @@ class ObjectStorageMock:
             dict: header.
         """
         header = self._get_object(locator, path).copy()
-        del header['_content']
+        del header["_content"]
         return header
 
     def get_object_ctime(self, locator, path):

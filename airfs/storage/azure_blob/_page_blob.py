@@ -6,10 +6,13 @@ from azure.storage.blob.models import _BlobTypes
 
 from airfs.storage.azure import _AzureStorageRawIORangeWriteBase
 from airfs._core.io_base import memoizedmethod
-from airfs.io import (
-    ObjectBufferedIORandomWriteBase, ObjectRawIORandomWriteBase)
+from airfs.io import ObjectBufferedIORandomWriteBase, ObjectRawIORandomWriteBase
 from airfs.storage.azure_blob._base_blob import (
-    AzureBlobRawIO, AzureBlobBufferedIO, AZURE_RAW, AZURE_BUFFERED)
+    AzureBlobRawIO,
+    AzureBlobBufferedIO,
+    AZURE_RAW,
+    AZURE_BUFFERED,
+)
 
 _BLOB_TYPE = _BlobTypes.PageBlob
 
@@ -19,23 +22,23 @@ class AzurePageBlobRawIO(AzureBlobRawIO, _AzureStorageRawIORangeWriteBase):
 
     Args:
         name (path-like object): URL or path to the file which will be opened.
-        mode (str): The mode can be 'r', 'w', 'a'
-            for reading (default), writing or appending
+        mode (str): The mode can be 'r', 'w', 'a' for reading (default), writing or
+            appending.
         storage_parameters (dict): Azure service keyword arguments.
             This is generally Azure credentials and configuration. See
-            "azure.storage.blob.baseblobservice.BaseBlobService" for more
-            information.
-        unsecure (bool): If True, disables TLS/SSL to improves
-            transfer performance. But makes connection unsecure.
-        content_length (int): Define the size to preallocate on new file
-            creation. This is not mandatory, and file will be resized on needs
-            but this allow to improve performance when file size is known in
-            advance. Any value will be rounded to be page aligned. Default to 0.
+            "azure.storage.blob.baseblobservice.BaseBlobService" for more information.
+        unsecure (bool): If True, disables TLS/SSL to improves transfer performance.
+            But makes connection unsecure.
+        content_length (int): Define the size to preallocate on new file creation.
+            This is not mandatory, and file will be resized on needs but this allow to
+            improve performance when file size is known in advance. Any value will be
+            rounded to be page aligned. Default to 0.
         ignore_padding (bool): If True, strip null chars padding from end of
-            read data and ignore padding when seeking from end
-            (whence=os.SEEK_END). Default to True.
+            read data and ignore padding when seeking from end (whence=os.SEEK_END).
+            Default to True.
     """
-    __slots__ = ('_ignore_padding',)
+
+    __slots__ = ("_ignore_padding",)
 
     __DEFAULT_CLASS = False
 
@@ -43,7 +46,7 @@ class AzurePageBlobRawIO(AzureBlobRawIO, _AzureStorageRawIORangeWriteBase):
     MAX_FLUSH_SIZE = PageBlobService.MAX_PAGE_SIZE
 
     def __init__(self, *args, **kwargs):
-        self._ignore_padding = kwargs.get('ignore_padding', True)
+        self._ignore_padding = kwargs.get("ignore_padding", True)
         _AzureStorageRawIORangeWriteBase.__init__(self, *args, **kwargs)
 
     @property
@@ -117,8 +120,7 @@ class AzurePageBlobRawIO(AzureBlobRawIO, _AzureStorageRawIORangeWriteBase):
 
         Args:
             start (int): Start stream position.
-            end (int): End stream position.
-                0 To not specify end.
+            end (int): End stream position. 0 To not specify end.
 
         Returns:
             bytes: number of bytes read
@@ -127,7 +129,7 @@ class AzurePageBlobRawIO(AzureBlobRawIO, _AzureStorageRawIORangeWriteBase):
 
         if (null_strip is None and self._ignore_padding) or null_strip:
             # Remove trailing Null chars (Empty page end)
-            return data.rstrip(b'\0')
+            return data.rstrip(b"\0")
 
         return data
 
@@ -141,7 +143,7 @@ class AzurePageBlobRawIO(AzureBlobRawIO, _AzureStorageRawIORangeWriteBase):
         data = AzureBlobRawIO._readall(self)
         if self._ignore_padding:
             # Remove trailing Null chars (Empty page end)
-            return data.rstrip(b'\0')
+            return data.rstrip(b"\0")
         return data
 
     def seek(self, offset, whence=SEEK_SET):
@@ -149,16 +151,12 @@ class AzurePageBlobRawIO(AzureBlobRawIO, _AzureStorageRawIORangeWriteBase):
         Change the stream position to the given byte offset.
 
         Args:
-            offset: Offset is interpreted relative to the position indicated by
-                whence.
-            whence: The default value for whence is SEEK_SET.
-                Values for whence are:
+            offset: Offset is interpreted relative to the position indicated by whence.
+            whence: The default value for whence is SEEK_SET. Values are:
                 SEEK_SET or 0 – start of the stream (the default);
                 offset should be zero or positive
-                SEEK_CUR or 1 – current stream position;
-                offset may be negative
-                SEEK_END or 2 – end of the stream;
-                offset is usually negative
+                SEEK_CUR or 1 – current stream position; offset may be negative
+                SEEK_END or 2 – end of the stream; offset is usually negative
 
         Returns:
             int: The new absolute position.
@@ -219,8 +217,9 @@ class AzurePageBlobRawIO(AzureBlobRawIO, _AzureStorageRawIORangeWriteBase):
 
                 # If exists, Get aligned range from current file
                 if self._exists() == 1 and start < self._size:
-                    buffer[:] = memoryview(self._read_range(
-                        start, end, null_strip=False))
+                    buffer[:] = memoryview(
+                        self._read_range(start, end, null_strip=False)
+                    )
 
                 # Update with current buffer
                 buffer[start_page_diff:-end_page_diff] = unaligned_buffer
@@ -228,33 +227,32 @@ class AzurePageBlobRawIO(AzureBlobRawIO, _AzureStorageRawIORangeWriteBase):
         _AzureStorageRawIORangeWriteBase._flush(self, buffer, start, end)
 
 
-class AzurePageBlobBufferedIO(AzureBlobBufferedIO,
-                              ObjectBufferedIORandomWriteBase):
+class AzurePageBlobBufferedIO(AzureBlobBufferedIO, ObjectBufferedIORandomWriteBase):
     """Buffered binary Azure Page Blobs Storage Object I/O
 
     Args:
         name (path-like object): URL or path to the file which will be opened.
         mode (str): The mode can be 'r', 'w' for reading (default) or writing
-        buffer_size (int): The size of buffer.
-            If not 512 bytes aligned, will be round to be page aligned.
-        max_buffers (int): The maximum number of buffers to preload in read mode
-            or awaiting flush in write mode. 0 for no limit.
-        max_workers (int): The maximum number of threads that can be used to
-            execute the given calls.
+        buffer_size (int): The size of buffer. If not 512 bytes aligned, will be round
+            to be page aligned.
+        max_buffers (int): The maximum number of buffers to preload in read mode or
+            awaiting flush in write mode. 0 for no limit.
+        max_workers (int): The maximum number of threads that can be used to execute the
+            given calls.
         storage_parameters (dict): Azure service keyword arguments.
             This is generally Azure credentials and configuration. See
-            "azure.storage.blob.baseblobservice.BaseBlobService" for more
-            information.
-        unsecure (bool): If True, disables TLS/SSL to improves
-            transfer performance. But makes connection unsecure.
-        content_length (int): Define the size to preallocate on new file
-            creation. This is not mandatory, and file will be resized on needs
-            but this allow to improve performance when file size is known in
-            advance. Any value will be rounded to be page aligned. Default to 0.
-        null_strip (bool): If True, strip null chars from end of read data to
-            remove page padding when reading, and ignore trailing null chars
-            on last page when seeking from end. Default to True.
+            "azure.storage.blob.baseblobservice.BaseBlobService" for more information.
+        unsecure (bool): If True, disables TLS/SSL to improves transfer performance.
+            But makes connection unsecure.
+        content_length (int): Define the size to preallocate on new file creation. This
+            is not mandatory, and file will be resized on needs but this allow to
+            improve performance when file size is known in advance. Any value will be
+            rounded to be page aligned. Default to 0.
+        null_strip (bool): If True, strip null chars from end of read data to remove
+            page padding when reading, and ignore trailing null chars on last page when
+            seeking from end. Default to True.
     """
+
     __DEFAULT_CLASS = False
     _RAW_CLASS = AzurePageBlobRawIO
 
@@ -272,21 +270,23 @@ class AzurePageBlobBufferedIO(AzureBlobBufferedIO,
             if page_diff:
                 # Round buffer size if not multiple of page size
                 self._buffer_size = min(
-                    self._buffer_size + 512 - page_diff,
-                    self.MAXIMUM_BUFFER_SIZE)
+                    self._buffer_size + 512 - page_diff, self.MAXIMUM_BUFFER_SIZE
+                )
 
     def _flush(self):
         """
         Flush the write buffers of the stream if applicable.
 
-        In write mode, send the buffer content to the cloud object.
+        In write mode, send the buffer content to the storage object.
         """
         buffer = self._get_buffer()
         start = self._buffer_size * (self._seek - 1)
 
-        self._write_futures.append(self._workers.submit(
-            self._raw_flush, buffer=buffer, start=start,
-            end=start + len(buffer)))
+        self._write_futures.append(
+            self._workers.submit(
+                self._raw_flush, buffer=buffer, start=start, end=start + len(buffer)
+            )
+        )
 
 
 AZURE_RAW[_BLOB_TYPE] = AzurePageBlobRawIO

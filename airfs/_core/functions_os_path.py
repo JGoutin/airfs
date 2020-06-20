@@ -54,8 +54,7 @@ def getctime(path):
         path (path-like object): File path or URL.
 
     Returns:
-        float: The number of seconds since the epoch
-            (see the time module).
+        float: The number of seconds since the epoch (see the time module).
 
     Raises:
          OSError: if the file does not exist or is inaccessible.
@@ -75,8 +74,7 @@ def getmtime(path):
         path (path-like object): File path or URL.
 
     Returns:
-        float: The number of seconds since the epoch
-            (see the time module).
+        float: The number of seconds since the epoch (see the time module).
 
     Raises:
          OSError: if the file does not exist or is inaccessible.
@@ -173,14 +171,13 @@ def ismount(path):
 @equivalent_to(os.path.relpath)
 def relpath(path, start=None):
     """
-    Return a relative file path to path either from the
-    current directory or from an optional start directory.
+    Return a relative file path to path either from the current directory or from an
+    optional start directory.
 
-    For storage objects, "path" and "start" are relative to
-    storage root.
+    For storage objects, "path" and "start" are relative to storage root.
 
-    "/" are not stripped on storage objects path. The ending slash is required
-    on some storage to signify that target is a directory.
+    "/" are not stripped on storage objects path. The ending slash is required on some
+    storage to signify that target is a directory.
 
     Equivalent to "os.path.relpath".
 
@@ -194,9 +191,8 @@ def relpath(path, start=None):
     """
     relative = get_instance(path).relpath(path)
     if start:
-        # Storage relative path
-        # Replaces "\" by "/" for Windows.
-        return os_path_relpath(relative, start=start).replace('\\', '/')
+        # Storage relative path; replaces "\" by "/" for Windows.
+        return os_path_relpath(relative, start=start).replace("\\", "/")
     return relative
 
 
@@ -242,9 +238,9 @@ def samefile(path1, path2):
 @equivalent_to(os.path.splitdrive)
 def splitdrive(path):
     """
-    Split the path into a pair (drive, tail) where drive is either a
-    mount point or the empty string. On systems which do not use drive
-    specifications, drive will always be the empty string.
+    Split the path into a pair (drive, tail) where drive is either a mount point or the
+    empty string. On systems which do not use drive specifications, drive will always be
+    the empty string.
 
     In all cases, drive + tail will be the same as path.
 
@@ -258,8 +254,8 @@ def splitdrive(path):
     """
     relative = get_instance(path).relpath(path)
     drive = path.rsplit(relative, 1)[0]
-    if drive and not drive[-2:] == '//':
+    if drive and not drive[-2:] == "//":
         # Keep "/" tail side
-        relative = '/' + relative
-        drive = drive.rstrip('/')
+        relative = "/" + relative
+        drive = drive.rstrip("/")
     return drive, relative

@@ -8,10 +8,12 @@ def test_object_buffered_base_io():
     from airfs._core.io_base_raw import ObjectRawIOBase
     from airfs._core.io_base_buffered import ObjectBufferedIOBase
     from airfs._core.io_random_write import (
-        ObjectRawIORandomWriteBase, ObjectBufferedIORandomWriteBase)
+        ObjectRawIORandomWriteBase,
+        ObjectBufferedIORandomWriteBase,
+    )
 
     # Mock sub class
-    name = 'name'
+    name = "name"
     size = 10000
     flushed = bytearray()
     raw_flushed = bytearray()
@@ -53,6 +55,7 @@ def test_object_buffered_base_io():
 
     class DummyRawIO(ObjectRawIOBase):
         """Dummy IO"""
+
         _SYSTEM_CLASS = DummySystem
 
         def _flush(self, buffer):
@@ -61,10 +64,11 @@ def test_object_buffered_base_io():
 
         def _read_range(self, start, end=0):
             """Read fake bytes"""
-            return ((size if end > size else end) - start) * b'0'
+            return ((size if end > size else end) - start) * b"0"
 
     class DummyBufferedIO(ObjectBufferedIOBase):
         """Dummy buffered IO"""
+
         _RAW_CLASS = DummyRawIO
         DEFAULT_BUFFER_SIZE = buffer_size
         MINIMUM_BUFFER_SIZE = 10
@@ -72,9 +76,7 @@ def test_object_buffered_base_io():
 
         def ensure_ready(self):
             """Ensure flush is complete"""
-            while any(
-                    1 for future in self._write_futures
-                    if not future.done()):
+            while any(1 for future in self._write_futures if not future.done()):
                 time.sleep(0.01)
 
         def __init(self, *arg, **kwargs):
@@ -88,11 +90,13 @@ def test_object_buffered_base_io():
 
         def _flush(self):
             """Flush"""
-            self._write_futures.append(self._workers.submit(
-                flush, self._write_buffer[:self._buffer_seek]))
+            self._write_futures.append(
+                self._workers.submit(flush, self._write_buffer[: self._buffer_seek])
+            )
 
     class DummyRawIOPartFlush(DummyRawIO, ObjectRawIORandomWriteBase):
         """Dummy IO with part flush support"""
+
         _size = 20
 
         def _flush(self, buffer, start, *_):
@@ -104,97 +108,103 @@ def test_object_buffered_base_io():
 
     class DummyBufferedIOPartFlush(ObjectBufferedIORandomWriteBase):
         """Dummy buffered IO with part flush support"""
+
         _RAW_CLASS = DummyRawIOPartFlush
 
     # Tests: Read until end
     object_io = DummyBufferedIO(name)
-    assert object_io.read() == size * b'0'
+    assert object_io.read() == size * b"0"
 
     # Tests: Read when already at end
-    assert object_io.read() == b''
+    assert object_io.read() == b""
 
     # Tests: Read, max buffer
     object_io = DummyBufferedIO(name)
     assert object_io._max_buffers == size // buffer_size
 
     object_io = DummyBufferedIO(name, max_buffers=5)
-    assert object_io.read(100) == 100 * b'0'
+    assert object_io.read(100) == 100 * b"0"
 
     # Tests: Read by parts
-    assert sorted(object_io._read_queue) == list(range(
-        100, 100 + buffer_size * 5, buffer_size))
+    assert sorted(object_io._read_queue) == list(
+        range(100, 100 + buffer_size * 5, buffer_size)
+    )
     assert object_io._seek == 100
-    assert object_io.read(150) == 150 * b'0'
-    assert sorted(object_io._read_queue) == list(range(
-        200, 200 + buffer_size * 5, buffer_size))
+    assert object_io.read(150) == 150 * b"0"
+    assert sorted(object_io._read_queue) == list(
+        range(200, 200 + buffer_size * 5, buffer_size)
+    )
     assert object_io._seek == 250
-    assert object_io.read(50) == 50 * b'0'
-    assert sorted(object_io._read_queue) == list(range(
-        300, 300 + buffer_size * 5, buffer_size))
+    assert object_io.read(50) == 50 * b"0"
+    assert sorted(object_io._read_queue) == list(
+        range(300, 300 + buffer_size * 5, buffer_size)
+    )
     assert object_io._seek == 300
-    assert object_io.read() == (size - 300) * b'0'
+    assert object_io.read() == (size - 300) * b"0"
     assert not object_io._read_queue
 
     # Tests: Read small parts
     part = buffer_size // 10
     object_io.seek(0)
     for index in range(1, 15):
-        assert object_io.read(part) == part * b'0'
+        assert object_io.read(part) == part * b"0"
         assert object_io._seek == part * index
 
     # Tests: Read, change seek
     object_io.seek(450)
-    assert sorted(object_io._read_queue) == list(range(
-        450, 450 + buffer_size * 5, buffer_size))
+    assert sorted(object_io._read_queue) == list(
+        range(450, 450 + buffer_size * 5, buffer_size)
+    )
 
     object_io.seek(700)
-    assert sorted(object_io._read_queue) == list(range(
-        700, 700 + buffer_size * 5, buffer_size))
+    assert sorted(object_io._read_queue) == list(
+        range(700, 700 + buffer_size * 5, buffer_size)
+    )
 
     # Tests: Read buffer size (No copy mode)
     object_io.seek(0)
-    assert object_io.read(buffer_size) == buffer_size * b'0'
+    assert object_io.read(buffer_size) == buffer_size * b"0"
 
     object_io.seek(size - buffer_size // 2)
-    assert object_io.read(buffer_size) == b'0' * (buffer_size // 2)
+    assert object_io.read(buffer_size) == b"0" * (buffer_size // 2)
     object_io._seek = size
 
     # Tests: Read, EOF before theoretical EOF
     def read_range(*_, **__):
         """Returns empty bytes"""
-        return b''
+        return b""
 
     object_io = DummyBufferedIO(name, max_buffers=5)
     object_io._read_range = read_range
-    assert object_io.read() == b''
+    assert object_io.read() == b""
 
     # Tests write (with auto flush)
-    assert bytes(flushed) == b''
-    object_io = DummyBufferedIO(name, mode='w')
-    assert object_io.write(250 * b'0') == 250
+    assert bytes(flushed) == b""
+    object_io = DummyBufferedIO(name, mode="w")
+    assert object_io.write(250 * b"0") == 250
     object_io.ensure_ready()
     assert object_io._buffer_seek == 50
-    assert bytes(object_io._write_buffer) == 50 * b'0' + 50 * b'\0'
-    assert object_io._get_buffer().tobytes() == 50 * b'0'
+    assert bytes(object_io._write_buffer) == 50 * b"0" + 50 * b"\0"
+    assert object_io._get_buffer().tobytes() == 50 * b"0"
     assert object_io._seek == 2
     assert len(flushed) == 200
-    assert bytes(flushed) == 200 * b'0'
+    assert bytes(flushed) == 200 * b"0"
 
     # Tests manual flush
     object_io.flush()
     object_io.ensure_ready()
     assert object_io._seek == 3
-    assert bytes(flushed) == 250 * b'0'
+    assert bytes(flushed) == 250 * b"0"
     assert object_io._buffer_seek == 0
 
     # Tests write, only buffered should flush
     flushed = bytearray()
     raw_flushed = bytearray()
-    assert bytes(flushed) == b''
-    assert bytes(raw_flushed) == b''
+    assert bytes(flushed) == b""
+    assert bytes(raw_flushed) == b""
 
-    with DummyBufferedIO(name, mode='w') as object_io:
-        assert object_io.write(150 * b'0') == 150
+    with DummyBufferedIO(name, mode="w") as object_io:
+        assert object_io.write(150 * b"0") == 150
         object_io.ensure_ready()
         assert len(flushed) == 100
         assert object_io._buffer_seek == 50
@@ -205,20 +215,20 @@ def test_object_buffered_base_io():
     assert not len(raw_flushed)
 
     # Tests write small data flushed by raw
-    object_io = DummyBufferedIO(name, mode='w')
-    assert object_io.write(10 * b'0') == 10
+    object_io = DummyBufferedIO(name, mode="w")
+    assert object_io.write(10 * b"0") == 10
     object_io.close()
-    assert bytes(raw_flushed) == 10 * b'0'
+    assert bytes(raw_flushed) == 10 * b"0"
 
     # Test max buffer
-    object_io = DummyBufferedIO(name, mode='w', max_buffers=2)
+    object_io = DummyBufferedIO(name, mode="w", max_buffers=2)
     flush_sleep = object_io._FLUSH_WAIT
-    assert object_io.write(1000 * b'0') == 1000
+    assert object_io.write(1000 * b"0") == 1000
     flush_sleep = 0
 
     # Test default implementation with part flush support
-    raw_flushed[:] = b''
+    raw_flushed[:] = b""
     content = os.urandom(100)
-    with DummyBufferedIOPartFlush(name, mode='w', buffer_size=10) as object_io:
+    with DummyBufferedIOPartFlush(name, mode="w", buffer_size=10) as object_io:
         object_io.write(content)
     assert raw_flushed == content

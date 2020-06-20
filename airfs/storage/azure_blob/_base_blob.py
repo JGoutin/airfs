@@ -2,7 +2,7 @@
 from io import IOBase
 
 from airfs._core.io_base import memoizedmethod
-from airfs._core.exceptions import ObjectException
+from airfs._core.exceptions import AirfsException
 from airfs.io import ObjectBufferedIOBase
 from airfs.storage.azure_blob._system import _AzureBlobSystem
 from airfs.storage.azure import _AzureStorageRawIOBase
@@ -26,8 +26,8 @@ def _new_blob(cls, name, kwargs):
     """
     # Try to get cached parameters
     try:
-        storage_parameters = kwargs['storage_parameters'].copy()
-        system = storage_parameters.get('airfs.system_cached')
+        storage_parameters = kwargs["storage_parameters"].copy()
+        system = storage_parameters.get("airfs.system_cached")
 
     # Or create new empty ones
     except KeyError:
@@ -37,23 +37,22 @@ def _new_blob(cls, name, kwargs):
     # If none cached, create a new system
     if not system:
         system = cls._SYSTEM_CLASS(**kwargs)
-        storage_parameters['airfs.system_cached'] = system
+        storage_parameters["airfs.system_cached"] = system
 
     # Detect if file already exists
     try:
-        # Also cache file header to avoid double head call
-        # (in __new__ and __init__)
-        storage_parameters['airfs.raw_io._head'] = head = system.head(name)
-    except ObjectException:
-        # Unable to access to the file (May not exists, or may not have read
-        # access permission), try to use arguments as blob type source.
+        # Also cache file header to avoid double head call (in __new__ and __init__)
+        storage_parameters["airfs.raw_io._head"] = head = system.head(name)
+    except AirfsException:
+        # Unable to access to the file (May not exists, or may not have read access
+        # permission), try to use arguments as blob type source.
         head = kwargs
 
     # Update file storage parameters
-    kwargs['storage_parameters'] = storage_parameters
+    kwargs["storage_parameters"] = storage_parameters
 
     # Return blob type
-    return head.get('blob_type', system._default_blob_type)
+    return head.get("blob_type", system._default_blob_type)
 
 
 class AzureBlobRawIO(_AzureStorageRawIOBase):
@@ -61,21 +60,21 @@ class AzureBlobRawIO(_AzureStorageRawIOBase):
 
     Args:
         name (path-like object): URL or path to the file which will be opened.
-        mode (str): The mode can be 'r', 'w', 'a'
-            for reading (default), writing or appending
+        mode (str): The mode can be 'r', 'w', 'a' for reading (default), writing or
+            appending.
         storage_parameters (dict): Azure service keyword arguments.
             This is generally Azure credentials and configuration. See
-            "azure.storage.blob.baseblobservice.BaseBlobService" for more
-            information.
-        unsecure (bool): If True, disables TLS/SSL to improves
-            transfer performance. But makes connection unsecure.
+            "azure.storage.blob.baseblobservice.BaseBlobService" for more information.
+        unsecure (bool): If True, disables TLS/SSL to improves transfer performance.
+            But makes connection unsecure.
         blob_type (str): Blob type to use on new file creation.
             Possibles values: BlockBlob (default), AppendBlob, PageBlob.
     """
+
     _SYSTEM_CLASS = _AzureBlobSystem
     __DEFAULT_CLASS = True
 
-    def __new__(cls, name, mode='r', **kwargs):
+    def __new__(cls, name, mode="r", **kwargs):
         # If call from a subclass, instantiate this subclass directly
         if cls is not AzureBlobRawIO:
             return IOBase.__new__(cls)
@@ -102,24 +101,25 @@ class AzureBlobBufferedIO(ObjectBufferedIOBase):
         name (path-like object): URL or path to the file which will be opened.
         mode (str): The mode can be 'r', 'w' for reading (default) or writing
         buffer_size (int): The size of buffer.
-        max_buffers (int): The maximum number of buffers to preload in read mode
-            or awaiting flush in write mode. 0 for no limit.
-        max_workers (int): The maximum number of threads that can be used to
-            execute the given calls.
+        max_buffers (int): The maximum number of buffers to preload in read mode or
+            awaiting flush in write mode. 0 for no limit.
+        max_workers (int): The maximum number of threads that can be used to execute
+            the given calls.
         storage_parameters (dict): Azure service keyword arguments.
             This is generally Azure credentials and configuration. See
-            "azure.storage.blob.baseblobservice.BaseBlobService" for more
-            information.
-        unsecure (bool): If True, disables TLS/SSL to improves
-            transfer performance. But makes connection unsecure.
+            "azure.storage.blob.baseblobservice.BaseBlobService" for more information.
+        unsecure (bool): If True, disables TLS/SSL to improves transfer performance.
+            But makes connection unsecure.
         blob_type (str): Blob type to use on new file creation.
             Possibles values: BlockBlob (default), AppendBlob, PageBlob.
     """
+
     _SYSTEM_CLASS = _AzureBlobSystem
     __DEFAULT_CLASS = True
 
-    def __new__(cls, name, mode='r', buffer_size=None, max_buffers=0,
-                max_workers=None, **kwargs):
+    def __new__(
+        cls, name, mode="r", buffer_size=None, max_buffers=0, max_workers=None, **kwargs
+    ):
         # If call from a subclass, instantiate this subclass directly
         if cls is not AzureBlobBufferedIO:
             return IOBase.__new__(cls)

@@ -4,29 +4,36 @@ import pytest
 pytest.importorskip("azure.storage.file")
 
 UNSUPPORTED_OPERATIONS = (
-    'symlink',
-
+    "symlink",
     # Not supported on some objects
-    'getctime',
+    "getctime",
 )
 
 
 def test_mocked_storage():
     """Tests airfs.azure_file with a mock"""
     from azure.storage.file.models import (
-        Share, File, Directory, ShareProperties, FileProperties,
-        DirectoryProperties)
+        Share,
+        File,
+        Directory,
+        ShareProperties,
+        FileProperties,
+        DirectoryProperties,
+    )
 
     import airfs.storage.azure_file as azure_file
     from airfs.storage.azure_file import (
-        AzureFileRawIO, _AzureFileSystem, AzureFileBufferedIO)
+        AzureFileRawIO,
+        _AzureFileSystem,
+        AzureFileBufferedIO,
+    )
 
     from tests.test_storage import StorageTester
     from tests.test_storage_azure import get_storage_mock
 
     # Mocks client
     storage_mock = get_storage_mock()
-    root = '//account.file.core.windows.net'
+    root = "//account.file.core.windows.net"
 
     def join(directory_name=None, file_name=None):
         """
@@ -40,7 +47,7 @@ def test_mocked_storage():
             str: Path
         """
         if directory_name and file_name:
-            return '%s/%s' % (directory_name, file_name)
+            return "%s/%s" % (directory_name, file_name)
         elif directory_name:
             return directory_name
         return file_name
@@ -53,17 +60,21 @@ def test_mocked_storage():
             self.kwargs = kwargs
 
         @staticmethod
-        def copy_file(share_name=None, directory_name=None, file_name=None,
-                      copy_source=None, **_):
+        def copy_file(
+            share_name=None, directory_name=None, file_name=None, copy_source=None, **_
+        ):
             """azure.storage.file.fileservice.FileService.copy_file"""
-            copy_source = copy_source.split(root + '/')[1]
+            copy_source = copy_source.split(root + "/")[1]
             storage_mock.copy_object(
-                src_path=copy_source, dst_locator=share_name,
-                dst_path=join(directory_name, file_name))
+                src_path=copy_source,
+                dst_locator=share_name,
+                dst_path=join(directory_name, file_name),
+            )
 
         @staticmethod
         def get_file_properties(
-                share_name=None, directory_name=None, file_name=None, **_):
+            share_name=None, directory_name=None, file_name=None, **_
+        ):
             """azure.storage.file.fileservice.FileService.get_file_properties"""
             args = share_name, join(directory_name, file_name)
             props = FileProperties()
@@ -73,19 +84,16 @@ def test_mocked_storage():
 
         @staticmethod
         def get_directory_properties(share_name=None, directory_name=None, **_):
-            """
-            azure.storage.file.fileservice.FileService.get_directory_properties
-            """
+            """azure.storage.file.fileservice.FileService.get_directory_properties"""
             props = DirectoryProperties()
             props.last_modified = storage_mock.get_object_mtime(
-                share_name, directory_name + '/')
+                share_name, directory_name + "/"
+            )
             return Directory(props=props, name=directory_name)
 
         @staticmethod
         def get_share_properties(share_name=None, **_):
-            """
-            azure.storage.file.fileservice.FileService.get_share_properties
-            """
+            """azure.storage.file.fileservice.FileService.get_share_properties"""
             props = ShareProperties()
             props.last_modified = storage_mock.get_locator_mtime(share_name)
             return Share(props=props, name=share_name)
@@ -102,33 +110,36 @@ def test_mocked_storage():
 
         @staticmethod
         def list_directories_and_files(
-                share_name=None, directory_name=None, num_results=None, **_):
-            """
-            azure.storage.file.fileservice.FileService.
-            list_directories_and_files
-            """
+            share_name=None, directory_name=None, num_results=None, **_
+        ):
+            """azure.storage.file.fileservice.FileService.list_directories_and_files"""
             content = []
             for name in storage_mock.get_locator(
-                    share_name, prefix=directory_name, limit=num_results,
-                    first_level=True, relative=True):
+                share_name,
+                prefix=directory_name,
+                limit=num_results,
+                first_level=True,
+                relative=True,
+            ):
 
                 # This directory
                 if not name:
                     continue
 
                 # Directory
-                elif name.endswith('/'):
-                    content.append(Directory(
-                        props=DirectoryProperties(), name=name))
+                elif name.endswith("/"):
+                    content.append(Directory(props=DirectoryProperties(), name=name))
 
                 # File
                 else:
                     props = FileProperties()
                     path = join(directory_name, name)
                     props.last_modified = storage_mock.get_object_mtime(
-                        share_name, path)
+                        share_name, path
+                    )
                     props.content_length = storage_mock.get_object_size(
-                        share_name, path)
+                        share_name, path
+                    )
                     content.append(File(props=props, name=name))
 
             return content
@@ -136,7 +147,7 @@ def test_mocked_storage():
         @staticmethod
         def create_directory(share_name=None, directory_name=None, **_):
             """azure.storage.file.fileservice.FileService.create_directory"""
-            storage_mock.put_object(share_name, directory_name + '/')
+            storage_mock.put_object(share_name, directory_name + "/")
 
         @staticmethod
         def create_share(share_name=None, **_):
@@ -144,18 +155,26 @@ def test_mocked_storage():
             storage_mock.put_locator(share_name)
 
         @staticmethod
-        def create_file(share_name=None, directory_name=None,
-                        file_name=None, content_length=None, **_):
+        def create_file(
+            share_name=None,
+            directory_name=None,
+            file_name=None,
+            content_length=None,
+            **_,
+        ):
             """azure.storage.file.fileservice.FileService.create_file"""
             if content_length:
                 # Create null padding
-                content = b'\0' * content_length
+                content = b"\0" * content_length
             else:
                 content = None
 
             storage_mock.put_object(
-                share_name, join(directory_name, file_name), content=content,
-                new_file=True)
+                share_name,
+                join(directory_name, file_name),
+                content=content,
+                new_file=True,
+            )
 
         @staticmethod
         def delete_directory(share_name=None, directory_name=None, **_):
@@ -168,54 +187,79 @@ def test_mocked_storage():
             storage_mock.delete_locator(share_name)
 
         @staticmethod
-        def delete_file(share_name=None, directory_name=None,
-                        file_name=None, **_):
+        def delete_file(share_name=None, directory_name=None, file_name=None, **_):
             """azure.storage.file.fileservice.FileService.delete_file"""
-            storage_mock.delete_object(
-                share_name, join(directory_name, file_name))
+            storage_mock.delete_object(share_name, join(directory_name, file_name))
 
         @staticmethod
         def get_file_to_stream(
-                share_name=None, directory_name=None, file_name=None,
-                stream=None, start_range=None, end_range=None, **_):
+            share_name=None,
+            directory_name=None,
+            file_name=None,
+            stream=None,
+            start_range=None,
+            end_range=None,
+            **_,
+        ):
             """azure.storage.file.fileservice.FileService.get_file_to_stream"""
             if end_range is not None:
                 end_range += 1
-            stream.write(storage_mock.get_object(
-                share_name, join(directory_name, file_name),
-                data_range=(start_range, end_range)))
+            stream.write(
+                storage_mock.get_object(
+                    share_name,
+                    join(directory_name, file_name),
+                    data_range=(start_range, end_range),
+                )
+            )
 
         @staticmethod
         def create_file_from_bytes(
-                share_name=None, directory_name=None, file_name=None,
-                file=None, **_):
-            """azure.storage.file.fileservice.FileService.
-            create_file_from_bytes"""
+            share_name=None, directory_name=None, file_name=None, file=None, **_
+        ):
+            """azure.storage.file.fileservice.FileService.create_file_from_bytes"""
             storage_mock.put_object(
-                share_name, join(directory_name, file_name), file,
-                new_file=True)
+                share_name, join(directory_name, file_name), file, new_file=True
+            )
 
         @staticmethod
-        def update_range(share_name=None, directory_name=None, file_name=None,
-                         data=None, start_range=None, end_range=None, **_):
+        def update_range(
+            share_name=None,
+            directory_name=None,
+            file_name=None,
+            data=None,
+            start_range=None,
+            end_range=None,
+            **_,
+        ):
             """azure.storage.file.fileservice.FileService.update_range"""
             if end_range is not None:
                 end_range += 1
             storage_mock.put_object(
-                share_name, join(directory_name, file_name), content=data,
-                data_range=(start_range, end_range))
+                share_name,
+                join(directory_name, file_name),
+                content=data,
+                data_range=(start_range, end_range),
+            )
 
         @staticmethod
-        def resize_file(share_name=None, directory_name=None,
-                        file_name=None, content_length=None, **_):
+        def resize_file(
+            share_name=None,
+            directory_name=None,
+            file_name=None,
+            content_length=None,
+            **_,
+        ):
             """azure.storage.file.fileservice.FileService.resize_file"""
             path = join(directory_name, file_name)
             # Add padding to resize file
             size = storage_mock.get_object_size(share_name, path)
             padding = content_length - size
             storage_mock.put_object(
-                share_name, path, content=b'\0' * padding,
-                data_range=(content_length - padding, content_length))
+                share_name,
+                path,
+                content=b"\0" * padding,
+                data_range=(content_length - padding, content_length),
+            )
 
     azure_storage_file_file_service = azure_file._FileService
     azure_file._FileService = FileService
@@ -223,73 +267,86 @@ def test_mocked_storage():
     # Tests
     try:
         # Init mocked system
-        system_parameters = dict(
-            storage_parameters=dict(account_name='account'))
+        system_parameters = dict(storage_parameters=dict(account_name="account"))
         system = _AzureFileSystem(**system_parameters)
         storage_mock.attach_io_system(system)
 
         # Tests
         with StorageTester(
-                system, AzureFileRawIO, AzureFileBufferedIO, storage_mock,
-                unsupported_operations=UNSUPPORTED_OPERATIONS,
-                system_parameters=system_parameters, root=root) as tester:
+            system,
+            AzureFileRawIO,
+            AzureFileBufferedIO,
+            storage_mock,
+            unsupported_operations=UNSUPPORTED_OPERATIONS,
+            system_parameters=system_parameters,
+            root=root,
+        ) as tester:
 
             # Common tests
             tester.test_common()
 
             # Test: Unsecure mode
-            file_path = tester.base_dir_path + 'file0.dat'
-            with AzureFileRawIO(file_path, unsecure=True,
-                                **system_parameters) as file:
-                assert file._client.kwargs['protocol'] == 'http'
+            file_path = tester.base_dir_path + "file0.dat"
+            with AzureFileRawIO(file_path, unsecure=True, **system_parameters) as file:
+                assert file._client.kwargs["protocol"] == "http"
 
             # Test: Copy source formatted to use URL
-            rel_path = '/container/file'
-            assert (system._format_src_url(
-                'smb://account.file.core.windows.net' + rel_path, system) ==
-                    'https://account.file.core.windows.net' + rel_path)
+            rel_path = "/container/file"
+            assert (
+                system._format_src_url(
+                    "smb://account.file.core.windows.net" + rel_path, system
+                )
+                == "https://account.file.core.windows.net" + rel_path
+            )
 
             # Test: Cross account copy source URL with SAS token
-            sas_token = 'sas_token'
-            other_system = _AzureFileSystem(storage_parameters=dict(
-                account_name='other', sas_token=sas_token))
-            assert (other_system._format_src_url(
-                'smb://other.file.core.windows.net' + rel_path, system) ==
-                    'https://other.file.core.windows.net%s?%s' % (
-                        rel_path, sas_token))
+            sas_token = "sas_token"
+            other_system = _AzureFileSystem(
+                storage_parameters=dict(account_name="other", sas_token=sas_token)
+            )
+            assert other_system._format_src_url(
+                "smb://other.file.core.windows.net" + rel_path, system
+            ) == "https://other.file.core.windows.net%s?%s" % (rel_path, sas_token)
 
             # Test: Cross account copy source URL with no SAS token
-            other_system = _AzureFileSystem(storage_parameters=dict(
-                account_name='other'))
-            assert (other_system._format_src_url(
-                'smb://other.file.core.windows.net' + rel_path, system) ==
-                    'https://other.file.core.windows.net' + rel_path)
+            other_system = _AzureFileSystem(
+                storage_parameters=dict(account_name="other")
+            )
+            assert (
+                other_system._format_src_url(
+                    "smb://other.file.core.windows.net" + rel_path, system
+                )
+                == "https://other.file.core.windows.net" + rel_path
+            )
 
             # Test pre-allocating file
-            with AzureFileRawIO(file_path, 'wb', content_length=1234,
-                                **tester._system_parameters):
+            with AzureFileRawIO(
+                file_path, "wb", content_length=1234, **tester._system_parameters
+            ):
                 pass
 
             with AzureFileRawIO(file_path, **tester._system_parameters) as file:
-                assert file.readall() == b'\0' * 1234, 'Azure raw initialized'
+                assert file.readall() == b"\0" * 1234, "Azure raw initialized"
 
             # Test increase already existing blob size
-            with AzureFileRawIO(file_path, 'ab', content_length=2345,
-                                **tester._system_parameters):
+            with AzureFileRawIO(
+                file_path, "ab", content_length=2345, **tester._system_parameters
+            ):
                 pass
 
             with AzureFileRawIO(file_path, **tester._system_parameters) as file:
-                assert file.readall() == b'\0' * 2345, 'Azure raw resized'
+                assert file.readall() == b"\0" * 2345, "Azure raw resized"
 
-            # Test not truncate already existing blob with specified content
-            # length
-            with AzureFileRawIO(file_path, 'ab', content_length=1234,
-                                **tester._system_parameters):
+            # Test not truncate already existing blob with specified content length
+            with AzureFileRawIO(
+                file_path, "ab", content_length=1234, **tester._system_parameters
+            ):
                 pass
 
             with AzureFileRawIO(file_path, **tester._system_parameters) as file:
-                assert file.readall() == b'\0' * 2345, \
-                    'Azure Raw resize do not truncate'
+                assert (
+                    file.readall() == b"\0" * 2345
+                ), "Azure Raw resize do not truncate"
 
     # Restore mocked class
     finally:

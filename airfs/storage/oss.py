@@ -9,15 +9,15 @@ from oss2.exceptions import OssError as _OssError
 from airfs._core.io_base import memoizedmethod as _memoizedmethod
 from airfs._core.exceptions import (
     ObjectNotFoundError as _ObjectNotFoundError,
-    ObjectPermissionError as _ObjectPermissionError)
+    ObjectPermissionError as _ObjectPermissionError,
+)
 from airfs.io import (
     ObjectRawIOBase as _ObjectRawIOBase,
     ObjectBufferedIOBase as _ObjectBufferedIOBase,
-    SystemBase as _SystemBase)
+    SystemBase as _SystemBase,
+)
 
-_ERROR_CODES = {
-    403: _ObjectPermissionError,
-    404: _ObjectNotFoundError}
+_ERROR_CODES = {403: _ObjectPermissionError, 404: _ObjectNotFoundError}
 
 
 @_contextmanager
@@ -33,8 +33,7 @@ def _handle_oss_error():
 
     except _OssError as exception:
         if exception.status in _ERROR_CODES:
-            raise _ERROR_CODES[exception.status](
-                exception.details.get('Message', ''))
+            raise _ERROR_CODES[exception.status](exception.details.get("Message", ""))
         raise
 
 
@@ -45,25 +44,27 @@ class _OSSSystem(_SystemBase):
     Args:
         storage_parameters (dict): OSS2 Auth keyword arguments and endpoint.
             This is generally OSS credentials and configuration.
-        unsecure (bool): If True, disables TLS/SSL to improves
-            transfer performance. But makes connection unsecure.
+        unsecure (bool): If True, disables TLS/SSL to improves transfer performance.
+            But makes connection unsecure.
     """
-    __slots__ = ('_unsecure', '_endpoint')
 
-    _CTIME_KEYS = ('Creation-Date', 'creation_date')
-    _MTIME_KEYS = ('Last-Modified', 'last_modified')
+    __slots__ = ("_unsecure", "_endpoint")
+
+    _CTIME_KEYS = ("Creation-Date", "creation_date")
+    _MTIME_KEYS = ("Last-Modified", "last_modified")
 
     def __init__(self, storage_parameters=None, *args, **kwargs):
         try:
             storage_parameters = storage_parameters.copy()
-            self._endpoint = storage_parameters.pop('endpoint')
+            self._endpoint = storage_parameters.pop("endpoint")
         except (AttributeError, KeyError):
             raise ValueError('"endpoint" is required as "storage_parameters"')
 
-        _SystemBase.__init__(self, storage_parameters=storage_parameters,
-                             *args, **kwargs)
+        _SystemBase.__init__(
+            self, storage_parameters=storage_parameters, *args, **kwargs
+        )
         if self._unsecure:
-            self._endpoint = self._endpoint.replace('https://', 'http://')
+            self._endpoint = self._endpoint.replace("https://", "http://")
 
     def copy(self, src, dst, other_system=None):
         """
@@ -79,14 +80,14 @@ class _OSSSystem(_SystemBase):
         with _handle_oss_error():
             bucket = self._get_bucket(copy_destination)
             bucket.copy_object(
-                source_bucket_name=copy_source['bucket_name'],
-                source_key=copy_source['key'],
-                target_key=copy_destination['key'])
+                source_bucket_name=copy_source["bucket_name"],
+                source_key=copy_source["key"],
+                target_key=copy_destination["key"],
+            )
 
     def get_client_kwargs(self, path):
         """
-        Get base keyword arguments for client for a
-        specific path.
+        Get base keyword arguments for client for a specific path.
 
         Args:
             path (str): Absolute path or URL.
@@ -97,7 +98,7 @@ class _OSSSystem(_SystemBase):
         bucket_name, key = self.split_locator(path)
         kwargs = dict(bucket_name=bucket_name)
         if key:
-            kwargs['key'] = key
+            kwargs["key"] = key
         return kwargs
 
     def _get_client(self):
@@ -107,9 +108,13 @@ class _OSSSystem(_SystemBase):
         Returns:
             oss2.Auth or oss2.StsAuth: client
         """
-        return (_oss.StsAuth if 'security_token' in self._storage_parameters
-                else _oss.Auth if self._storage_parameters
-                else _oss.AnonymousAuth)(**self._storage_parameters)
+        return (
+            _oss.StsAuth
+            if "security_token" in self._storage_parameters
+            else _oss.Auth
+            if self._storage_parameters
+            else _oss.AnonymousAuth
+        )(**self._storage_parameters)
 
     def _get_roots(self):
         """
@@ -122,17 +127,17 @@ class _OSSSystem(_SystemBase):
         return (
             # OSS Scheme
             # - oss://<bucket>/<key>
-            'oss://',
-
+            "oss://",
             # URL (With common aliyuncs.com endpoint):
             # - http://<bucket>.oss-<region>.aliyuncs.com/<key>
             # - https://<bucket>.oss-<region>.aliyuncs.com/<key>
-
-            # Note: "oss-<region>.aliyuncs.com" may be replaced by another
-            # endpoint
-
-            _re.compile((r'https?://[\w-]+.%s' % self._endpoint.split(
-                '//', 1)[1]).replace('.', r'\.')))
+            # Note: "oss-<region>.aliyuncs.com" may be replaced by another endpoint
+            _re.compile(
+                (r"https?://[\w-]+.%s" % self._endpoint.split("//", 1)[1]).replace(
+                    ".", r"\."
+                )
+            ),
+        )
 
     def _get_bucket(self, client_kwargs):
         """
@@ -141,26 +146,29 @@ class _OSSSystem(_SystemBase):
         Returns:
             oss2.Bucket
         """
-        return _oss.Bucket(self.client, endpoint=self._endpoint,
-                           bucket_name=client_kwargs['bucket_name'])
+        return _oss.Bucket(
+            self.client,
+            endpoint=self._endpoint,
+            bucket_name=client_kwargs["bucket_name"],
+        )
 
-    def islink(self, path=None, header=None):
+    def islink(self, path=None, client_kwargs=None, header=None):
         """
         Returns True if object is a symbolic link.
 
         Args:
             path (str): File path or URL.
+            client_kwargs (dict): Client arguments.
             header (dict): Object header.
 
         Returns:
             bool: True if object is Symlink.
         """
-        if header is None:
-            header = self._head(self.get_client_kwargs(path))
+        header = self.head(path, client_kwargs, header)
 
-        for key in ('x-oss-object-type', 'type'):
+        for key in ("x-oss-object-type", "type"):
             try:
-                return header.pop(key) == 'Symlink'
+                return header.pop(key) == "Symlink"
             except KeyError:
                 continue
         return False
@@ -179,9 +187,8 @@ class _OSSSystem(_SystemBase):
             bucket = self._get_bucket(client_kwargs)
 
             # Object
-            if 'key' in client_kwargs:
-                return bucket.head_object(
-                    key=client_kwargs['key']).headers
+            if "key" in client_kwargs:
+                return bucket.head_object(key=client_kwargs["key"]).headers
 
             # Bucket
             return bucket.get_bucket_info().headers
@@ -197,9 +204,8 @@ class _OSSSystem(_SystemBase):
             bucket = self._get_bucket(client_kwargs)
 
             # Object
-            if 'key' in client_kwargs:
-                return bucket.put_object(
-                    key=client_kwargs['key'], data=b'')
+            if "key" in client_kwargs:
+                return bucket.put_object(key=client_kwargs["key"], data=b"")
 
             # Bucket
             return bucket.create_bucket()
@@ -215,8 +221,8 @@ class _OSSSystem(_SystemBase):
             bucket = self._get_bucket(client_kwargs)
 
             # Object
-            if 'key' in client_kwargs:
-                return bucket.delete_object(key=client_kwargs['key'])
+            if "key" in client_kwargs:
+                return bucket.delete_object(key=client_kwargs["key"])
 
             # Bucket
             return bucket.delete_bucket()
@@ -233,8 +239,11 @@ class _OSSSystem(_SystemBase):
         Returns:
             dict: Model dict version.
         """
-        return {attr: value for attr, value in model.__dict__.items()
-                if not attr.startswith('_') and attr not in ignore}
+        return {
+            attr: value
+            for attr, value in model.__dict__.items()
+            if not attr.startswith("_") and attr not in ignore
+        }
 
     def _list_locators(self):
         """
@@ -244,11 +253,10 @@ class _OSSSystem(_SystemBase):
             generator of tuple: locator name str, locator header dict
         """
         with _handle_oss_error():
-            response = _oss.Service(
-                self.client, endpoint=self._endpoint).list_buckets()
+            response = _oss.Service(self.client, endpoint=self._endpoint).list_buckets()
 
         for bucket in response.buckets:
-            yield bucket.name, self._model_to_dict(bucket, ('name',))
+            yield bucket.name, self._model_to_dict(bucket, ("name",))
 
     def _list_objects(self, client_kwargs, path, max_request_entries):
         """
@@ -257,15 +265,15 @@ class _OSSSystem(_SystemBase):
         args:
             client_kwargs (dict): Client arguments.
             path (str): Path relative to current locator.
-            max_request_entries (int): If specified, maximum entries returned
-                by request.
+            max_request_entries (int): If specified, maximum entries returned by the
+                request.
 
         Returns:
             generator of tuple: object name str, object header dict
         """
         kwargs = dict()
         if max_request_entries:
-            kwargs['max_keys'] = max_request_entries
+            kwargs["max_keys"] = max_request_entries
 
         bucket = self._get_bucket(client_kwargs)
 
@@ -276,14 +284,14 @@ class _OSSSystem(_SystemBase):
             if not response.object_list:
                 # In case of empty dir, return empty dir path:
                 # if empty result, the dir do not exists.
-                raise _ObjectNotFoundError('Not found: %s' % path)
+                raise _ObjectNotFoundError("Not found: %s" % path)
 
             for obj in response.object_list:
-                yield obj.key, self._model_to_dict(obj, ('key',))
+                yield obj.key, self._model_to_dict(obj, ("key",))
 
             # Handles results on more than one page
             if response.next_marker:
-                client_kwargs['marker'] = response.next_marker
+                client_kwargs["marker"] = response.next_marker
             else:
                 # End of results
                 break
@@ -294,13 +302,14 @@ class OSSRawIO(_ObjectRawIOBase):
 
     Args:
         name (path-like object): URL or path to the file which will be opened.
-        mode (str): The mode can be 'r', 'w', 'a'
-            for reading (default), writing or appending
+        mode (str): The mode can be 'r', 'w', 'a' for reading (default), writing or
+            appending.
         storage_parameters (dict): OSS2 Auth keyword arguments and endpoint.
             This is generally OSS credentials and configuration.
-        unsecure (bool): If True, disables TLS/SSL to improves
-            transfer performance. But makes connection unsecure.
+        unsecure (bool): If True, disables TLS/SSL to improves transfer performance.
+            But makes connection unsecure.
     """
+
     _SYSTEM_CLASS = _OSSSystem
 
     @property
@@ -323,7 +332,7 @@ class OSSRawIO(_ObjectRawIOBase):
         Returns:
             str: key.
         """
-        return self._client_kwargs['key']
+        return self._client_kwargs["key"]
 
     def _read_range(self, start, end=0):
         """
@@ -331,8 +340,7 @@ class OSSRawIO(_ObjectRawIOBase):
 
         Args:
             start (int): Start stream position.
-            end (int): End stream position.
-                0 To not specify end.
+            end (int): End stream position. 0 To not specify end.
 
         Returns:
             bytes: number of bytes read
@@ -343,10 +351,16 @@ class OSSRawIO(_ObjectRawIOBase):
 
         # Get object bytes range
         with _handle_oss_error():
-            response = self._bucket.get_object(key=self._key, headers=dict(
-                Range=self._http_range(
-                    # Returns full file if end > size
-                    start, end if end <= self._size else self._size)))
+            response = self._bucket.get_object(
+                key=self._key,
+                headers=dict(
+                    Range=self._http_range(
+                        # Returns full file if end > size
+                        start,
+                        end if end <= self._size else self._size,
+                    )
+                ),
+            )
 
         # Get object content
         return response.read()
@@ -379,16 +393,17 @@ class OSSBufferedIO(_ObjectBufferedIOBase):
         name (path-like object): URL or path to the file which will be opened.
         mode (str): The mode can be 'r', 'w' for reading (default) or writing
         buffer_size (int): The size of buffer.
-        max_buffers (int): The maximum number of buffers to preload in read mode
-            or awaiting flush in write mode. 0 for no limit.
-        max_workers (int): The maximum number of threads that can be used to
-            execute the given calls.
+        max_buffers (int): The maximum number of buffers to preload in read mode or
+            awaiting flush in write mode. 0 for no limit.
+        max_workers (int): The maximum number of threads that can be used to execute the
+            given calls.
         storage_parameters (dict): OSS2 Auth keyword arguments and endpoint.
             This is generally OSS credentials and configuration.
-        unsecure (bool): If True, disables TLS/SSL to improves
-            transfer performance. But makes connection unsecure.
+        unsecure (bool): If True, disables TLS/SSL to improves transfer performance.
+            But makes connection unsecure.
     """
-    __slots__ = ('_bucket', '_key', '_upload_id')
+
+    __slots__ = ("_bucket", "_key", "_upload_id")
 
     _RAW_CLASS = OSSRawIO
 
@@ -410,33 +425,42 @@ class OSSBufferedIO(_ObjectBufferedIOBase):
         if self._upload_id is None:
             with _handle_oss_error():
                 self._upload_id = self._bucket.init_multipart_upload(
-                    self._key).upload_id
+                    self._key
+                ).upload_id
 
         # Upload part with workers
         response = self._workers.submit(
-            self._bucket.upload_part, key=self._key, upload_id=self._upload_id,
-            part_number=self._seek, data=self._get_buffer().tobytes())
+            self._bucket.upload_part,
+            key=self._key,
+            upload_id=self._upload_id,
+            part_number=self._seek,
+            data=self._get_buffer().tobytes(),
+        )
 
         # Save part information
-        self._write_futures.append(
-            dict(response=response, part_number=self._seek))
+        self._write_futures.append(dict(response=response, part_number=self._seek))
 
     def _close_writable(self):
         """
         Close the object in write mode.
         """
         # Wait parts upload completion
-        parts = [_PartInfo(part_number=future['part_number'],
-                           etag=future['response'].result().etag)
-                 for future in self._write_futures]
+        parts = [
+            _PartInfo(
+                part_number=future["part_number"], etag=future["response"].result().etag
+            )
+            for future in self._write_futures
+        ]
 
         # Complete multipart upload
         with _handle_oss_error():
             try:
                 self._bucket.complete_multipart_upload(
-                    key=self._key, upload_id=self._upload_id, parts=parts)
+                    key=self._key, upload_id=self._upload_id, parts=parts
+                )
             except _OssError:
                 # Clean up failed upload
                 self._bucket.abort_multipart_upload(
-                    key=self._key, upload_id=self._upload_id)
+                    key=self._key, upload_id=self._upload_id
+                )
                 raise

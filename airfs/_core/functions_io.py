@@ -8,9 +8,18 @@ from airfs._core.functions_core import is_storage
 
 
 @contextmanager
-def cos_open(file, mode='r', buffering=-1, encoding=None, errors=None,
-             newline=None, storage=None, storage_parameters=None, unsecure=None,
-             **kwargs):
+def cos_open(
+    file,
+    mode="r",
+    buffering=-1,
+    encoding=None,
+    errors=None,
+    newline=None,
+    storage=None,
+    storage_parameters=None,
+    unsecure=None,
+    **kwargs,
+):
     """
     Open file and return a corresponding file object.
 
@@ -48,8 +57,8 @@ def cos_open(file, mode='r', buffering=-1, encoding=None, errors=None,
             transfer performance. But makes connection unsecure.
             Default to False.
         kwargs: Other arguments to pass to opened object.
-            Note that theses arguments may not be compatible with
-            all kind of file and storage.
+            Note that theses arguments may not be compatible with all kind of file and
+            storage.
 
     Returns:
         file-like object: opened file.
@@ -59,28 +68,35 @@ def cos_open(file, mode='r', buffering=-1, encoding=None, errors=None,
         FileExistsError: File open in 'x' mode already exists.
     """
     # Handles file-like objects:
-    if hasattr(file, 'read'):
+    if hasattr(file, "read"):
         with _text_io_wrapper(file, mode, encoding, errors, newline) as wrapped:
             yield wrapped
         return
 
     # Handles path-like objects
-    file = fsdecode(file).replace('\\', '/')
+    file = fsdecode(file).replace("\\", "/")
 
     # Storage object
     if is_storage(file, storage):
         with get_instance(
-                name=file, cls='raw' if buffering == 0 else 'buffered',
-                storage=storage, storage_parameters=storage_parameters,
-                mode=mode, unsecure=unsecure, **kwargs) as stream:
-            with _text_io_wrapper(stream, mode=mode, encoding=encoding,
-                                  errors=errors, newline=newline) as wrapped:
+            name=file,
+            cls="raw" if buffering == 0 else "buffered",
+            storage=storage,
+            storage_parameters=storage_parameters,
+            mode=mode,
+            unsecure=unsecure,
+            **kwargs,
+        ) as stream:
+            with _text_io_wrapper(
+                stream, mode=mode, encoding=encoding, errors=errors, newline=newline
+            ) as wrapped:
                 yield wrapped
 
     # Local file: Redirect to "io.open"
     else:
-        with io_open(file, mode, buffering, encoding, errors, newline,
-                     **kwargs) as stream:
+        with io_open(
+            file, mode, buffering, encoding, errors, newline, **kwargs
+        ) as stream:
             yield stream
 
 
@@ -95,11 +111,11 @@ def _text_io_wrapper(stream, mode, encoding, errors, newline):
         errors (str): Decoding error handling.
         newline (str): Universal newlines
     """
-    # Text mode, if not already a text stream
-    # That has the "encoding" attribute
-    if "t" in mode and not hasattr(stream, 'encoding'):
+    # Text mode, if not already a text stream that has the "encoding" attribute
+    if "t" in mode and not hasattr(stream, "encoding"):
         text_stream = TextIOWrapper(
-            stream, encoding=encoding, errors=errors, newline=newline)
+            stream, encoding=encoding, errors=errors, newline=newline
+        )
         yield text_stream
         text_stream.flush()
 
