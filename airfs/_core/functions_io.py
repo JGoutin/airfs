@@ -18,7 +18,7 @@ def cos_open(
     storage=None,
     storage_parameters=None,
     unsecure=None,
-    **kwargs,
+    **kwargs
 ):
     """
     Open file and return a corresponding file object.
@@ -85,7 +85,7 @@ def cos_open(
             storage_parameters=storage_parameters,
             mode=mode,
             unsecure=unsecure,
-            **kwargs,
+            **kwargs
         ) as stream:
             with _text_io_wrapper(
                 stream, mode=mode, encoding=encoding, errors=errors, newline=newline

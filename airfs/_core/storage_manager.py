@@ -73,7 +73,7 @@ def get_instance(
     storage_parameters=None,
     unsecure=None,
     *args,
-    **kwargs,
+    **kwargs
 ):
     """
     Get a storage instance.

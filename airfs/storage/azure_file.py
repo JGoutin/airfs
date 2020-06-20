@@ -41,7 +41,7 @@ class _AzureFileSystem(_AzureBaseSystem, _FileSystemBase):
         with _handle_azure_exception():
             self.client.copy_file(
                 copy_source=(other_system or self)._format_src_url(src, self),
-                **self.get_client_kwargs(dst),
+                **self.get_client_kwargs(dst)
             )
 
     copy_from_azure_blobs = copy  # Allows copy from Azure Blobs Storage

@@ -129,7 +129,7 @@ def test_mocked_storage():
             stream=None,
             start_range=None,
             end_range=None,
-            **_,
+            **_
         ):
             """azure.storage.blob.baseblobservice.BaseBlobService.get_blob_to_stream"""
             if end_range is not None:
@@ -207,7 +207,7 @@ def test_mocked_storage():
             page=None,
             start_range=None,
             end_range=None,
-            **_,
+            **_
         ):
             """azure.storage.blob.pageblobservice.PageBlobService.update_page"""
             # Don't use pythonic indexation

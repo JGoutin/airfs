@@ -251,7 +251,7 @@ class _AzureStorageRawIOBase(_ObjectRawIOBase):
                     stream=stream,
                     start_range=start,
                     end_range=(end - 1) if end else None,
-                    **self._client_kwargs,
+                    **self._client_kwargs
                 )
 
         # Check for end of file
@@ -394,7 +394,7 @@ class _AzureStorageRawIORangeWriteBase(
                         data=buffer_part.tobytes(),
                         start_range=start_range,
                         end_range=start_range + len(buffer_part) - 1,
-                        **self._client_kwargs,
+                        **self._client_kwargs
                     )
                 )
 
@@ -410,5 +410,5 @@ class _AzureStorageRawIORangeWriteBase(
                     data=buffer.tobytes(),
                     start_range=start,
                     end_range=end - 1,
-                    **self._client_kwargs,
+                    **self._client_kwargs
                 )

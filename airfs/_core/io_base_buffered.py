@@ -67,7 +67,7 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
         buffer_size=None,
         max_buffers=0,
         max_workers=None,
-        **kwargs,
+        **kwargs
     ):
 
         if "a" in mode:

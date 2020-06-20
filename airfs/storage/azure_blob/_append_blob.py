@@ -127,7 +127,7 @@ class AzureAppendBlobBufferedIO(AzureBlobBufferedIO, ObjectBufferedIORandomWrite
             self._workers.submit(
                 self._client.append_block,
                 block=self._get_buffer().tobytes(),
-                **self._client_kwargs,
+                **self._client_kwargs
             )
         )
 

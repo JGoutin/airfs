@@ -160,7 +160,7 @@ def test_mocked_storage():
             directory_name=None,
             file_name=None,
             content_length=None,
-            **_,
+            **_
         ):
             """azure.storage.file.fileservice.FileService.create_file"""
             if content_length:
@@ -199,7 +199,7 @@ def test_mocked_storage():
             stream=None,
             start_range=None,
             end_range=None,
-            **_,
+            **_
         ):
             """azure.storage.file.fileservice.FileService.get_file_to_stream"""
             if end_range is not None:
@@ -229,7 +229,7 @@ def test_mocked_storage():
             data=None,
             start_range=None,
             end_range=None,
-            **_,
+            **_
         ):
             """azure.storage.file.fileservice.FileService.update_range"""
             if end_range is not None:
@@ -247,7 +247,7 @@ def test_mocked_storage():
             directory_name=None,
             file_name=None,
             content_length=None,
-            **_,
+            **_
         ):
             """azure.storage.file.fileservice.FileService.resize_file"""
             path = join(directory_name, file_name)
