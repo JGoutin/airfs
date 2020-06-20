@@ -8,16 +8,18 @@ from airfs._core.compat import fspath
 from airfs._core.storage_manager import get_instance
 from airfs._core.functions_core import equivalent_to, is_storage
 from airfs._core.exceptions import (
-    ObjectExistsError, ObjectNotFoundError, handle_os_exceptions,
-    ObjectPermissionError)
+    ObjectExistsError,
+    ObjectNotFoundError,
+    handle_os_exceptions,
+    ObjectPermissionError,
+)
 from airfs._core.io_base import memoizedmethod
 
 
 @equivalent_to(os.listdir)
-def listdir(path='.'):
+def listdir(path="."):
     """
-    Return a list containing the names of the entries in the directory given by
-    path.
+    Return a list containing the names of the entries in the directory given by path.
 
     Equivalent to "os.listdir".
 
@@ -27,16 +29,18 @@ def listdir(path='.'):
     Returns:
         list of str: Entries names.
     """
-    return [name.rstrip('/') for name, _ in
-            get_instance(path).list_objects(path, first_level=True)]
+    return [
+        name.rstrip("/")
+        for name, _ in get_instance(path).list_objects(path, first_level=True)
+    ]
 
 
 @equivalent_to(os.makedirs)
 def makedirs(name, mode=0o777, exist_ok=False):
     """
     Super-mkdir; create a leaf directory and all intermediate ones.
-    Works like mkdir, except that any intermediate path segment
-    (not just the rightmost) will be created if it does not exist.
+    Works like mkdir, except that any intermediate path segment (not just the rightmost)
+    will be created if it does not exist.
 
     Equivalent to "os.makedirs".
 
@@ -44,13 +48,12 @@ def makedirs(name, mode=0o777, exist_ok=False):
         name (path-like object): Path or URL.
         mode (int): The mode parameter is passed to os.mkdir();
             see the os.mkdir() description for how it is interpreted.
-            Not supported on cloud storage objects.
-        exist_ok (bool): Don't raises error if target directory already
-            exists.
+            Not supported on storage objects.
+        exist_ok (bool): Don't raises error if target directory already exists.
 
     Raises:
-        FileExistsError: if exist_ok is False and if the target directory
-            already exists.
+        FileExistsError: if exist_ok is False and if the target directory already
+            exists.
     """
     system = get_instance(name)
 
@@ -73,10 +76,10 @@ def mkdir(path, mode=0o777, dir_fd=None):
         path (path-like object): Path or URL.
         mode (int): The mode parameter is passed to os.mkdir();
             see the os.mkdir() description for how it is interpreted.
-            Not supported on cloud storage objects.
+            Not supported on storage objects.
         dir_fd: directory descriptors;
             see the os.remove() description for how it is interpreted.
-            Not supported on cloud storage objects.
+            Not supported on storage objects.
 
     Raises:
         FileExistsError : Directory already exists.
@@ -86,12 +89,11 @@ def mkdir(path, mode=0o777, dir_fd=None):
     relative = system.relpath(path)
 
     # Checks if parent directory exists
-    parent_dir = dirname(relative.rstrip('/'))
+    parent_dir = dirname(relative.rstrip("/"))
     if parent_dir:
-        parent = path.rsplit(relative, 1)[0] + parent_dir + '/'
+        parent = "{}{}/".format(path.rsplit(relative, 1)[0], parent_dir)
         if not system.isdir(parent):
-            raise ObjectNotFoundError(
-                "No such file or directory: '%s'" % parent)
+            raise ObjectNotFoundError("No such file or directory: '%s'" % parent)
 
     # Checks if directory not already exists
     if system.isdir(system.ensure_dir_path(path)):
@@ -99,6 +101,30 @@ def mkdir(path, mode=0o777, dir_fd=None):
 
     # Create directory
     system.make_dir(relative, relative=True)
+
+
+@equivalent_to(os.readlink, keep_path_type=True)
+def readlink(path, dir_fd=None):
+    """
+    Return a string representing the path to which the symbolic link points.
+    The result may be either an absolute or relative pathname; if it is relative, it may
+    be converted to an absolute pathname using
+    os.path.join(os.path.dirname(path), result).
+
+    If the path is a string object (directly or indirectly through a PathLike
+    interface), the result will also be a string object, and the call may raise a
+    UnicodeDecodeError. If the path is a bytes object (direct or indirectly), the result
+    will be a bytes object.
+
+    Equivalent to "os.readlink".
+
+    Args:
+        path (path-like object): Path or URL.
+        dir_fd: directory descriptors;
+            see the os.readlink() description for how it is interpreted.
+            Not supported on storage objects.
+    """
+    return get_instance(path).read_link(path, recursive=False)
 
 
 @equivalent_to(os.remove)
@@ -112,12 +138,12 @@ def remove(path, dir_fd=None):
         path (path-like object): Path or URL.
         dir_fd: directory descriptors;
             see the os.remove() description for how it is interpreted.
-            Not supported on cloud storage objects.
+            Not supported on storage objects.
     """
     system = get_instance(path)
 
     # Only support files
-    if system.is_locator(path) or path[-1] == '/':
+    if system.is_locator(path) or path[-1] == "/":
         raise IsADirectoryError("Is a directory: '%s'" % path)
 
     # Remove
@@ -139,7 +165,7 @@ def rmdir(path, dir_fd=None):
         path (path-like object): Path or URL.
         dir_fd: directory descriptors;
             see the os.rmdir() description for how it is interpreted.
-            Not supported on cloud storage objects.
+            Not supported on storage objects.
     """
     system = get_instance(path)
     system.remove(system.ensure_dir_path(path))
@@ -153,14 +179,13 @@ def lstat(path, dir_fd=None):
 
     Equivalent to "os.lstat".
 
-    On cloud object, may return extra storage specific attributes in
-    "os.stat_result".
+    On storage object, may return extra storage specific attributes in "os.stat_result".
 
     Args:
         path (path-like object): Path or URL.
         dir_fd: directory descriptors;
             see the os.rmdir() description for how it is interpreted.
-            Not supported on cloud storage objects.
+            Not supported on storage objects.
 
     Returns:
         os.stat_result: stat result.
@@ -176,16 +201,15 @@ def stat(path, dir_fd=None, follow_symlinks=True):
 
     Equivalent to "os.stat".
 
-    On cloud object, may return extra storage specific attributes in
-    "os.stat_result".
+    On storage object, may return extra storage specific attributes in "os.stat_result".
 
     Args:
         path (path-like object): Path or URL.
         dir_fd: directory descriptors;
             see the os.rmdir() description for how it is interpreted.
-            Not supported on cloud storage objects.
+            Not supported on storage objects.
         follow_symlinks (bool): Follow symlinks.
-            Not supported on cloud storage objects.
+            Not supported on storage objects.
 
     Returns:
         os.stat_result: stat result.
@@ -195,15 +219,15 @@ def stat(path, dir_fd=None, follow_symlinks=True):
 
 class DirEntry:
     """
-    Object yielded by scandir() to expose the file path and other file
-    attributes of a directory entry.
+    Object yielded by scandir() to expose the file path and other file attributes of a
+    directory entry.
 
     Equivalent to "os.DirEntry".
 
     Not intended to be instantiated directly.
     """
-    __slots__ = ('_cache', '_system', '_name', '_header', '_path',
-                 '_bytes_path')
+
+    __slots__ = ("_cache", "_system", "_name", "_header", "_path", "_bytes_path")
 
     def __init__(self, scandir_path, system, name, header, bytes_path):
         """
@@ -211,8 +235,7 @@ class DirEntry:
 
         Args:
             scandir_path (str): scandir path argument.
-            system (airfs._core.io_system.SystemBase subclass):
-                Storage system.
+            system (airfs._core.io_system.SystemBase subclass): Storage system.
             name (str): Name of the object relative to "scandir_path".
             header (dict): Object header
             bytes_path (bool): True if path must be returned as bytes.
@@ -221,14 +244,14 @@ class DirEntry:
         self._system = system
         self._name = name
         self._header = header
-        self._path = ''.join((
-            scandir_path if scandir_path[-1] == '/' else (scandir_path + '/'),
-            name))
+        self._path = "".join(
+            (scandir_path if scandir_path[-1] == "/" else (scandir_path + "/"), name)
+        )
         self._bytes_path = bytes_path
 
     @memoizedmethod
     def __str__(self):
-        return "<DirEntry '%s'>" % self._name.rstrip('/')
+        return "<DirEntry '%s'>" % self._name.rstrip("/")
 
     __repr__ = __str__
 
@@ -252,7 +275,7 @@ class DirEntry:
         Returns:
             str: name.
         """
-        name = self._name.rstrip('/')
+        name = self._name.rstrip("/")
         if self._bytes_path:
             name = fsencode(name)
         return name
@@ -262,15 +285,15 @@ class DirEntry:
     def path(self):
         """
         The entry’s full path name:
-        equivalent to os.path.join(scandir_path, entry.name)
-        where scandir_path is the scandir() path argument.
+        equivalent to os.path.join(scandir_path, entry.name) where scandir_path is the
+        scandir() path argument.
 
         The path is only absolute if the scandir() path argument was absolute.
 
         Returns:
             str: name.
         """
-        path = self._path.rstrip('/')
+        path = self._path.rstrip("/")
         if self._bytes_path:
             path = fsencode(path)
         return path
@@ -290,51 +313,49 @@ class DirEntry:
     @memoizedmethod
     def is_dir(self, follow_symlinks=True):
         """
-        Return True if this entry is a directory or a symbolic link pointing to
-        a directory; return False if the entry is or points to any other kind
-        of file, or if it doesn’t exist anymore.
+        Return True if this entry is a directory or a symbolic link pointing to a
+        directory; return False if the entry is or points to any other kind of file, or
+        if it doesn’t exist anymore.
 
         The result is cached on the os.DirEntry object.
 
         Args:
             follow_symlinks (bool): Follow symlinks.
-                Not supported on cloud storage objects.
+                Not supported on storage objects.
 
         Returns:
             bool: True if directory exists.
         """
         try:
-            return (self._system.isdir(
-                path=self._path, client_kwargs=self._client_kwargs,
-                virtual_dir=False) or
-
-                # Some directories only exists virtually in object path and
-                # don't have headers.
-                bool(S_ISDIR(self.stat().st_mode)))
+            return self._system.isdir(
+                path=self._path, client_kwargs=self._client_kwargs, virtual_dir=False
+            ) or bool(
+                # Some directories only exists virtually in object path and don't have
+                # headers.
+                S_ISDIR(self.stat().st_mode)
+            )
 
         except ObjectPermissionError:
-            # The directory was listed, but unable to head it or access to its
-            # content
+            # The directory was listed, but unable to head it or access to its content
             return True
 
     @memoizedmethod
     def is_file(self, follow_symlinks=True):
         """
-        Return True if this entry is a file or a symbolic link pointing to a
-        file; return False if the entry is or points to a directory or other
-        non-file entry, or if it doesn’t exist anymore.
+        Return True if this entry is a file or a symbolic link pointing to a file;
+        return False if the entry is or points to a directory or other non-file entry,
+        or if it doesn’t exist anymore.
 
         The result is cached on the os.DirEntry object.
 
         Args:
             follow_symlinks (bool): Follow symlinks.
-                Not supported on cloud storage objects.
+                Not supported on storage objects.
 
         Returns:
             bool: True if directory exists.
         """
-        return self._system.isfile(
-            path=self._path, client_kwargs=self._client_kwargs)
+        return self._system.isfile(path=self._path, client_kwargs=self._client_kwargs)
 
     @memoizedmethod
     def is_symlink(self):
@@ -357,46 +378,47 @@ class DirEntry:
 
         Args:
             follow_symlinks (bool): Follow symlinks.
-                Not supported on cloud storage objects.
+                Not supported on storage objects.
 
         Returns:
             os.stat_result: Stat result object
         """
         return self._system.stat(
-            path=self._path, client_kwargs=self._client_kwargs,
-            header=self._header)
+            path=self._path, client_kwargs=self._client_kwargs, header=self._header
+        )
 
 
-DirEntry.__module__ = 'airfs'
+DirEntry.__module__ = "airfs"
 
 
-def scandir(path='.'):
+def scandir(path="."):
     """
-    Return an iterator of os.DirEntry objects corresponding to the entries in
-    the directory given by path. The entries are yielded in arbitrary order,
-    and the special entries '.' and '..' are not included.
+    Return an iterator of os.DirEntry objects corresponding to the entries in the
+    directory given by path. The entries are yielded in arbitrary order, and the special
+    entries '.' and '..' are not included.
 
     Equivalent to "os.scandir".
 
     Args:
         path (path-like object): Path or URL.
-             If path is of type bytes (directly or indirectly through the
-             PathLike interface), the type of the name and path attributes
-             of each os.DirEntry will be bytes; in all other circumstances,
-             they will be of type str.
+             If path is of type bytes (directly or indirectly through the PathLike
+             interface), the type of the name and path attributes of each os.DirEntry
+             will be bytes; in all other circumstances, they will be of type str.
 
     Returns:
         Generator of os.DirEntry: Entries information.
     """
     # Handles path-like objects
-    scandir_path = fsdecode(path).replace('\\', '/')
+    scandir_path = fsdecode(path).replace("\\", "/")
 
     if not is_storage(scandir_path):
         return os_scandir(scandir_path)
 
     return _scandir_generator(
         is_bytes=isinstance(fspath(path), (bytes, bytearray)),
-        scandir_path=scandir_path, system=get_instance(scandir_path))
+        scandir_path=scandir_path,
+        system=get_instance(scandir_path),
+    )
 
 
 def _scandir_generator(is_bytes, scandir_path, system):
@@ -406,8 +428,7 @@ def _scandir_generator(is_bytes, scandir_path, system):
     Args:
         is_bytes (bool): True if DirEntry must handle path as bytes.
         scandir_path (str): Path.
-        system (airfs._core.io_system.SystemBase subclass):
-            Storage system.
+        system (airfs._core.io_system.SystemBase subclass): Storage system.
 
     Yields:
         DirEntry: Directory entries
@@ -415,5 +436,9 @@ def _scandir_generator(is_bytes, scandir_path, system):
     with handle_os_exceptions():
         for name, header in system.list_objects(scandir_path, first_level=True):
             yield DirEntry(
-                scandir_path=scandir_path, system=system, name=name,
-                header=header, bytes_path=is_bytes)
+                scandir_path=scandir_path,
+                system=system,
+                name=name,
+                header=header,
+                bytes_path=is_bytes,
+            )

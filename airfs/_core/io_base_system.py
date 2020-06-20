@@ -2,6 +2,7 @@
 from abc import abstractmethod, ABC
 from collections import OrderedDict, namedtuple
 from io import UnsupportedOperation
+from os import getgid, getuid
 from re import compile
 from stat import S_IFDIR, S_IFREG, S_IFLNK
 
@@ -16,33 +17,37 @@ class SystemBase(ABC, WorkerPoolBase):
     """
     Cloud storage system handler.
 
-    This class subclasses are not intended to be public and are
-    implementation details.
+    This class subclasses are not intended to be public and are implementation details.
 
-    This base system is for Object storage that does not handles files with
-    a true hierarchy like file systems. Directories are virtual with this kind
-    of storage.
+    This base system is for Object storage that does not handles files with a true
+    hierarchy like file systems. Directories are virtual with this kind of storage.
 
     Args:
         storage_parameters (dict): Storage configuration parameters.
             Generally, client configuration and credentials.
-        unsecure (bool): If True, disables TLS/SSL to improves
-            transfer performance. But makes connection unsecure.
+        unsecure (bool): If True, disables TLS/SSL to improves transfer performance.
+            But makes connection unsecure.
         roots (tuple): Tuple of roots to force use.
     """
-    __slots__ = ('_storage_parameters', '_unsecure', '_storage', '_client',
-                 '_cache', '_roots')
+
+    __slots__ = (
+        "_storage_parameters",
+        "_unsecure",
+        "_storage",
+        "_client",
+        "_cache",
+        "_roots",
+    )
 
     # By default, assumes that information are in a standard HTTP header
-    _SIZE_KEYS = ('Content-Length',)
+    _SIZE_KEYS = ("Content-Length",)
     _CTIME_KEYS = ()
-    _MTIME_KEYS = ('Last-Modified',)
+    _MTIME_KEYS = ("Last-Modified",)
 
     # Caches compiled regular expression
-    _CHAR_FILTER = compile(r'[^a-z0-9]*')
+    _CHAR_FILTER = compile(r"[^a-z0-9_]*")
 
-    def __init__(self, storage_parameters=None, unsecure=False, roots=None,
-                 **_):
+    def __init__(self, storage_parameters=None, unsecure=False, roots=None, **_):
         # Initialize worker pool
         WorkerPoolBase.__init__(self)
 
@@ -51,14 +56,14 @@ class SystemBase(ABC, WorkerPoolBase):
             storage_parameters = storage_parameters.copy()
             # Drop airfs internal keys
             for key in tuple(storage_parameters):
-                if key.startswith('airfs.'):
+                if key.startswith("airfs."):
                     del storage_parameters[key]
         else:
             storage_parameters = dict()
 
         self._storage_parameters = storage_parameters
         self._unsecure = unsecure
-        self._storage = self.__module__.rsplit('.', 1)[1]
+        self._storage = self.__module__.rsplit(".", 1)[1]
 
         # Initialize client
         self._client = None
@@ -106,10 +111,9 @@ class SystemBase(ABC, WorkerPoolBase):
         """
         # This method is intended to copy objects to and from a same storage
 
-        # It is possible to define methods to copy from a different storage
-        # by creating a "copy_from_<src_storage>" method for the target storage
-        # and, vice versa, to copy to a different storage by creating a
-        # "copy_to_<dst_storage>" method.
+        # It is possible to define methods to copy from a different storage by creating
+        # a "copy_from_<src_storage>" method for the target storage and, vice versa, to
+        # copy to a different storage by creating a "copy_to_<dst_storage>" method.
 
         # Theses methods must have the same signature as "copy".
         # "other_system" is optional and will be:
@@ -117,8 +121,8 @@ class SystemBase(ABC, WorkerPoolBase):
         # - The source storage system with "copy_from_<src_storage>" method.
         # - None elsewhere.
 
-        # Note that if no "copy_from"/'copy_to" methods are defined, copy are
-        # performed over the current machine with "shutil.copyfileobj".
+        # Note that if no "copy_from"/'copy_to" methods are defined, copy are performed
+        # over the current machine with "shutil.copyfileobj".
         raise UnsupportedOperation
 
     def exists(self, path=None, client_kwargs=None, assume_exists=None):
@@ -128,11 +132,10 @@ class SystemBase(ABC, WorkerPoolBase):
         Args:
             path (str): Path or URL.
             client_kwargs (dict): Client arguments.
-            assume_exists (bool or None): This value define the value to return
-                in the case there is no enough permission to determinate the
-                existing status of the file. If set to None, the permission
-                exception is reraised (Default behavior). if set to True or
-                False, return this value.
+            assume_exists (bool or None): This value define the value to return in the
+                case there is no enough permission to determinate the existing status of
+                the file. If set to None, the permission exception is reraised
+                (Default behavior). if set to True or False, return this value.
 
         Returns:
             bool: True if exists.
@@ -159,8 +162,7 @@ class SystemBase(ABC, WorkerPoolBase):
     @abstractmethod
     def get_client_kwargs(self, path):
         """
-        Get base keyword arguments for client for a
-        specific path.
+        Get base keyword arguments for client for a specific path.
 
         Args:
             path (str): Absolute path or URL.
@@ -179,11 +181,9 @@ class SystemBase(ABC, WorkerPoolBase):
             header (dict): Object header.
 
         Returns:
-            float: The number of seconds since the epoch
-                (see the time module).
+            float: The number of seconds since the epoch (see the time module).
         """
-        return self._getctime_from_header(
-            self.head(path, client_kwargs, header))
+        return self._getctime_from_header(self.head(path, client_kwargs, header))
 
     def _getctime_from_header(self, header):
         """
@@ -195,7 +195,7 @@ class SystemBase(ABC, WorkerPoolBase):
         Returns:
             float: The number of seconds since the epoch
         """
-        return self._get_time(header, self._CTIME_KEYS, 'getctime')
+        return self._get_time(header, self._CTIME_KEYS, "getctime")
 
     def getmtime(self, path=None, client_kwargs=None, header=None):
         """
@@ -207,11 +207,9 @@ class SystemBase(ABC, WorkerPoolBase):
             header (dict): Object header.
 
         Returns:
-            float: The number of seconds since the epoch
-                (see the time module).
+            float: The number of seconds since the epoch (see the time module).
         """
-        return self._getmtime_from_header(
-            self.head(path, client_kwargs, header))
+        return self._getmtime_from_header(self.head(path, client_kwargs, header))
 
     def _getmtime_from_header(self, header):
         """
@@ -223,7 +221,7 @@ class SystemBase(ABC, WorkerPoolBase):
         Returns:
             float: The number of seconds since the epoch
         """
-        return self._get_time(header, self._MTIME_KEYS, 'getmtime')
+        return self._get_time(header, self._MTIME_KEYS, "getmtime")
 
     @staticmethod
     def _get_time(header, keys, name):
@@ -291,23 +289,23 @@ class SystemBase(ABC, WorkerPoolBase):
             except KeyError:
                 continue
         else:
-            raise UnsupportedOperation('getsize')
+            raise UnsupportedOperation("getsize")
 
-    def isdir(self, path=None, client_kwargs=None, virtual_dir=True,
-              assume_exists=None):
+    def isdir(
+        self, path=None, client_kwargs=None, virtual_dir=True, assume_exists=None
+    ):
         """
         Return True if path is an existing directory.
 
         Args:
             path (str): Path or URL.
             client_kwargs (dict): Client arguments.
-            virtual_dir (bool): If True, checks if directory exists virtually
-                if an object path if not exists as a specific object.
-            assume_exists (bool or None): This value define the value to return
-                in the case there is no enough permission to determinate the
-                existing status of the file. If set to None, the permission
-                exception is reraised (Default behavior). if set to True or
-                False, return this value.
+            virtual_dir (bool): If True, checks if directory exists virtually if an
+                object path if not exists as a specific object.
+            assume_exists (bool or None): This value define the value to return in the
+                case there is no enough permission to determinate the existing status of
+                the file. If set to None, the permission exception is reraised
+                (Default behavior). if set to True or False, return this value.
 
         Returns:
             bool: True if directory exists.
@@ -317,21 +315,24 @@ class SystemBase(ABC, WorkerPoolBase):
             # Root always exists and is a directory
             return True
 
-        if path[-1] == '/' or self.is_locator(relative, relative=True):
-            exists = self.exists(path=path, client_kwargs=client_kwargs,
-                                 assume_exists=assume_exists)
+        if path[-1] == "/" or self.is_locator(relative, relative=True):
+            exists = self.exists(
+                path=path, client_kwargs=client_kwargs, assume_exists=assume_exists
+            )
             if exists:
                 return True
 
-            # Some directories only exists virtually in object path and don't
-            # have headers.
+            # Some directories only exists virtually in object path and don't have
+            # headers.
             elif virtual_dir:
                 try:
-                    next(self.list_objects(relative, relative=True,
-                                           max_request_entries=1))
+                    next(
+                        self.list_objects(
+                            relative, relative=True, max_request_entries=1
+                        )
+                    )
                     return True
-                except (StopIteration, ObjectNotFoundError,
-                        UnsupportedOperation):
+                except (StopIteration, ObjectNotFoundError, UnsupportedOperation):
                     return False
         return False
 
@@ -342,11 +343,10 @@ class SystemBase(ABC, WorkerPoolBase):
         Args:
             path (str): Path or URL.
             client_kwargs (dict): Client arguments.
-            assume_exists (bool or None): This value define the value to return
-                in the case there is no enough permission to determinate the
-                existing status of the file. If set to None, the permission
-                exception is reraised (Default behavior). if set to True or
-                False, return this value.
+            assume_exists (bool or None): This value define the value to return in the
+                case there is no enough permission to determinate the existing status of
+                the file. If set to None, the permission exception is reraised
+                (Default behavior). if set to True or False, return this value.
 
         Returns:
             bool: True if file exists.
@@ -356,9 +356,10 @@ class SystemBase(ABC, WorkerPoolBase):
             # Root always exists and is a directory
             return False
 
-        if path[-1] != '/' and not self.is_locator(path, relative=True):
-            return self.exists(path=path, client_kwargs=client_kwargs,
-                               assume_exists=assume_exists)
+        if path[-1] != "/" and not self.is_locator(path, relative=True):
+            return self.exists(
+                path=path, client_kwargs=client_kwargs, assume_exists=assume_exists
+            )
         return False
 
     @property
@@ -442,9 +443,9 @@ class SystemBase(ABC, WorkerPoolBase):
             # Split root and relative path
             try:
                 relative = path.split(root, 1)[1]
-                # Strip "/" only at path start. "/" is used to known if
-                # path is a directory on some cloud storage.
-                return relative.lstrip('/')
+                # Strip "/" only at path start. "/" is used to known if path is a
+                # directory on some storage.
+                return relative.lstrip("/")
             except IndexError:
                 continue
 
@@ -454,8 +455,7 @@ class SystemBase(ABC, WorkerPoolBase):
         """
         Returns True if path refer to a locator.
 
-        Depending the storage, locator may be a bucket or container name,
-        a hostname, ...
+        Depending the storage, locator may be a bucket or container name, a hostname,...
 
         args:
             path (str): path or URL.
@@ -467,7 +467,7 @@ class SystemBase(ABC, WorkerPoolBase):
         if not relative:
             path = self.relpath(path)
         # Bucket is the main directory
-        return path and '/' not in path.rstrip('/')
+        return path and "/" not in path.rstrip("/")
 
     def split_locator(self, path):
         """
@@ -481,10 +481,10 @@ class SystemBase(ABC, WorkerPoolBase):
         """
         relative = self.relpath(path)
         try:
-            locator, tail = relative.split('/', 1)
+            locator, tail = relative.split("/", 1)
         except ValueError:
             locator = relative
-            tail = ''
+            tail = ""
         return locator, tail
 
     def make_dir(self, path, relative=False):
@@ -497,8 +497,9 @@ class SystemBase(ABC, WorkerPoolBase):
         """
         if not relative:
             path = self.relpath(path)
-        self._make_dir(self.get_client_kwargs(self.ensure_dir_path(
-            path, relative=True)))
+        self._make_dir(
+            self.get_client_kwargs(self.ensure_dir_path(path, relative=True))
+        )
 
     def _make_dir(self, client_kwargs):
         """
@@ -507,7 +508,7 @@ class SystemBase(ABC, WorkerPoolBase):
         args:
             client_kwargs (dict): Client arguments.
         """
-        raise UnsupportedOperation('mkdir')
+        raise UnsupportedOperation("mkdir")
 
     def remove(self, path, relative=False):
         """
@@ -528,7 +529,7 @@ class SystemBase(ABC, WorkerPoolBase):
         args:
             client_kwargs (dict): Client arguments.
         """
-        raise UnsupportedOperation('remove')
+        raise UnsupportedOperation("remove")
 
     def ensure_dir_path(self, path, relative=False):
         """
@@ -550,16 +551,17 @@ class SystemBase(ABC, WorkerPoolBase):
 
         # Locator
         if self.is_locator(rel_path, relative=True):
-            path = path.rstrip('/')
+            path = path.rstrip("/")
 
         # Directory
         elif rel_path:
-            path = path.rstrip('/') + '/'
+            path = path.rstrip("/") + "/"
         # else: root
         return path
 
-    def list_objects(self, path='', relative=False, first_level=False,
-                     max_request_entries=None):
+    def list_objects(
+        self, path="", relative=False, first_level=False, max_request_entries=None
+    ):
         """
         List objects.
 
@@ -568,8 +570,8 @@ class SystemBase(ABC, WorkerPoolBase):
             relative (bool): Path is relative to current root.
             first_level (bool): It True, returns only first level objects.
                 Else, returns full tree.
-            max_request_entries (int): If specified, maximum entries returned
-                by request.
+            max_request_entries (int): If specified, maximum entries returned by
+                the request.
 
         Returns:
             generator of tuple: object name str, object header dict
@@ -598,7 +600,7 @@ class SystemBase(ABC, WorkerPoolBase):
             for loc_path, loc_header in locators:
 
                 # Yields locator itself
-                loc_path = loc_path.strip('/')
+                loc_path = loc_path.strip("/")
 
                 entries += 1
                 yield loc_path, loc_header
@@ -610,12 +612,11 @@ class SystemBase(ABC, WorkerPoolBase):
                     max_request_entries_arg = max_request_entries - entries
                 try:
                     for obj_path, obj_header in self._list_objects(
-                            self.get_client_kwargs(loc_path), '',
-                            max_request_entries_arg):
+                        self.get_client_kwargs(loc_path), "", max_request_entries_arg
+                    ):
 
                         entries += 1
-                        yield ('/'.join((loc_path, obj_path.lstrip('/'))),
-                               obj_header)
+                        yield "/".join((loc_path, obj_path.lstrip("/"))), obj_header
                         if entries == max_request_entries:
                             return
 
@@ -634,7 +635,8 @@ class SystemBase(ABC, WorkerPoolBase):
             max_request_entries_arg = max_request_entries - entries
 
         for obj_path, header in self._list_objects(
-                self.get_client_kwargs(locator), path, max_request_entries_arg):
+            self.get_client_kwargs(locator), path, max_request_entries_arg
+        ):
 
             if path:
                 try:
@@ -642,7 +644,7 @@ class SystemBase(ABC, WorkerPoolBase):
                 except IndexError:
                     # Not sub path of path
                     continue
-            obj_path = obj_path.lstrip('/')
+            obj_path = obj_path.lstrip("/")
 
             # Skips parent directory
             if not obj_path:
@@ -652,12 +654,11 @@ class SystemBase(ABC, WorkerPoolBase):
             if first_level:
                 # Directory
                 try:
-                    obj_path, _ = obj_path.strip('/').split('/', 1)
-                    obj_path += '/'
+                    obj_path, _ = obj_path.strip("/").split("/", 1)
+                    obj_path += "/"
 
-                    # Avoids to use the header of the object instead of the
-                    # non existing header of the directory that only exists
-                    # virtually in object path.
+                    # Avoids to use the header of the object instead of the non existing
+                    # header of the directory that only exists virtually in object path.
                     header = dict()
 
                 # File
@@ -685,7 +686,7 @@ class SystemBase(ABC, WorkerPoolBase):
         Returns:
             generator of tuple: locator name str, locator header dict
         """
-        raise UnsupportedOperation('listdir')
+        raise UnsupportedOperation("listdir")
 
     def _list_objects(self, client_kwargs, path, max_request_entries):
         """
@@ -694,20 +695,21 @@ class SystemBase(ABC, WorkerPoolBase):
         args:
             client_kwargs (dict): Client arguments.
             path (str): Path relative to current locator.
-            max_request_entries (int): If specified, maximum entries returned
-                by request.
+            max_request_entries (int): If specified, maximum entries returned by the
+                request.
 
         Returns:
             generator of tuple: object name str, object header dict
         """
-        raise UnsupportedOperation('listdir')
+        raise UnsupportedOperation("listdir")
 
-    def islink(self, path=None, header=None):
+    def islink(self, path=None, client_kwargs=None, header=None):
         """
         Returns True if object is a symbolic link.
 
         Args:
             path (str): File path or URL.
+            client_kwargs (dict): Client arguments.
             header (dict): Object header.
 
         Returns:
@@ -715,6 +717,51 @@ class SystemBase(ABC, WorkerPoolBase):
         """
         # Not supported by default
         return False
+
+    def _getuid(self, path=None, client_kwargs=None, header=None):
+        """
+        Get object user ID.
+
+        Args:
+            path (str): File path or URL.
+            client_kwargs (dict): Client arguments.
+            header (dict): Object header.
+
+        Returns:
+            int: User ID.
+        """
+        # Default to current process UID
+        return getuid()
+
+    def _getgid(self, path=None, client_kwargs=None, header=None):
+        """
+        Get object group ID.
+
+        Args:
+            path (str): File path or URL.
+            client_kwargs (dict): Client arguments.
+            header (dict): Object header.
+
+        Returns:
+            int: Group ID.
+        """
+        # Default to current process UID
+        return getgid()
+
+    def _getmode(self, path=None, client_kwargs=None, header=None):
+        """
+        Get object permission mode in Unix format.
+
+        Args:
+            path (str): File path or URL.
+            client_kwargs (dict): Client arguments.
+            header (dict): Object header.
+
+        Returns:
+            int: Group ID.
+        """
+        # Default to an arbitrary common value
+        return 0o644
 
     def stat(self, path=None, client_kwargs=None, header=None):
         """
@@ -726,15 +773,27 @@ class SystemBase(ABC, WorkerPoolBase):
             header (dict): Object header.
 
         Returns:
-            namedtuple: Stat result object. Follow the "os.stat_result"
-                specification and may contain storage dependent extra entries.
+            namedtuple: Stat result object. Follow the "os.stat_result" specification
+                and may contain storage dependent extra entries.
         """
         # Should contain at least the strict minimum of os.stat_result
-        stat = OrderedDict((
-            ("st_mode", 0), ("st_ino", 0), ("st_dev", 0), ("st_nlink", 0),
-            ("st_uid", 0), ("st_gid", 0), ("st_size", 0), ("st_atime", 0),
-            ("st_mtime", 0), ("st_ctime", 0), ("st_atime_ns", 0),
-            ("st_mtime_ns", 0), ("st_ctime_ns", 0)))
+        stat = OrderedDict(
+            (
+                ("st_mode", self._getmode(path, client_kwargs, header)),
+                ("st_ino", 0),
+                ("st_dev", 0),
+                ("st_nlink", 0),
+                ("st_uid", self._getuid()),
+                ("st_gid", self._getgid()),
+                ("st_size", 0),
+                ("st_atime", 0),
+                ("st_mtime", 0),
+                ("st_ctime", 0),
+                ("st_atime_ns", 0),
+                ("st_mtime_ns", 0),
+                ("st_ctime_ns", 0),
+            )
+        )
 
         # Populate standard os.stat_result values with object header content
         header = self.head(path, client_kwargs, header)
@@ -744,8 +803,9 @@ class SystemBase(ABC, WorkerPoolBase):
             pass
 
         for st_time, st_time_ns, method in (
-                ('st_mtime', 'st_mtime_ns', self._getmtime_from_header),
-                ('st_ctime', 'st_ctime_ns', self._getctime_from_header)):
+            ("st_mtime", "st_mtime_ns", self._getmtime_from_header),
+            ("st_ctime", "st_ctime_ns", self._getctime_from_header),
+        ):
             try:
                 time_value = method(header)
             except UnsupportedOperation:
@@ -756,22 +816,38 @@ class SystemBase(ABC, WorkerPoolBase):
         # File mode
         if self.islink(path=path, header=header):
             # Symlink
-            stat['st_mode'] = S_IFLNK
-        elif ((not path or path[-1] == '/' or self.is_locator(path)) and not
-                stat['st_size']):
+            stat["st_mode"] = S_IFLNK
+        elif (not path or path[-1] == "/" or self.is_locator(path)) and not stat[
+            "st_size"
+        ]:
             # Directory
-            stat['st_mode'] = S_IFDIR
+            stat["st_mode"] = S_IFDIR
         else:
             # File
-            stat['st_mode'] = S_IFREG
+            stat["st_mode"] = S_IFREG
 
         # Add storage specific keys
         sub = self._CHAR_FILTER.sub
         for key, value in tuple(header.items()):
-            stat['st_' + sub('', key.lower())] = value
+            stat[sub("", key.lower().replace("-", "_"))] = value
 
         # Convert to "os.stat_result" like object
-        stat_result = namedtuple('stat_result', tuple(stat))
-        stat_result.__name__ = 'os.stat_result'
-        stat_result.__module__ = 'airfs'
+        stat_result = namedtuple("stat_result", tuple(stat))
+        stat_result.__name__ = "os.stat_result"
+        stat_result.__module__ = "airfs"
         return stat_result(**stat)
+
+    def read_link(self, path=None, client_kwargs=None, header=None, recursive=True):
+        """
+        Return the path linked by the symbolic link.
+
+        Args:
+            path (str): File path or URL.
+            client_kwargs (dict): Client arguments.
+            header (dict): Object header.
+            recursive (bool): Follow links chains until end.
+
+        Returns:
+            str: Path.
+        """
+        raise UnsupportedOperation("symlink")
