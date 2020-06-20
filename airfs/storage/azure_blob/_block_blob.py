@@ -1,5 +1,5 @@
 """Microsoft Azure Blobs Storage: Block blobs"""
-from airfs._core.compat import choice
+from random import choice
 from string import ascii_lowercase as _ascii_lowercase
 
 from azure.storage.blob import BlobBlock
@@ -105,7 +105,7 @@ class AzureBlockBlobBufferedIO(AzureBlobBufferedIO):
         Returns:
             str: Random block ID.
         """
-        return "".join(choice(_ascii_lowercase) for _ in range(length))
+        return "".join(choice(_ascii_lowercase) for _ in range(length))  # nosec
 
     def _flush(self):
         """

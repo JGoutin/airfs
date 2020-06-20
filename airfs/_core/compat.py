@@ -31,13 +31,12 @@ if _py[0] == 3 and _py[1] < 6:
         """Return filename unchanged"""
         return filename
 
-    # Missing "secret" module, use "random" instead since not using if for cryptographic
-    # needs
-    from random import choice  # noqa
+    # Missing hashlib.black2b, replace it by SHA1 since only used for cache files names
+    from hashlib import sha1 as blake2b  # noqa
 
 else:
     fspath = _os.fspath
-    from secrets import choice  # noqa
+    from hashlib import blake2b  # noqa
 
 # Python < 3.7 compatibility
 if _py[0] < 3 or (_py[0] == 3 and _py[1] < 7):
