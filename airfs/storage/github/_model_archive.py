@@ -1,7 +1,7 @@
 """GitHub Tarball/Zipball archives objects"""
 from airfs.storage.github._model_base import GithubObject
 from airfs.storage.github._model_git import Branch, Tag
-from airfs.storage.github._model_wildcard import Reference
+from airfs.storage.github._model_reference import Reference
 
 
 class Archive(GithubObject):

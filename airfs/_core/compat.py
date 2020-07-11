@@ -98,3 +98,21 @@ if _py[0] < 3 or (_py[0] == 3 and _py[1] < 8):
 else:
     COPY_BUFSIZE = _shutil.COPY_BUFSIZE
     copytree = _shutil.copytree
+
+
+# Windows compatibility
+
+try:
+    from os import getgid, getuid
+except ImportError:
+
+    def getuid():
+        """
+        Get user or group ID.
+
+        Returns:
+            int: ID
+        """
+        return 0
+
+    getgid = getuid

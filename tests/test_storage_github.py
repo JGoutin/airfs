@@ -5,10 +5,10 @@ def test_get_client_kwargs():
     """Test get_model"""
     from airfs.storage.github import _GithubSystem
     from airfs.storage.github._model import Repo, Owner
-    from airfs.storage.github._model_wildcard import DefaultBranch
+    from airfs.storage.github._model_reference import DefaultBranch
     from airfs.storage.github._model_archive import Archive
     from airfs.storage.github._model_git import Tag, Tree, Commit, Branch
-    from airfs.storage.github._model_wildcard import Reference
+    from airfs.storage.github._model_reference import Reference
     from airfs.storage.github._model_release import (
         Release,
         ReleaseArchive,

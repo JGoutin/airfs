@@ -4,7 +4,7 @@ from io import UnsupportedOperation
 from airfs.storage.github._model_archive import Archive
 from airfs.storage.github._model_base import GithubObject
 from airfs.storage.github._model_git import Branch, Commit, Tag
-from airfs.storage.github._model_wildcard import DefaultBranch, Reference
+from airfs.storage.github._model_reference import DefaultBranch, Reference
 from airfs.storage.github._model_release import LatestRelease, Release, ReleaseDownload
 
 

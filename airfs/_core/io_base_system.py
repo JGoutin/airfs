@@ -2,14 +2,13 @@
 from abc import abstractmethod, ABC
 from collections import OrderedDict, namedtuple
 from io import UnsupportedOperation
-from os import getgid, getuid
 from re import compile
 from stat import S_IFDIR, S_IFREG, S_IFLNK
 
 from dateutil.parser import parse
 
 from airfs._core.io_base import WorkerPoolBase
-from airfs._core.compat import Pattern
+from airfs._core.compat import Pattern, getgid, getuid
 from airfs._core.exceptions import ObjectNotFoundError, ObjectPermissionError
 
 
@@ -607,7 +606,7 @@ class SystemBase(ABC, WorkerPoolBase):
                 if entries == max_request_entries:
                     return
 
-                # Yields locator content is read access to it
+                # Yields locator content if read access to it
                 if max_request_entries is not None:
                     max_request_entries_arg = max_request_entries - entries
                 try:
