@@ -27,6 +27,8 @@ def cos_open(
 
     File can also be binary opened file-like object.
 
+    .. versionadded:: 1.0.0
+
     Args:
         file (path-like object or file-like object): File path, object URL or
             opened file-like object.

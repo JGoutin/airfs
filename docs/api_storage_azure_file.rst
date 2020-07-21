@@ -3,6 +3,8 @@ airfs.storage.azure_file
 
 Microsoft Azure Storage File
 
+.. versionadded:: 1.3.0
+
 Mount
 -----
 

@@ -93,6 +93,8 @@ def copy(src, dst):
 
     Source and destination can also be binary opened file-like objects.
 
+    .. versionadded:: 1.0.0
+
     Args:
         src (path-like object or file-like object): Source file.
         dst (path-like object or file-like object): Destination file or directory.
@@ -136,6 +138,8 @@ def copyfile(src, dst, follow_symlinks=True):
     Equivalent to "shutil.copyfile".
 
     Source and destination can also be binary opened file-like objects.
+
+    .. versionadded:: 1.2.0
 
     Args:
         src (path-like object or file-like object): Source file.

@@ -3,6 +3,8 @@ airfs.storage.s3
 
 Amazon Web Service S3
 
+.. versionadded:: 1.0.0
+
 Mount
 -----
 

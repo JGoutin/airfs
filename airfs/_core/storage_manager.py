@@ -171,6 +171,8 @@ def mount(
     """
     Mount a new storage.
 
+    .. versionadded:: 1.0.0
+
     Args:
         storage (str): Storage name.
         name (str): File URL. If storage is not specified, it will be infered from this

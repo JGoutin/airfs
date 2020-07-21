@@ -3,6 +3,8 @@ airfs.storage.http
 
 HTTP/HTTPS object read-only access.
 
+.. versionadded:: 1.0.0
+
 Mount
 -----
 

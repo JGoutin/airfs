@@ -14,6 +14,8 @@ def exists(path):
 
     Equivalent to "os.path.exists".
 
+    .. versionadded:: 1.1.0
+
     Args:
         path (path-like object): Path or URL.
 
@@ -29,6 +31,8 @@ def getsize(path):
     Return the size, in bytes, of path.
 
     Equivalent to "os.path.getsize".
+
+    .. versionadded:: 1.0.0
 
     Args:
         path (path-like object): File path or URL.
@@ -50,6 +54,8 @@ def getctime(path):
 
     Equivalent to "os.path.getctime".
 
+    .. versionadded:: 1.2.0
+
     Args:
         path (path-like object): File path or URL.
 
@@ -69,6 +75,8 @@ def getmtime(path):
     Return the time of last access of path.
 
     Equivalent to "os.path.getmtime".
+
+    .. versionadded:: 1.0.0
 
     Args:
         path (path-like object): File path or URL.
@@ -90,6 +98,8 @@ def isabs(path):
 
     Equivalent to "os.path.isabs".
 
+    .. versionadded:: 1.1.0
+
     Args:
         path (path-like object): Path or URL.
 
@@ -106,6 +116,8 @@ def isdir(path):
     Return True if path is an existing directory.
 
     Equivalent to "os.path.isdir".
+
+    .. versionadded:: 1.1.0
 
     Args:
         path (path-like object): Path or URL.
@@ -127,6 +139,8 @@ def isfile(path):
 
     Equivalent to "os.path.isfile".
 
+    .. versionadded:: 1.0.0
+
     Args:
         path (path-like object): Path or URL.
 
@@ -143,6 +157,8 @@ def islink(path):
 
     Equivalent to "os.path.islink".
 
+    .. versionadded:: 1.2.0
+
     Args:
         path (path-like object): Path or URL.
 
@@ -158,6 +174,8 @@ def ismount(path):
     Return True if pathname path is a mount point.
 
     Equivalent to "os.path.ismount".
+
+    .. versionadded:: 1.1.0
 
     Args:
         path (path-like object): Path or URL.
@@ -181,6 +199,8 @@ def relpath(path, start=None):
 
     Equivalent to "os.path.relpath".
 
+    .. versionadded:: 1.0.0
+
     Args:
         path (path-like object): Path or URL.
         start (path-like object): Relative from this optional directory.
@@ -201,6 +221,8 @@ def samefile(path1, path2):
     Return True if both pathname arguments refer to the same file or directory.
 
     Equivalent to "os.path.samefile".
+
+    .. versionadded:: 1.1.0
 
     Args:
         path1 (path-like object): Path or URL.
@@ -245,6 +267,8 @@ def splitdrive(path):
     In all cases, drive + tail will be the same as path.
 
     Equivalent to "os.path.splitdrive".
+
+    .. versionadded:: 1.1.0
 
     Args:
         path (path-like object): Path or URL.

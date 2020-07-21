@@ -3,6 +3,8 @@ airfs.storage.azure_blob
 
 Microsoft Azure Storage Blob
 
+.. versionadded:: 1.3.0
+
 Mount
 -----
 

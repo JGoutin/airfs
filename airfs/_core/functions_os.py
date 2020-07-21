@@ -23,6 +23,8 @@ def listdir(path="."):
 
     Equivalent to "os.listdir".
 
+    .. versionadded:: 1.2.0
+
     Args:
         path (path-like object): Path or URL.
 
@@ -43,6 +45,8 @@ def makedirs(name, mode=0o777, exist_ok=False):
     will be created if it does not exist.
 
     Equivalent to "os.makedirs".
+
+    .. versionadded:: 1.1.0
 
     Args:
         name (path-like object): Path or URL.
@@ -71,6 +75,8 @@ def mkdir(path, mode=0o777, dir_fd=None):
     Create a directory named path with numeric mode mode.
 
     Equivalent to "os.mkdir".
+
+    .. versionadded:: 1.1.0
 
     Args:
         path (path-like object): Path or URL.
@@ -118,6 +124,8 @@ def readlink(path, dir_fd=None):
 
     Equivalent to "os.readlink".
 
+    .. versionadded:: 1.5.0
+
     Args:
         path (path-like object): Path or URL.
         dir_fd: directory descriptors;
@@ -133,6 +141,8 @@ def remove(path, dir_fd=None):
     Remove a file.
 
     Equivalent to "os.remove" and "os.unlink".
+
+    .. versionadded:: 1.2.0
 
     Args:
         path (path-like object): Path or URL.
@@ -161,6 +171,8 @@ def rmdir(path, dir_fd=None):
 
     Equivalent to "os.rmdir".
 
+    .. versionadded:: 1.2.0
+
     Args:
         path (path-like object): Path or URL.
         dir_fd: directory descriptors;
@@ -180,6 +192,8 @@ def lstat(path, dir_fd=None):
     Equivalent to "os.lstat".
 
     On storage object, may return extra storage specific attributes in "os.stat_result".
+
+    .. versionadded:: 1.2.0
 
     Args:
         path (path-like object): Path or URL.
@@ -203,6 +217,8 @@ def stat(path, dir_fd=None, follow_symlinks=True):
 
     On storage object, may return extra storage specific attributes in "os.stat_result".
 
+    .. versionadded:: 1.2.0
+
     Args:
         path (path-like object): Path or URL.
         dir_fd: directory descriptors;
@@ -225,6 +241,8 @@ class DirEntry:
     Equivalent to "os.DirEntry".
 
     Not intended to be instantiated directly.
+
+    .. versionadded:: 1.2.0
     """
 
     __slots__ = ("_cache", "_system", "_name", "_header", "_path", "_bytes_path")
@@ -398,6 +416,8 @@ def scandir(path="."):
     entries '.' and '..' are not included.
 
     Equivalent to "os.scandir".
+
+    .. versionadded:: 1.2.0
 
     Args:
         path (path-like object): Path or URL.

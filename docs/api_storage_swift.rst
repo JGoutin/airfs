@@ -3,6 +3,8 @@ airfs.storage.swift
 
 OpenStack Swift / Object Store
 
+.. versionadded:: 1.0.0
+
 Mount
 -----
 

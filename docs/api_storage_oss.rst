@@ -3,6 +3,8 @@ airfs.storage.oss
 
 Alibaba Cloud OSS
 
+.. versionadded:: 1.0.0
+
 Mount
 -----
 

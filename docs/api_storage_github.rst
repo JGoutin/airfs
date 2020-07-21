@@ -3,6 +3,8 @@ airfs.storage.github
 
 GitHub as a read-only file-system.
 
+.. versionadded:: 1.5.0
+
 Mount
 -----
 

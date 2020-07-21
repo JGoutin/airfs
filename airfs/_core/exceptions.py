@@ -11,15 +11,24 @@ from sys import exc_info
 
 
 class AirfsException(Exception):
-    """airfs base exception"""
+    """airfs base exception
+
+    .. versionadded:: 1.0.0
+    """
 
 
 class AirfsWarning(UserWarning):
-    """airfs base warning"""
+    """airfs base warning
+
+    .. versionadded:: 1.5.0
+    """
 
 
 class MountException(Exception):
-    """airfs mount exception"""
+    """airfs mount exception
+
+    .. versionadded:: 1.5.0
+    """
 
 
 # Internal exceptions, should not be seen by users
