@@ -49,6 +49,7 @@ from airfs._core.functions_os_path import (  # noqa: F401
     splitdrive,
 )
 from airfs._core.functions_shutil import copy, copyfile  # noqa: F401
+from airfs._core.functions_extra import shareable_url  # noqa: F401
 from airfs._core.storage_manager import mount  # noqa: F401
 from airfs._core.exceptions import (  # noqa: F401
     AirfsException,
@@ -89,6 +90,7 @@ __all__ = list(
             "copy",
             "copyfile",
             # airfs
+            "shareable_url",
             "mount",
             "AirfsException",
             "AirfsWarning",

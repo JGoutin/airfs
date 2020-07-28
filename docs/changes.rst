@@ -1,7 +1,7 @@
 Changelog
 =========
 
-1.5.0 (2020/07)
+1.5.0 (2020/08)
 ---------------
 
 New storage support:
@@ -11,6 +11,10 @@ New storage support:
 New standard library equivalent functions:
 
 * ``os.readlink``.
+
+New features:
+
+* ``airfs.shareable_url`` function to get a shareable URL of an existing object.
 
 Improvements:
 
@@ -32,9 +36,10 @@ Improvements:
   specific scheme. Only public storage that does not require user specified parameters
   can be lazily auto-mounted. airfs still try to use the `http` storage to mount
   unsupported storage like public internet links.
-* airfs now provides the public base exception `AirfsException` and the public base
-  warning `AirfsWarning`. Users can catch them to handle airfs exceptions.
-* airfs now raises `MountException` on mounting errors instead of `ValueError`.
+* airfs now provides the public base exception `airfs.AirfsException` and the public
+  base warning `airfs.AirfsWarning`. Users can catch them to handle airfs exceptions.
+* airfs now raises `airfs.MountException` on mounting errors instead of `ValueError`.
+* airfs now raises `airfs.ConfigurationException` on configuration errors.
 
 Fixes:
 

@@ -24,8 +24,15 @@ class AirfsWarning(UserWarning):
     """
 
 
-class MountException(Exception):
+class MountException(AirfsException):
     """airfs mount exception
+
+    .. versionadded:: 1.5.0
+    """
+
+
+class ConfigurationException(AirfsException):
+    """airfs configuration exception
 
     .. versionadded:: 1.5.0
     """

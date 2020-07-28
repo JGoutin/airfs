@@ -1,10 +1,16 @@
 """Microsoft Azure Blobs Storage: System"""
-import re as _re
+import re
 
-from azure.storage.blob import PageBlobService, BlockBlobService, AppendBlobService
+from azure.storage.blob import (
+    PageBlobService,
+    BlockBlobService,
+    AppendBlobService,
+    BlobPermissions,
+    ContainerPermissions,
+)
 from azure.storage.blob.models import _BlobTypes
 
-from airfs.storage.azure import _handle_azure_exception, _AzureBaseSystem
+from airfs.storage.azure import _handle_azure_exception, _AzureBaseSystem, _make_sas_url
 from airfs._core.exceptions import ObjectNotFoundError
 from airfs._core.io_base import memoizedmethod
 
@@ -208,3 +214,29 @@ class _AzureBlobSystem(_AzureBaseSystem):
 
             # Container
             return self._client_block.delete_container(**client_kwargs)
+
+    def _shareable_url(self, client_kwargs, expires_in):
+        """
+        Get a shareable URL for the specified path.
+
+        Args:
+            client_kwargs (dict): Client arguments.
+            expires_in (int): Expiration in seconds.
+
+        Returns:
+            str: Shareable URL.
+        """
+        if "blob_name" in client_kwargs:
+            # Blob
+            make_url = self.client.make_blob_url
+            generate_sas = self.client.generate_blob_shared_access_signature
+            permissions = BlobPermissions
+        else:
+            # Container
+            make_url = self.client.make_container_url
+            generate_sas = self.client.generate_container_shared_access_signature
+            permissions = ContainerPermissions
+
+        return _make_sas_url(
+            client_kwargs, expires_in, generate_sas, make_url, permissions
+        )

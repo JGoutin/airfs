@@ -1,14 +1,17 @@
 """OpenStack Swift"""
 from contextlib import contextmanager as _contextmanager
+from io import UnsupportedOperation as _UnsupportedOperation
 from json import dumps as _dumps
 
 import swiftclient as _swift
+from swiftclient.utils import generate_temp_url as _generate_temp_url
 from swiftclient.exceptions import ClientException as _ClientException
 
 from airfs._core.io_base import memoizedmethod as _memoizedmethod
 from airfs._core.exceptions import (
     ObjectNotFoundError as _ObjectNotFoundError,
     ObjectPermissionError as _ObjectPermissionError,
+    ConfigurationException as _ConfigurationException,
 )
 from airfs.io import (
     ObjectRawIOBase as _ObjectRawIOBase,
@@ -48,6 +51,7 @@ class _SwiftSystem(_SystemBase):
             But makes connection unsecure.
     """
 
+    __slots__ = ("_temp_url_key",)
     _SIZE_KEYS = ("content-length", "content_length", "bytes")
     _MTIME_KEYS = ("last-modified", "last_modified")
 
@@ -90,6 +94,12 @@ class _SwiftSystem(_SystemBase):
             swiftclient.client.Connection: client
         """
         kwargs = self._storage_parameters
+
+        # Handle temporary URL secret key
+        try:
+            self._temp_url_key = kwargs.pop("temp_url_key")
+        except KeyError:
+            self._temp_url_key = None
 
         # Handles unsecure mode
         if self._unsecure:
@@ -198,6 +208,43 @@ class _SwiftSystem(_SystemBase):
 
         for obj in response[1]:
             yield obj.pop("name"), obj
+
+    def _shareable_url(self, client_kwargs, expires_in):
+        """
+        Get a shareable URL for the specified path.
+
+        Args:
+            client_kwargs (dict): Client arguments.
+            expires_in (int): Expiration in seconds.
+
+        Returns:
+            str: Shareable URL.
+        """
+        if "obj" not in client_kwargs:
+            raise _UnsupportedOperation(
+                "Shared URLs to containers are not supported on Openstack Swift"
+            )
+
+        # Ensure secret key is present
+        if not self._temp_url_key:
+            raise _ConfigurationException(
+                'The "temp_url_key" storage parameter is not defined.'
+            )
+
+        # Ensure object exists
+        self._head(client_kwargs)
+
+        # Build temporary path
+        scheme, full_path = self._get_roots()[0].split("://", 1)
+        netloc, account_path = full_path.split("/", 1)
+        temp_path = _generate_temp_url(
+            path="/%s/%s/%s"
+            % (account_path, client_kwargs["container"], client_kwargs["obj"]),
+            seconds=expires_in,
+            key=self._temp_url_key,
+            method="GET",
+        )
+        return "%s://%s%s" % (scheme, netloc, temp_path)
 
 
 class SwiftRawIO(_ObjectRawIOBase):

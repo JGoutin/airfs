@@ -850,3 +850,26 @@ class SystemBase(ABC, WorkerPoolBase):
             str: Path.
         """
         raise UnsupportedOperation("symlink")
+
+    def shareable_url(self, path, expires_in):
+        """
+        Get a shareable URL for the specified path.
+
+        Args:
+            path (str): Path or URL.
+            expires_in (int): Expiration in seconds.
+        """
+        self._shareable_url(self.get_client_kwargs(self.relpath(path)), expires_in)
+
+    def _shareable_url(self, client_kwargs, expires_in):
+        """
+        Get a shareable URL for the specified path.
+
+        Args:
+            client_kwargs (dict): Client arguments.
+            expires_in (int): Expiration in seconds.
+
+        Returns:
+            str: Shareable URL.
+        """
+        raise UnsupportedOperation("shareable_url")

@@ -41,6 +41,35 @@ This example shows the mount of OpenStack Swift with a minimal configuration:
             ) as file:
         text = file.read()
 
+Allow shareable URL support
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To use the airfs shareable URL feature (`airfs.shareable_url`), a specific
+`Temp-URL-Key` secret key must be configured on the storage (See the
+`Temporary URL OpenStack documentation <https://docs.openstack.org/swift/latest/api/temporary_url_middleware.html#secret-keys>`_
+for more information).
+
+This key also required to be passed to airfs as the `temp_url_key` storage parameters:
+
+.. code-block:: python
+
+    import airfs
+
+    airfs.mount(
+        storage='swift',
+        storage_parameters=dict(
+            authurl='my_auth_url',
+            user='my_user',
+            key='my_key',
+            auth_version='3',
+            os_options=dict(
+                region_name='my_region',
+                project_id='my_project'
+            ),
+            # Pass temporary URL secret key
+            temp_url_key="my_temp_url_key"
+        )
+    )
 
 Limitation
 ~~~~~~~~~~

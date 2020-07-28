@@ -2,6 +2,7 @@
 from abc import abstractmethod as _abstractmethod
 from contextlib import contextmanager as _contextmanager
 from concurrent.futures import as_completed as _as_completed
+from datetime import datetime as _datetime, timedelta as _timedelta
 from io import UnsupportedOperation as _UnsupportedOperation, BytesIO as _BytesIO
 from threading import Lock as _Lock
 
@@ -62,6 +63,30 @@ def _properties_model_to_dict(properties):
             result[attr] = value
 
     return result
+
+
+def _make_sas_url(client_kwargs, expires_in, generate_sas, make_url, permissions):
+    """
+    Make a shareable URL using a SAS token.
+
+    Args:
+        client_kwargs (dict): Client arguments.
+        expires_in (int): Expiration in seconds.
+        generate_sas (function): SAS token generation function.
+        make_url (function): URL generation function
+        permissions:
+
+    Returns:
+        str: URL.
+    """
+    return make_url(
+        sas_token=generate_sas(
+            permission=permissions.READ,
+            expiry=_datetime.utcnow() + _timedelta(seconds=expires_in),
+            **client_kwargs,
+        ),
+        **client_kwargs,
+    )
 
 
 class _AzureBaseSystem(_SystemBase):
@@ -251,7 +276,7 @@ class _AzureStorageRawIOBase(_ObjectRawIOBase):
                     stream=stream,
                     start_range=start,
                     end_range=(end - 1) if end else None,
-                    **self._client_kwargs
+                    **self._client_kwargs,
                 )
 
         # Check for end of file
@@ -394,7 +419,7 @@ class _AzureStorageRawIORangeWriteBase(
                         data=buffer_part.tobytes(),
                         start_range=start_range,
                         end_range=start_range + len(buffer_part) - 1,
-                        **self._client_kwargs
+                        **self._client_kwargs,
                     )
                 )
 
@@ -410,5 +435,5 @@ class _AzureStorageRawIORangeWriteBase(
                     data=buffer.tobytes(),
                     start_range=start,
                     end_range=end - 1,
-                    **self._client_kwargs
+                    **self._client_kwargs,
                 )

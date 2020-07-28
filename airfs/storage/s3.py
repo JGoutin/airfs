@@ -304,6 +304,25 @@ class _S3System(_SystemBase):
                 # End of results
                 break
 
+    def _shareable_url(self, client_kwargs, expires_in):
+        """
+        Get a shareable URL for the specified path.
+
+        Args:
+            client_kwargs (dict): Client arguments.
+            expires_in (int): Expiration in seconds.
+
+        Returns:
+            str: Shareable URL.
+        """
+        if "Key" not in client_kwargs:
+            raise _UnsupportedOperation(
+                "Shared URLs to buckets are not supported on S3"
+            )
+        return self.client.generate_presigned_url(
+            "get_object", Params=client_kwargs, ExpiresIn=expires_in
+        )
+
 
 class S3RawIO(_ObjectRawIOBase):
     """Binary S3 Object I/O

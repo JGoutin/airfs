@@ -1,7 +1,11 @@
 """Microsoft Azure Files Storage"""
+from io import UnsupportedOperation as _UnsupportedOperation
 import re as _re
 
-from azure.storage.file import FileService as _FileService
+from azure.storage.file import (
+    FileService as _FileService,
+    FilePermissions as _FilePermissions,
+)
 from azure.storage.file.models import Directory as _Directory
 
 from airfs._core.io_base import memoizedmethod as _memoizedmethod
@@ -9,6 +13,7 @@ from airfs.storage.azure import (
     _handle_azure_exception,
     _AzureBaseSystem,
     _AzureStorageRawIORangeWriteBase,
+    _make_sas_url,
 )
 from airfs.io import (
     ObjectBufferedIORandomWriteBase as _ObjectBufferedIORandomWriteBase,
@@ -41,7 +46,7 @@ class _AzureFileSystem(_AzureBaseSystem, _FileSystemBase):
         with _handle_azure_exception():
             self.client.copy_file(
                 copy_source=(other_system or self)._format_src_url(src, self),
-                **self.get_client_kwargs(dst)
+                **self.get_client_kwargs(dst),
             )
 
     copy_from_azure_blobs = copy  # Allows copy from Azure Blobs Storage
@@ -212,6 +217,30 @@ class _AzureFileSystem(_AzureBaseSystem, _FileSystemBase):
 
             # Share
             return self.client.delete_share(share_name=client_kwargs["share_name"])
+
+    def _shareable_url(self, client_kwargs, expires_in):
+        """
+        Get a shareable URL for the specified path.
+
+        Args:
+            client_kwargs (dict): Client arguments.
+            expires_in (int): Expiration in seconds.
+
+        Returns:
+            str: Shareable URL.
+        """
+        if "file_name" not in client_kwargs:
+            raise _UnsupportedOperation(
+                "Shared URLs to shares or directories are not supported on "
+                "Azure Files Storage"
+            )
+        return _make_sas_url(
+            client_kwargs,
+            expires_in,
+            self.client.generate_file_shared_access_signature,
+            self.client.make_file_url,
+            _FilePermissions,
+        )
 
 
 class AzureFileRawIO(_AzureStorageRawIORangeWriteBase):
