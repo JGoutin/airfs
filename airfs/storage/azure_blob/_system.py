@@ -123,7 +123,7 @@ class _AzureBlobSystem(_AzureBaseSystem):
         # - https://<account>.blob.core.windows.net/<container>/<blob>
 
         # Note: "core.windows.net" may be replaced by another "endpoint_suffix"
-        return (_re.compile(r"https?://%s\.blob\.%s" % self._get_endpoint("blob")),)
+        return (re.compile(r"^https?://%s\.blob\.%s" % self._get_endpoint("blob")),)
 
     def _head(self, client_kwargs):
         """

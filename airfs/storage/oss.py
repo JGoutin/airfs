@@ -133,7 +133,7 @@ class _OSSSystem(_SystemBase):
             # - https://<bucket>.oss-<region>.aliyuncs.com/<key>
             # Note: "oss-<region>.aliyuncs.com" may be replaced by another endpoint
             _re.compile(
-                (r"https?://[\w-]+.%s" % self._endpoint.split("//", 1)[1]).replace(
+                (r"^https?://[\w-]+.%s" % self._endpoint.split("//", 1)[1]).replace(
                     ".", r"\."
                 )
             ),

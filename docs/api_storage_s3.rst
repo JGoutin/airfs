@@ -1,7 +1,7 @@
 airfs.storage.s3
 ================
 
-Amazon Web Service S3
+Amazon Web Service S3 (and compatible) storage.
 
 .. versionadded:: 1.0.0
 
@@ -57,10 +57,40 @@ an S3 object and no configuration or extra steps are required:
     with airfs.open('s3://my_bucket/my_bucket', 'rt') as file:
         text = file.read()
 
+S3 compatible storage mount
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+It is possible to use any S3 compatible storage with airfs. This kind of storage needs
+to be mounted with the `endpoint_url` storage parameter specified. This endpoint must
+also be use as path root (instead of the classical `s3://`).
+
+.. code-block:: python
+
+    import airfs
+
+    # Mount S3 compatible storage
+    airfs.mount(
+        storage='s3',
+        storage_parameters=dict(
+            # "boto3.client" arguments
+            client=dict(
+                aws_access_key_id='my_access_key',
+                aws_secret_access_key='my_secret_key',
+                region_name='my_region_name',
+                endpoint_url="https://s3.my_storage.com/"
+            )
+        )
+    )
+
+    # Call of airfs on a S3 compatible object.
+    with airfs.open('https://s3.my_storage.com/my_bucket/my_object', 'rt') as file:
+        text = file.read()
+
 Limitation
 ~~~~~~~~~~
 
-Only one S3 configuration can be mounted simultaneously.
+Only one S3 configuration can be mounted simultaneously for AWS, and one for each
+other specified `endpoint_url`.
 
 Files objects classes
 ---------------------

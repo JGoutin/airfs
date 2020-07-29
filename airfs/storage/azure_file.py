@@ -113,7 +113,7 @@ class _AzureFileSystem(_AzureBaseSystem, _FileSystemBase):
         # Note: "core.windows.net" may be replaced by another endpoint
         return (
             _re.compile(
-                r"(https?://|smb://|//|\\)%s\.file\.%s" % self._get_endpoint("file")
+                r"^(https?://|smb://|//|\\)%s\.file\.%s" % self._get_endpoint("file")
             ),
         )
 

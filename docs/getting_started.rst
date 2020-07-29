@@ -21,8 +21,8 @@ You can also install these optional extras:
 * ``azure_blob``: Microsoft Azure Blob Storage support.
 * ``azure_file``: Microsoft Azure File Storage support.
 * ``oss``: Alibaba Cloud OSS support.
-* ``s3``: Amazon Web Services S3 support.
-* ``swift``: OpenStack Swift support.
+* ``s3``: Amazon Web Services S3 (and compatible) support.
+* ``swift``: OpenStack Swift / Object Store support.
 
 Example of installing airfs with all dependencies:
 

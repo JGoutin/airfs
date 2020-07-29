@@ -40,11 +40,14 @@ Improvements:
   base warning `airfs.AirfsWarning`. Users can catch them to handle airfs exceptions.
 * airfs now raises `airfs.MountException` on mounting errors instead of `ValueError`.
 * airfs now raises `airfs.ConfigurationException` on configuration errors.
+* The S3 storage now support any supported S3 compatible storage and not only AWS.
 
 Fixes:
 
 * airfs now let correctly `ImportError` from dependencies be raised instead of hidding
   it by raising an exception saying that the storage is not available.
+* airfs now open S3 presigned URLs as standard HTTP URLs instead of trying to use S3
+  API.
 
 Deprecations:
 

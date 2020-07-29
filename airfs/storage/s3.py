@@ -135,6 +135,22 @@ class _S3System(_SystemBase):
         Returns:
             tuple of str or re.Pattern: URL roots
         """
+        # "(?!.*&X-Amz-Signature=)" allow ignoring presigned URLs to open them as
+        # regular HTTP files
+
+        # Use the specified endpoint URL as root if specified to allow the use of
+        # any S3 compatible storage.
+        try:
+            return (
+                _re.compile(
+                    r"^%s(?!.*&X-Amz-Signature=)"
+                    % self._storage_parameters["client"]["endpoint_url"]
+                ),
+            )
+        except KeyError:
+            pass
+
+        # Use default AWS roots
         region = self._get_session().region_name or r"[\w-]+"
         return (
             # S3 scheme
@@ -145,22 +161,35 @@ class _S3System(_SystemBase):
             # - https://<bucket>.s3.amazonaws.com/<key>
             # - http://<bucket>.s3-<region>.amazonaws.com/<key>
             # - https://<bucket>.s3-<region>.amazonaws.com/<key>
-            _re.compile(r"https?://[\w.-]+\.s3\.amazonaws\.com"),
-            _re.compile(r"https?://[\w.-]+\.s3-%s\.amazonaws\.com" % region),
+            _re.compile(
+                r"^https?://[\w.-]+\.s3\.amazonaws\.com(?!.*&X-Amz-Signature=)"
+            ),
+            _re.compile(
+                r"^https?://[\w.-]+\.s3-%s\.amazonaws\.com(?!.*&X-Amz-Signature=)"
+                % region
+            ),
             # Path-hosted–style URL
             # - http://s3.amazonaws.com/<bucket>/<key>
             # - https://s3.amazonaws.com/<bucket>/<key>
             # - http://s3-<region>.amazonaws.com/<bucket>/<key>
             # - https://s3-<region>.amazonaws.com/<bucket>/<key>
-            _re.compile(r"https?://s3\.amazonaws\.com"),
-            _re.compile(r"https?://s3-%s\.amazonaws\.com" % region),
+            _re.compile(r"^https?://s3\.amazonaws\.com(?!.*&X-Amz-Signature=)"),
+            _re.compile(
+                r"^https?://s3-%s\.amazonaws\.com(?!.*&X-Amz-Signature=)" % region
+            ),
             # Transfer acceleration URL
             # - http://<bucket>.s3-accelerate.amazonaws.com
             # - https://<bucket>.s3-accelerate.amazonaws.com
             # - http://<bucket>.s3-accelerate.dualstack.amazonaws.com
             # - https://<bucket>.s3-accelerate.dualstack.amazonaws.com
-            _re.compile(r"https?://[\w.-]+\.s3-accelerate\.amazonaws\.com"),
-            _re.compile(r"https?://[\w.-]+\.s3-accelerate\.dualstack\.amazonaws\.com"),
+            _re.compile(
+                r"^https?://[\w.-]+\.s3-accelerate\.amazonaws\.com"
+                r"(?!.*&X-Amz-Signature=)"
+            ),
+            _re.compile(
+                r"^https?://[\w.-]+\.s3-accelerate\.dualstack\.amazonaws\.com"
+                r"(?!.*&X-Amz-Signature=)"
+            ),
         )
 
     @staticmethod

@@ -49,7 +49,7 @@ Supported storage
 airfs is compatible with the following storage services:
 
 * Alibaba Cloud OSS
-* Amazon Web Services S3
+* Amazon Web Services S3 (and compatible)
 * GitHub (Read Only)
 * Microsoft Azure Blobs Storage
 * Microsoft Azure Files Storage

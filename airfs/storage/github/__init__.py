@@ -64,8 +64,8 @@ class _GithubSystem(_FileSystemBase):
         """
         return (
             "github://",
-            _compile(r"https?://github\.com"),
-            _compile(r"https?://raw\.githubusercontent\.com"),
+            _compile(r"^https?://github\.com"),
+            _compile(r"^https?://raw\.githubusercontent\.com"),
         )
 
     def _get_client(self):
