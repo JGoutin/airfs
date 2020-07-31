@@ -84,7 +84,7 @@ class ReleaseAsset(GithubObject):
 class ReleaseArchive(Archive):
     """GitHub release archive"""
 
-    HEAD_FROM = {"pushed_at": Tag, "sha": Tag}
+    HEAD_FROM = {"pushed_at": Tag, "sha": Tag}  # type: ignore
 
     @classmethod
     def list(cls, client, spec):
@@ -164,7 +164,7 @@ class Release(GithubObject):
 class LatestRelease(Release):
     """Latest GitHub release, with fallback to HEAD"""
 
-    KEY = None
+    KEY = None  # type: ignore # Valid value
     HEAD = "/repos/{owner}/{repo}/releases/latest"
     SYMLINK = "github://{owner}/{repo}/releases/{tag}"
 

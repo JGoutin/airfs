@@ -12,7 +12,7 @@ UNSUPPORTED_OPERATIONS = (
 
 def test_mocked_storage():
     """Tests airfs.azure_file with a mock"""
-    from azure.storage.file.models import (
+    from azure.storage.file.models import (  # type: ignore
         Share,
         File,
         Directory,

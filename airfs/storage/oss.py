@@ -2,9 +2,9 @@
 from contextlib import contextmanager as _contextmanager
 import re as _re
 
-import oss2 as _oss
-from oss2.models import PartInfo as _PartInfo
-from oss2.exceptions import OssError as _OssError
+import oss2 as _oss  # type: ignore
+from oss2.models import PartInfo as _PartInfo  # type: ignore
+from oss2.exceptions import OssError as _OssError  # type: ignore
 
 from airfs._core.io_base import memoizedmethod as _memoizedmethod
 from airfs._core.exceptions import (
@@ -312,7 +312,7 @@ class OSSRawIO(_ObjectRawIOBase):
 
     _SYSTEM_CLASS = _OSSSystem
 
-    @property
+    @property  # type: ignore
     @_memoizedmethod
     def _bucket(self):
         """
@@ -323,7 +323,7 @@ class OSSRawIO(_ObjectRawIOBase):
         """
         return self._system._get_bucket(self._client_kwargs)
 
-    @property
+    @property  # type: ignore
     @_memoizedmethod
     def _key(self):
         """

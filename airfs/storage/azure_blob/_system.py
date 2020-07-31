@@ -1,14 +1,14 @@
 """Microsoft Azure Blobs Storage: System"""
 import re
 
-from azure.storage.blob import (
+from azure.storage.blob import (  # type: ignore
     PageBlobService,
     BlockBlobService,
     AppendBlobService,
     BlobPermissions,
     ContainerPermissions,
 )
-from azure.storage.blob.models import _BlobTypes
+from azure.storage.blob.models import _BlobTypes  # type: ignore
 
 from airfs.storage.azure import _handle_azure_exception, _AzureBaseSystem, _make_sas_url
 from airfs._core.exceptions import ObjectNotFoundError
@@ -67,7 +67,7 @@ class _AzureBlobSystem(_AzureBaseSystem):
             _BlobTypes.AppendBlob: AppendBlobService(**parameters),
         }
 
-    @property
+    @property  # type: ignore
     @memoizedmethod
     def _client_block(self):
         """
@@ -78,7 +78,7 @@ class _AzureBlobSystem(_AzureBaseSystem):
         """
         return self.client[_DEFAULT_BLOB_TYPE]
 
-    @property
+    @property  # type: ignore
     @memoizedmethod
     def _default_blob_type(self):
         """

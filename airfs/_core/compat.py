@@ -4,6 +4,17 @@ import os as _os
 import shutil as _shutil
 from sys import version_info as _py
 
+__all__ = [
+    "blake2b",
+    "getgid",
+    "getuid",
+    "fspath",
+    "contents",
+    "copytree",
+    "COPY_BUFSIZE",
+    "Pattern",
+]
+
 # Raise import error on incompatible versions
 if _py[0] < 3 or (_py[0] == 3 and _py[1] < 5):
     raise ImportError("airfs require Python 3.5 or more.")
@@ -32,14 +43,14 @@ if _py[0] == 3 and _py[1] < 6:
         return filename
 
     # Missing hashlib.black2b, replace it by SHA1 since only used for cache files names
-    from hashlib import sha1 as blake2b  # noqa
+    from hashlib import sha1 as blake2b  # type: ignore
 
     # Deprecated on 2020-09-13
     _deprecation_warning()
 
 else:
     fspath = _os.fspath
-    from hashlib import blake2b  # noqa
+    from hashlib import blake2b  # type: ignore
 
 # Python < 3.7 compatibility
 if _py[0] < 3 or (_py[0] == 3 and _py[1] < 7):
@@ -48,11 +59,11 @@ if _py[0] < 3 or (_py[0] == 3 and _py[1] < 7):
     Pattern = type(_re.compile(""))
 
     # Missing importlib.resources
-    from importlib_resources import contents  # noqa
+    from importlib_resources import contents  # type: ignore
 
 else:
     Pattern = _re.Pattern
-    from importlib.resources import contents  # noqa
+    from importlib.resources import contents
 
 # Python < 3.8 compatibility
 if _py[0] < 3 or (_py[0] == 3 and _py[1] < 8):
@@ -96,7 +107,7 @@ if _py[0] < 3 or (_py[0] == 3 and _py[1] < 8):
 
 
 else:
-    COPY_BUFSIZE = _shutil.COPY_BUFSIZE
+    COPY_BUFSIZE = _shutil.COPY_BUFSIZE  # type: ignore
     copytree = _shutil.copytree
 
 
@@ -106,7 +117,7 @@ try:
     from os import getgid, getuid
 except ImportError:
 
-    def getuid():
+    def getuid():  # type: ignore
         """
         Get user or group ID.
 

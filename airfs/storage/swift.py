@@ -3,9 +3,9 @@ from contextlib import contextmanager as _contextmanager
 from io import UnsupportedOperation as _UnsupportedOperation
 from json import dumps as _dumps
 
-import swiftclient as _swift
-from swiftclient.utils import generate_temp_url as _generate_temp_url
-from swiftclient.exceptions import ClientException as _ClientException
+import swiftclient as _swift  # type: ignore
+from swiftclient.utils import generate_temp_url as _generate_temp_url  # type: ignore
+from swiftclient.exceptions import ClientException as _ClientException  # type: ignore
 
 from airfs._core.io_base import memoizedmethod as _memoizedmethod
 from airfs._core.exceptions import (
@@ -266,7 +266,7 @@ class SwiftRawIO(_ObjectRawIOBase):
 
     _SYSTEM_CLASS = _SwiftSystem
 
-    @property
+    @property  # type: ignore
     @_memoizedmethod
     def _client_args(self):
         """

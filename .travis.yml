@@ -9,14 +9,14 @@ python:
 
 install:
     # Python environment
-    - "python -m pip install --upgrade setuptools pip wheel pytest coverage pytest-cov codecov"
+    - "python -m pip install --upgrade setuptools pip wheel pytest-cov pytest-mypy pytest-flake8 pytest-black pytest-bandit codecov"
 
     # Installs all package dependencies
     - "python -m pip install -e .[all]"
 
 script:
     # Runs tests
-    - "py.test -v --cov=airfs --cov-report=term-missing"
+    - "pytest"
 
 after_success:
     # Sends coverage to codecov.io

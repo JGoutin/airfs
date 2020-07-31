@@ -12,6 +12,8 @@ def shareable_url(path, expires_in=3600):
 
     Only available for some storage and not for local paths.
 
+    .. versionadded:: 1.5.0
+
     Args:
         path (str): Path or URL.
         expires_in (int): Expiration in seconds. Default to 1 hour.

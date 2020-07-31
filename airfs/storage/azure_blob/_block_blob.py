@@ -2,8 +2,8 @@
 from random import choice
 from string import ascii_lowercase as _ascii_lowercase
 
-from azure.storage.blob import BlobBlock
-from azure.storage.blob.models import _BlobTypes
+from azure.storage.blob import BlobBlock  # type: ignore
+from azure.storage.blob.models import _BlobTypes  # type: ignore
 
 from airfs.storage.azure import _handle_azure_exception
 from airfs._core.io_base import memoizedmethod
@@ -34,7 +34,7 @@ class AzureBlockBlobRawIO(AzureBlobRawIO):
 
     __DEFAULT_CLASS = False
 
-    @property
+    @property  # type: ignore
     @memoizedmethod
     def _client(self):
         """
@@ -87,7 +87,7 @@ class AzureBlockBlobBufferedIO(AzureBlobBufferedIO):
     __slots__ = ("_blocks",)
 
     __DEFAULT_CLASS = False
-    _RAW_CLASS = AzureBlockBlobRawIO
+    _RAW_CLASS = AzureBlockBlobRawIO  # type: ignore
 
     def __init__(self, *args, **kwargs):
         ObjectBufferedIOBase.__init__(self, *args, **kwargs)

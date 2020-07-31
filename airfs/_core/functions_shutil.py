@@ -85,7 +85,7 @@ def _copy_stream(dst, src):
             copyfileobj(fsrc, fdst, buffer_size)
 
 
-def copy(src, dst):
+def copy(src, dst, *, follow_symlinks=True):
     """
     Copies a source file to a destination file or directory.
 
@@ -98,6 +98,8 @@ def copy(src, dst):
     Args:
         src (path-like object or file-like object): Source file.
         dst (path-like object or file-like object): Destination file or directory.
+        follow_symlinks (bool): If True, follow symlinks.
+            Not supported on storage objects.
 
     Raises:
          IOError: Destination directory not found.
@@ -108,7 +110,7 @@ def copy(src, dst):
 
     # Local files: Redirects to "shutil.copy"
     if not src_is_storage and not dst_is_storage:
-        return shutil_copy(src, dst)
+        return shutil_copy(src, dst, follow_symlinks=follow_symlinks)
 
     # Checks destination
     if not hasattr(dst, "read"):
@@ -124,14 +126,13 @@ def copy(src, dst):
         except PermissionError:
             # Unable to check target directory due to missing read access, but do not
             # raise to allow to write if possible
-            print("PermissionError reached")
             pass
 
     # Performs copy
     _copy(src, dst, src_is_storage, dst_is_storage)
 
 
-def copyfile(src, dst, follow_symlinks=True):
+def copyfile(src, dst, *, follow_symlinks=True):
     """
     Copies a source file to a destination file.
 

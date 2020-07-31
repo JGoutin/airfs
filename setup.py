@@ -8,7 +8,7 @@ from os import chdir
 from os.path import dirname, abspath, join
 from sys import argv
 
-from setuptools import setup, find_packages
+from setuptools import setup, find_packages  # type: ignore
 
 # Sets Package information
 PACKAGE_INFO = dict(
@@ -56,7 +56,7 @@ PACKAGE_INFO = dict(
         "swift": ["python-swiftclient[keystone]>=3.3.0"],
     },
     setup_requires=["setuptools"],
-    tests_require=["pytest"],
+    tests_require=["pytest-cov", "pytest-mypy", "pytest-flake8", "pytest-black"],
     packages=find_packages(exclude=["docs", "tests", "tests_storage_package"]),
     zip_safe=True,
     command_options={},

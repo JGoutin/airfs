@@ -2,11 +2,11 @@
 from io import UnsupportedOperation as _UnsupportedOperation
 import re as _re
 
-from azure.storage.file import (
+from azure.storage.file import (  # type: ignore
     FileService as _FileService,
     FilePermissions as _FilePermissions,
 )
-from azure.storage.file.models import Directory as _Directory
+from azure.storage.file.models import Directory as _Directory  # type: ignore
 
 from airfs._core.io_base import memoizedmethod as _memoizedmethod
 from airfs.storage.azure import (
@@ -265,7 +265,7 @@ class AzureFileRawIO(_AzureStorageRawIORangeWriteBase):
     #: Maximum size of one flush operation
     MAX_FLUSH_SIZE = _FileService.MAX_RANGE_SIZE
 
-    @property
+    @property  # type: ignore
     @_memoizedmethod
     def _get_to_stream(self):
         """
@@ -276,7 +276,7 @@ class AzureFileRawIO(_AzureStorageRawIORangeWriteBase):
         """
         return self._client.get_file_to_stream
 
-    @property
+    @property  # type: ignore
     @_memoizedmethod
     def _resize(self):
         """
@@ -287,7 +287,7 @@ class AzureFileRawIO(_AzureStorageRawIORangeWriteBase):
         """
         return self._client.resize_file
 
-    @property
+    @property  # type: ignore
     @_memoizedmethod
     def _create_from_size(self):
         """

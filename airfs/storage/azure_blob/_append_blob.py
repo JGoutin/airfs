@@ -1,6 +1,6 @@
 """Microsoft Azure Blobs Storage: Append blobs"""
-from azure.storage.blob.models import _BlobTypes
-from azure.storage.blob import AppendBlobService
+from azure.storage.blob.models import _BlobTypes  # type: ignore
+from azure.storage.blob import AppendBlobService  # type: ignore
 
 from airfs.storage.azure import _handle_azure_exception
 from airfs._core.io_base import memoizedmethod
@@ -50,7 +50,7 @@ class AzureAppendBlobRawIO(AzureBlobRawIO, ObjectRawIORandomWriteBase):
         with _handle_azure_exception():
             self._client.create_blob(**self._client_kwargs)
 
-    @property
+    @property  # type: ignore
     @memoizedmethod
     def _client(self):
         """

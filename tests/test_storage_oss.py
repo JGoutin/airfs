@@ -12,7 +12,7 @@ UNSUPPORTED_OPERATIONS = (
 def test_handle_oss_error():
     """Test airfs.oss._handle_oss_error"""
     from airfs.storage.oss import _handle_oss_error
-    from oss2.exceptions import OssError
+    from oss2.exceptions import OssError  # type: ignore
     from airfs._core.exceptions import ObjectNotFoundError, ObjectPermissionError
 
     kwargs = dict(headers={}, body=None, details={"Message": ""})
@@ -39,9 +39,9 @@ def test_mocked_storage():
 
     from airfs.storage.oss import OSSRawIO, _OSSSystem, OSSBufferedIO
 
-    from oss2.exceptions import OssError
-    from oss2.models import HeadObjectResult
-    import oss2
+    from oss2.exceptions import OssError  # type: ignore
+    from oss2.models import HeadObjectResult  # type: ignore
+    import oss2  # type: ignore
 
     from tests.test_storage import StorageTester
     from tests.storage_mock import ObjectStorageMock

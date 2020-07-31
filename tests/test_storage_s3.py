@@ -13,7 +13,7 @@ UNSUPPORTED_OPERATIONS = (
 def test_handle_client_error():
     """Test airfs.s3._handle_client_error"""
     from airfs.storage.s3 import _handle_client_error
-    from botocore.exceptions import ClientError
+    from botocore.exceptions import ClientError  # type: ignore
     from airfs._core.exceptions import ObjectNotFoundError, ObjectPermissionError
 
     response = {"Error": {"Code": "ErrorCode", "Message": "Error"}}
@@ -43,8 +43,8 @@ def test_mocked_storage():
 
     from airfs.storage.s3 import S3RawIO, _S3System, S3BufferedIO
 
-    from botocore.exceptions import ClientError
-    import boto3
+    from botocore.exceptions import ClientError  # type: ignore
+    import boto3  # type: ignore
 
     from tests.test_storage import StorageTester
     from tests.storage_mock import ObjectStorageMock

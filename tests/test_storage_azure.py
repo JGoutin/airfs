@@ -11,7 +11,7 @@ pytest.importorskip("azure.storage.file")
 def test_handle_azure_exception():
     """Test airfs.storage.azure._handle_azure_exception"""
     from airfs.storage.azure import _handle_azure_exception
-    from azure.common import AzureHttpError
+    from azure.common import AzureHttpError  # type: ignore
     from airfs._core.exceptions import ObjectNotFoundError, ObjectPermissionError
 
     # Any error
@@ -90,7 +90,7 @@ def test_update_listing_client_kwargs():
 def test_model_to_dict():
     """Test airfs.storage.azure._AzureBaseSystem._model_to_dict"""
     from airfs.storage.azure import _AzureBaseSystem
-    from azure.storage.file import models
+    from azure.storage.file import models  # type: ignore
 
     last_modified = datetime.now()
     props = models.FileProperties()
@@ -98,7 +98,6 @@ def test_model_to_dict():
     props.last_modified = last_modified
     file = models.File(props=props, metadata=dict(metadata1=0))
 
-    print(_AzureBaseSystem._model_to_dict(file))
     assert _AzureBaseSystem._model_to_dict(file) == dict(
         etag="etag", last_modified=last_modified, metadata=dict(metadata1=0)
     )

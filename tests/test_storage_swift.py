@@ -13,7 +13,7 @@ UNSUPPORTED_OPERATIONS = (
 def test_handle_client_exception():
     """Test airfs.swift._handle_client_exception"""
     from airfs.storage.swift import _handle_client_exception
-    from swiftclient import ClientException
+    from swiftclient import ClientException  # type: ignore
     from airfs._core.exceptions import ObjectNotFoundError, ObjectPermissionError
 
     # No error

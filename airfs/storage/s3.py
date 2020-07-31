@@ -3,8 +3,8 @@ from contextlib import contextmanager as _contextmanager
 from io import UnsupportedOperation as _UnsupportedOperation
 import re as _re
 
-import boto3 as _boto3
-from botocore.exceptions import ClientError as _ClientError
+import boto3 as _boto3  # type: ignore
+from botocore.exceptions import ClientError as _ClientError  # type: ignore
 
 from airfs._core.exceptions import (
     ObjectNotFoundError as _ObjectNotFoundError,

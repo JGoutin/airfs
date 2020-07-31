@@ -70,7 +70,7 @@ def makedirs(name, mode=0o777, exist_ok=False):
 
 
 @equivalent_to(os.mkdir)
-def mkdir(path, mode=0o777, dir_fd=None):
+def mkdir(path, mode=0o777, *, dir_fd=None):
     """
     Create a directory named path with numeric mode mode.
 
@@ -110,7 +110,7 @@ def mkdir(path, mode=0o777, dir_fd=None):
 
 
 @equivalent_to(os.readlink, keep_path_type=True)
-def readlink(path, dir_fd=None):
+def readlink(path, *, dir_fd=None):
     """
     Return a string representing the path to which the symbolic link points.
     The result may be either an absolute or relative pathname; if it is relative, it may
@@ -136,7 +136,7 @@ def readlink(path, dir_fd=None):
 
 
 @equivalent_to(os.remove)
-def remove(path, dir_fd=None):
+def remove(path, *, dir_fd=None):
     """
     Remove a file.
 
@@ -165,7 +165,7 @@ unlink = remove
 
 
 @equivalent_to(os.rmdir)
-def rmdir(path, dir_fd=None):
+def rmdir(path, *, dir_fd=None):
     """
     Remove a directory.
 
@@ -184,7 +184,7 @@ def rmdir(path, dir_fd=None):
 
 
 @equivalent_to(os.lstat)
-def lstat(path, dir_fd=None):
+def lstat(path, *, dir_fd=None):
     """
     Get the status of a file or a file descriptor.
     Perform the equivalent of a "lstat()" system call on the given path.
@@ -208,7 +208,7 @@ def lstat(path, dir_fd=None):
 
 
 @equivalent_to(os.stat)
-def stat(path, dir_fd=None, follow_symlinks=True):
+def stat(path, *, dir_fd=None, follow_symlinks=True):
     """
     Get the status of a file or a file descriptor.
     Perform the equivalent of a "stat()" system call on the given path.
@@ -273,7 +273,7 @@ class DirEntry:
 
     __repr__ = __str__
 
-    @property
+    @property  # type: ignore
     @memoizedmethod
     def _client_kwargs(self):
         """
@@ -284,7 +284,7 @@ class DirEntry:
         """
         return self._system.get_client_kwargs(self._path)
 
-    @property
+    @property  # type: ignore
     @memoizedmethod
     def name(self):
         """
@@ -298,7 +298,7 @@ class DirEntry:
             name = fsencode(name)
         return name
 
-    @property
+    @property  # type: ignore
     @memoizedmethod
     def path(self):
         """
@@ -329,7 +329,7 @@ class DirEntry:
         return self.stat().st_ino
 
     @memoizedmethod
-    def is_dir(self, follow_symlinks=True):
+    def is_dir(self, *, follow_symlinks=True):
         """
         Return True if this entry is a directory or a symbolic link pointing to a
         directory; return False if the entry is or points to any other kind of file, or
@@ -358,7 +358,7 @@ class DirEntry:
             return True
 
     @memoizedmethod
-    def is_file(self, follow_symlinks=True):
+    def is_file(self, *, follow_symlinks=True):
         """
         Return True if this entry is a file or a symbolic link pointing to a file;
         return False if the entry is or points to a directory or other non-file entry,
@@ -388,7 +388,7 @@ class DirEntry:
         return bool(S_ISLNK(self.stat().st_mode))
 
     @memoizedmethod
-    def stat(self, follow_symlinks=True):
+    def stat(self, *, follow_symlinks=True):
         """
         Return a stat_result object for this entry.
 

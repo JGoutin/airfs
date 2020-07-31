@@ -50,8 +50,8 @@ class _GithubSystem(_FileSystemBase):
     _MTIME_KEYS = ("pushed_at", "updated_at", "published_at")
 
     # Keys to retrieve from parents for virtual directories
-    _VIRTUAL_KEYS = set(_CTIME_KEYS)
-    _VIRTUAL_KEYS.update(_MTIME_KEYS)
+    _VIRTUAL_KEYS = set(_CTIME_KEYS)  # type: ignore
+    _VIRTUAL_KEYS.update(_MTIME_KEYS)  # type: ignore
 
     __slots__ = ()
 

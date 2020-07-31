@@ -8,8 +8,8 @@ from airfs.storage.azure_blob._system import _AzureBlobSystem
 from airfs.storage.azure import _AzureStorageRawIOBase
 
 # Store blob types specific classes
-AZURE_BUFFERED = {}
-AZURE_RAW = {}
+AZURE_BUFFERED = {}  # type: ignore
+AZURE_RAW = {}  # type: ignore
 
 
 def _new_blob(cls, name, kwargs):
@@ -82,7 +82,7 @@ class AzureBlobRawIO(_AzureStorageRawIOBase):
         # Get subclass
         return IOBase.__new__(AZURE_RAW[_new_blob(cls, name, kwargs)])
 
-    @property
+    @property  # type: ignore
     @memoizedmethod
     def _get_to_stream(self):
         """

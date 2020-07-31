@@ -31,7 +31,7 @@ Improvements:
   library equivalent.
 * Add `st_atime_ns`, `st_mtime_ns` and `st_ctime_ns`, in the `os.stat_result` like named
   tuple returned by `airfs.stat` and `airfs.lstat`.
-* Use "black" for code formatting (https://github.com/psf/black).
+* Use `Black <https://github.com/psf/black>`_ for code formatting.
 * airfs can now lazily auto-import a storage from an URL using any root and not only a
   specific scheme. Only public storage that does not require user specified parameters
   can be lazily auto-mounted. airfs still try to use the `http` storage to mount
@@ -41,6 +41,9 @@ Improvements:
 * airfs now raises `airfs.MountException` on mounting errors instead of `ValueError`.
 * airfs now raises `airfs.ConfigurationException` on configuration errors.
 * The S3 storage now support any supported S3 compatible storage and not only AWS.
+* Add `Flake8 <https://gitlab.com/pycqa/flake8>`_,
+  `Mypy <http://www.mypy-lang.org/>`_ and
+  `Bandit <https://github.com/PyCQA/bandit>`_ to the Pytest sequence.
 
 Fixes:
 
@@ -48,10 +51,12 @@ Fixes:
   it by raising an exception saying that the storage is not available.
 * airfs now open S3 presigned URLs as standard HTTP URLs instead of trying to use S3
   API.
+* Fix the missing `follow_symlinks` argument in `airfs.copy`.
+* Fix the missing keyword-only argument mark in various functions.
 
 Deprecations:
 
-* Warn about Python 3.5 deprecation in next version.
+* Warn about the Python 3.5 deprecation in the next version.
 
 1.4.0 (2020/01)
 ---------------

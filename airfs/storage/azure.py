@@ -6,7 +6,7 @@ from datetime import datetime as _datetime, timedelta as _timedelta
 from io import UnsupportedOperation as _UnsupportedOperation, BytesIO as _BytesIO
 from threading import Lock as _Lock
 
-from azure.common import AzureHttpError as _AzureHttpError
+from azure.common import AzureHttpError as _AzureHttpError  # type: ignore
 
 from airfs._core.io_base import WorkerPoolBase as _WorkerPoolBase
 from airfs._core.exceptions import (

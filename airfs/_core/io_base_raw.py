@@ -184,7 +184,7 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         """
         return memoryview(self._write_buffer)
 
-    @property
+    @property  # type: ignore
     @memoizedmethod
     def _size(self):
         """

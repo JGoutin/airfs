@@ -61,7 +61,7 @@ htmlhelp_basename = "%sdoc" % project
 
 
 # Options for LaTeX output
-latex_elements = {}
+latex_elements = {}  # type: ignore
 latex_documents = [
     (master_doc, "%s.tex" % project, "%s Documentation" % project, author, "manual")
 ]

@@ -176,7 +176,7 @@ class WorkerPoolBase:
     def __init__(self, max_workers=None):
         self._workers_count = max_workers
 
-    @property
+    @property  # type: ignore
     @memoizedmethod
     def _workers(self):
         """Executor pool

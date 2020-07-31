@@ -1,8 +1,8 @@
 """Microsoft Azure Blobs Storage: Pages blobs"""
 from os import SEEK_SET, SEEK_END
 
-from azure.storage.blob import PageBlobService
-from azure.storage.blob.models import _BlobTypes
+from azure.storage.blob import PageBlobService  # type: ignore
+from azure.storage.blob.models import _BlobTypes  # type: ignore
 
 from airfs.storage.azure import _AzureStorageRawIORangeWriteBase
 from airfs._core.io_base import memoizedmethod
@@ -49,7 +49,7 @@ class AzurePageBlobRawIO(AzureBlobRawIO, _AzureStorageRawIORangeWriteBase):
         self._ignore_padding = kwargs.get("ignore_padding", True)
         _AzureStorageRawIORangeWriteBase.__init__(self, *args, **kwargs)
 
-    @property
+    @property  # type: ignore
     @memoizedmethod
     def _client(self):
         """
@@ -60,7 +60,7 @@ class AzurePageBlobRawIO(AzureBlobRawIO, _AzureStorageRawIORangeWriteBase):
         """
         return self._system.client[_BLOB_TYPE]
 
-    @property
+    @property  # type: ignore
     @memoizedmethod
     def _resize(self):
         """
@@ -94,7 +94,7 @@ class AzurePageBlobRawIO(AzureBlobRawIO, _AzureStorageRawIORangeWriteBase):
             self._content_length += 512 - self._content_length % 512
         _AzureStorageRawIORangeWriteBase._create(self)
 
-    @property
+    @property  # type: ignore
     @memoizedmethod
     def _create_from_size(self):
         """

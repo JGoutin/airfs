@@ -13,14 +13,14 @@ build: off
 install:
     # Python environment
     - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
-    - "python -m pip install --upgrade setuptools pip wheel pytest coverage pytest-cov codecov"
+    - "python -m pip install --upgrade setuptools pip wheel pytest-cov pytest-mypy pytest-flake8 pytest-black pytest-bandit codecov"
 
     # Installs all package dependencies
     - "python -m pip install -e .[all]"
 
 test_script:
     # Runs tests
-    - "py.test -v --cov=airfs --cov-report=term-missing"
+    - "pytest"
 
 after_test:
     # Sends coverage to codecov.io
