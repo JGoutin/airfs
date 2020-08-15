@@ -10,6 +10,7 @@ from dateutil.parser import parse
 from airfs._core.io_base import WorkerPoolBase
 from airfs._core.compat import Pattern, getgid, getuid
 from airfs._core.exceptions import ObjectNotFoundError, ObjectPermissionError
+from airfs._core.functions_core import SeatsCounter
 
 
 class SystemBase(ABC, WorkerPoolBase):
@@ -325,11 +326,7 @@ class SystemBase(ABC, WorkerPoolBase):
             # headers.
             elif virtual_dir:
                 try:
-                    next(
-                        self.list_objects(
-                            relative, relative=True, max_request_entries=1
-                        )
-                    )
+                    next(self.list_objects(relative, relative=True, max_results=1))
                     return True
                 except (StopIteration, ObjectNotFoundError, UnsupportedOperation):
                     return False
@@ -559,147 +556,178 @@ class SystemBase(ABC, WorkerPoolBase):
         return path
 
     def list_objects(
-        self, path="", relative=False, first_level=False, max_request_entries=None
+        self, path="", relative=False, first_level=False, max_results=None
     ):
         """
         List objects.
+
+        Returns object path (relative to input "path") and object headers.
 
         Args:
             path (str): Path or URL.
             relative (bool): Path is relative to current root.
             first_level (bool): It True, returns only first level objects.
                 Else, returns full tree.
-            max_request_entries (int): If specified, maximum entries returned by
-                the request.
+            max_results (int): If specified, the maximum result count returned.
 
-        Returns:
-            generator of tuple: object name str, object header dict
+        Yields:
+            tuple: object path str, object header dict
         """
-        entries = 0
-        max_request_entries_arg = None
+        seats = SeatsCounter(max_results)
 
+        # Select the starting path
         if not relative:
             path = self.relpath(path)
 
-        # From root
-        if not path:
-            locators = self._list_locators()
+        if path == "":
+            generator = self._list_locators(max_results)
+        else:
+            generator = self._list_objects(
+                self.get_client_kwargs(path), path, max_results, first_level
+            )
 
-            # Yields locators
-            if first_level:
-                for locator in locators:
+        # Select listing method
+        if first_level:
+            generator = self._list_first_level_only(generator)
+        else:
+            generator = self._list_all_levels(generator, path, seats)
 
-                    entries += 1
-                    yield locator
-                    if entries == max_request_entries:
-                        return
+        # Yield results
+        take_seat = seats.take_seat
+        for item in generator:
+            yield item
+            take_seat()
+            if seats.full:
                 return
 
-            # Yields each locator objects
-            for loc_path, loc_header in locators:
+    def _list_all_levels(self, generator, path, seats):
+        """
+        Recursively yields all level entries.
 
-                # Yields locator itself
-                loc_path = loc_path.strip("/")
+        Args:
+            generator (iterable of tuple): path str, header dict, directory bool
+            path (str): Path being listed.
+            seats (airfs._core.functions_core.SeatsCounter): Seats counter.
 
-                entries += 1
-                yield loc_path, loc_header
-                if entries == max_request_entries:
-                    return
+        Yields:
+            tuple: object path str, object header dict
+        """
+        dirs = list()
+        add_dir = dirs.append
+        for obj_path, header, is_dir in generator:
 
-                # Yields locator content if read access to it
-                if max_request_entries is not None:
-                    max_request_entries_arg = max_request_entries - entries
-                try:
-                    for obj_path, obj_header in self._list_objects(
-                        self.get_client_kwargs(loc_path), "", max_request_entries_arg
-                    ):
-
-                        entries += 1
-                        yield "/".join((loc_path, obj_path.lstrip("/"))), obj_header
-                        if entries == max_request_entries:
-                            return
-
-                except ObjectPermissionError:
-                    # No read access to locator
-                    continue
-            return
-
-        # From locator or sub directory
-        locator, path = self.split_locator(path)
-
-        if first_level:
-            seen = set()
-
-        if max_request_entries is not None:
-            max_request_entries_arg = max_request_entries - entries
-
-        for obj_path, header in self._list_objects(
-            self.get_client_kwargs(locator), path, max_request_entries_arg
-        ):
-
-            if path:
-                try:
-                    obj_path = obj_path.split(path, 1)[1]
-                except IndexError:
-                    # Not sub path of path
-                    continue
-            obj_path = obj_path.lstrip("/")
-
-            # Skips parent directory
             if not obj_path:
+                # Do not yield itself
                 continue
 
-            # Yields first level locator objects only
-            if first_level:
-                # Directory
-                try:
-                    obj_path, _ = obj_path.strip("/").split("/", 1)
+            if is_dir:
+                add_dir(obj_path)
+                obj_path = obj_path.rstrip("/") + "/"
+
+            yield obj_path, header
+
+        if dirs:
+            path = path.rstrip("/")
+            for sub_path in dirs:
+                if path:
+                    full_path = "/".join((path, sub_path))
+                else:
+                    full_path = sub_path
+
+                max_results = seats.seats_left
+                if max_results:
+                    # Add an extra seat to ensure the good count when yielding itself
+                    max_results += 1
+
+                for obj_path, header in self._list_all_levels(
+                    self._list_objects(
+                        self.get_client_kwargs(full_path),
+                        full_path,
+                        max_results,
+                        False,
+                    ),
+                    full_path,
+                    seats,
+                ):
+                    yield "/".join((sub_path.rstrip("/"), obj_path)), header
+
+    @staticmethod
+    def _list_first_level_only(generator):
+        """
+        Yield the first level entries only.
+
+        Args:
+            generator (iterable of tuple): path str, header dict, has content bool
+
+        Yields:
+            tuple: object path str, object header dict
+        """
+        dirs = set()
+        virtual_dirs = set()
+        add_virtual_dir = virtual_dirs.add
+        add_dir = dirs.add
+        for obj_path, header, is_dir in generator:
+            obj_path = obj_path.rstrip("/")
+            try:
+                obj_path, _ = obj_path.split("/", 1)
+
+            # File or real directory
+            except ValueError:
+
+                if is_dir:
+                    add_dir(obj_path)
                     obj_path += "/"
-
-                    # Avoids to use the header of the object instead of the non existing
-                    # header of the directory that only exists virtually in object path.
-                    header = dict()
-
-                # File
-                except ValueError:
-                    pass
-
-                if obj_path not in seen:
-                    entries += 1
-                    yield obj_path, header
-                    if entries == max_request_entries:
-                        return
-                    seen.add(obj_path)
-
-            # Yields locator objects
-            else:
-                entries += 1
                 yield obj_path, header
-                if entries == max_request_entries:
-                    return
 
-    def _list_locators(self):
+            # Virtual directory
+            else:
+                add_virtual_dir(obj_path)
+
+        # Yields virtual directories not already seen as real directories
+        for obj_path in virtual_dirs - dirs:
+            yield obj_path + "/", dict()
+
+    def _list_locators(self, max_results):
         """
         Lists locators.
 
-        Returns:
-            generator of tuple: locator name str, locator header dict
+        args:
+            max_results (int): The maximum results that should return the method.
+
+        Yields:
+            tuple: locator name str, locator header dict, has content bool
         """
+        # Implementation note: See "_list_objects" method.
         raise UnsupportedOperation("listdir")
 
-    def _list_objects(self, client_kwargs, path, max_request_entries):
+    def _list_objects(self, client_kwargs, path, max_results, first_level):
         """
         Lists objects.
 
         args:
             client_kwargs (dict): Client arguments.
-            path (str): Path relative to current locator.
-            max_request_entries (int): If specified, maximum entries returned by the
-                request.
+            path (str): Path to list.
+            max_results (int): The maximum results that should return the method.
+                None if no limit.
+            first_level (bool): It True, may only first level objects.
 
-        Returns:
-            generator of tuple: object name str, object header dict
+        Yields:
+            tuple: object path str, object header dict, has content bool
         """
+        # Implementation note:
+        #
+        # Should return a tuple of the following values
+        # - The object path (relative to the "path" argument)
+        # - The object headers
+        # - The "had content" bool that must be True if the object has sub-content that
+        #   should be listed recursively by the function. For instance, it should be
+        #   False for files, True for directories that are list without there content
+        #   and False for directories that are list with their content.
+        #
+        # Returning only first level entries with "first_level" or only the maximum
+        # entries with "max_results" are optional, these parameters are mainly
+        # intended to help to reduce result size from requests against the storage and
+        # improve the performance.
         raise UnsupportedOperation("listdir")
 
     def islink(self, path=None, client_kwargs=None, header=None):

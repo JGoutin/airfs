@@ -204,21 +204,21 @@ class _AzureBaseSystem(_SystemBase):
         return path
 
     @staticmethod
-    def _update_listing_client_kwargs(client_kwargs, max_request_entries):
+    def _update_listing_client_kwargs(client_kwargs, max_results):
         """
         Updates client kwargs for listing functions.
 
         Args:
             client_kwargs (dict): Client arguments.
-            max_request_entries (int): If specified, maximum entries returned by the
+            max_results (int): If specified, maximum entries returned by the
             request.
 
         Returns:
             dict: Updated client_kwargs
         """
         client_kwargs = client_kwargs.copy()
-        if max_request_entries:
-            client_kwargs["num_results"] = max_request_entries
+        if max_results:
+            client_kwargs["num_results"] = max_results
         return client_kwargs
 
     @staticmethod

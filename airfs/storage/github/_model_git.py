@@ -136,11 +136,10 @@ class Tree(GithubObject):
         Args:
             client (airfs.storage.github._api.ApiV3): Client.
             spec (dict): Item spec.
-            first_level (bool): It True, returns only first level objects. Else, returns
-                the full tree.
+            first_level (bool): It True, returns only first level objects.
 
         Yields:
-            tuple: object name str, object header dict, directory bool
+            tuple: object name str, object header dict, has content bool
         """
         set_header = cls.set_header
         for relpath, abspath, spec, headers, isdir in cls._list(
@@ -157,11 +156,10 @@ class Tree(GithubObject):
         Args:
             client (airfs.storage.github._api.ApiV3): Client.
             spec (dict): Item spec.
-            first_level (bool): It True, returns only first level objects. Else, returns
-                the full tree.
+            first_level (bool): It True, returns only first level objects.
 
         Yields:
-            tuple: Relative path, Absolute path, spec, headers, directory bool
+            tuple: Relative path, Absolute path, spec, headers, has content bool
         """
         # Find top level tree SHA from the parent if not specified
         if "tree_sha" not in spec:
@@ -183,7 +181,7 @@ class Tree(GithubObject):
         )[0]
 
         # If truncated, store already seen entries and last processed tree
-        truncated = response["truncated"] or True
+        truncated = response["truncated"]
         if truncated:
             seen = set()
             add_seen = seen.add
@@ -195,7 +193,7 @@ class Tree(GithubObject):
 
             # Get relative path
             if cwd:
-                if not commonpath((abspath, cwd)):
+                if commonpath((abspath, cwd)) != cwd:
                     # Skip any entry outside the current working directory
                     continue
 
@@ -221,7 +219,7 @@ class Tree(GithubObject):
                     last_tree = abspath
 
             # Yield result
-            yield relpath, abspath, spec, headers, isdir
+            yield relpath, abspath, spec, headers, False
 
         # If truncated, populate remaining result from the non recursive method
         if truncated:
@@ -233,7 +231,7 @@ class Tree(GithubObject):
             )
 
             # Iterate over trees recursively
-            for entry in cls._list_non_recursive(
+            for relpath, abspath, spec, headers, _ in cls._list_non_recursive(
                 client,
                 spec,
                 seen,
@@ -244,7 +242,7 @@ class Tree(GithubObject):
                 "",
                 first_level,
             ):
-                yield entry
+                yield relpath, abspath, spec, headers, False
 
     @classmethod
     def _list_non_recursive(
@@ -277,7 +275,7 @@ class Tree(GithubObject):
                 the full tree.
 
         Yields:
-            tuple: Relative path, Absolute path, spec, headers, directory bool
+            tuple: Relative path, Absolute path, spec, headers, has content bool
         """
         tree_spec = spec.copy()
         tree_spec["tree_sha"] = tree_sha

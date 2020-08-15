@@ -8,7 +8,7 @@ from os.path import (
 )
 from re import compile as _compile
 
-from airfs.io import FileSystemBase as _FileSystemBase
+from airfs.io import SystemBase as _SystemBase
 
 from airfs._core.exceptions import (
     ObjectNotFoundError as _ObjectNotFoundError,
@@ -34,7 +34,7 @@ __all__ = [
 ]
 
 
-class _GithubSystem(_FileSystemBase):
+class _GithubSystem(_SystemBase):
     """
     GitHub system.
 
@@ -109,38 +109,36 @@ class _GithubSystem(_FileSystemBase):
         # TODO: return a subset of header like "list" when heading a "dict"
         return client_kwargs["object"].head(self.client, client_kwargs)
 
-    def _list_objects(self, client_kwargs, max_request_entries):
+    def _list_objects(self, client_kwargs, path, max_results, first_level):
         """
         Lists objects.
 
         args:
             client_kwargs (dict): Client arguments.
-            path (str): Path relative to current locator.
-            max_request_entries (int): If specified, maximum entries returned by the
-                request.
+            path (str): Path to list.
+            max_results (int): The maximum results that should return the method.
+            first_level (bool): It True, may only first level objects.
 
-        Returns:
-            generator of tuple: object name str, object header dict
+        Yields:
+            tuple: object path str, object header dict, has content bool
         """
-        # TODO: Handle listing of "Tree" and others not working the same manner
-        #       but needs to be combined to get final result
         content = client_kwargs["content"]
         if isinstance(content, dict):
             # "Virtual" directory only represented by a dict and not a real GitHub
             # object
-            # TODO: improve by passing parent header from previous list level
-            #       when doing a recursive listing
             parent_header = self._head(client_kwargs)
             header = {
                 key: parent_header[key]
                 for key in (parent_header.keys() & self._VIRTUAL_KEYS)
             }
             for key in content:
-                yield key, header
+                yield key, header, True
 
         elif content is not None:
             # GitHub object
-            for item in content.list(self.client, client_kwargs):
+            for item in content.list(
+                self.client, client_kwargs, first_level=first_level
+            ):
                 yield item
 
         else:

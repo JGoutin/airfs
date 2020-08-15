@@ -96,3 +96,45 @@ def equivalent_to(std_function, keep_path_type=False):
         return decorated
 
     return decorate
+
+
+class SeatsCounter:
+    """
+    A simple counter keeping track of available seats.
+
+    Args:
+        max_seats (int or None): Maximum available seats. None if no maximum.
+    """
+
+    __slots__ = ("_seats",)
+
+    def __init__(self, max_seats):
+        self._seats = max_seats
+
+    def take_seat(self):
+        """
+        Take a seat.
+        """
+        if self._seats:
+            self._seats -= 1
+
+    @property
+    def seats_left(self):
+        """
+        Remaining seats.
+
+        Returns:
+            int or None: Remaining seats. None if no maximum.
+        """
+        if self._seats:
+            return self._seats
+
+    @property
+    def full(self):
+        """
+        Check if seats are full.
+
+        Returns:
+            bool: True if no more seat available.
+        """
+        return self._seats == 0

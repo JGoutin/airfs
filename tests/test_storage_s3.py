@@ -146,7 +146,7 @@ def test_mocked_storage():
             return dict(Contents=objects)
 
         @staticmethod
-        def list_buckets():
+        def list_buckets(**__):
             """boto3.client.list_buckets"""
             objects = []
             for name, header in storage_mock.get_locators().items():

@@ -150,7 +150,7 @@ def test_mocked_storage():
             return storage_mock.head_locator(container), objects
 
         @staticmethod
-        def get_account():
+        def get_account(**_):
             """swiftclient.client.Connection.get_account"""
             objects = []
             for name, header in storage_mock.get_locators().items():

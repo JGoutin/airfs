@@ -536,7 +536,7 @@ class StorageTester:
 
         # Test: Check locator listed
         if self._is_supported("listdir"):
-            for name, header in system._list_locators():
+            for name, header, _ in system._list_locators(None):
                 if name == self.locator and isinstance(header, dict):
                     break
             else:
@@ -549,7 +549,7 @@ class StorageTester:
         else:
             # Test: Unsupported
             with _pytest.raises(_UnsupportedOperation):
-                system._list_locators()
+                system._list_locators(None)
 
         # Test: remove locator
         tmp_locator = self._get_id()
@@ -562,14 +562,14 @@ class StorageTester:
         if self._is_supported("remove"):
             if self._is_supported("listdir"):
                 assert tmp_locator in [
-                    name for name, _ in system._list_locators()
+                    name for name, _, _ in system._list_locators(None)
                 ], "Remove locator, locator exists"
 
             system.remove(tmp_locator)
 
             if self._is_supported("listdir"):
                 assert tmp_locator not in [
-                    name for name, _ in system._list_locators()
+                    name for name, _, _ in system._list_locators(None)
                 ], "Remove locator, locator not exists"
         else:
             # Test: Unsupported
@@ -722,13 +722,9 @@ class StorageTester:
                 ), "List objects, file header is mapping"
 
             # Test: List objects, with limited output
-            max_request_entries = 5
-            entries = len(
-                tuple(system.list_objects(max_request_entries=max_request_entries))
-            )
-            assert (
-                entries == max_request_entries
-            ), "List objects, Number of entries match"
+            max_results = 5
+            entries = len(tuple(system.list_objects(max_results=max_results)))
+            assert entries == max_results, "List objects, Number of entries match"
 
             # Test: List objects, no objects found
             with _pytest.raises(ObjectNotFoundError):

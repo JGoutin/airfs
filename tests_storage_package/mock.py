@@ -118,39 +118,44 @@ class MockSystem(_SystemBase):
             return self.client.delete_object(**client_kwargs)
         return self.client.delete_locator(**client_kwargs)
 
-    def _list_locators(self):
+    def _list_locators(self, max_results):
         """
         Lists locators.
 
-        Returns:
-            generator of tuple: locator name str, locator header dict
+        Yields:
+            tuple: locator name str, locator header dict, has content bool
         """
-        return self.client.get_locators().items()
+        for locator, headers in self.client.get_locators().items():
+            yield locator, headers, True
 
-    def _list_objects(self, client_kwargs, path, max_request_entries):
+    def _list_objects(self, client_kwargs, path, max_results, first_level):
         """
         Lists objects.
 
         args:
             client_kwargs (dict): Client arguments.
-            path (str): Path relative to current locator.
-            max_request_entries (int): If specified, maximum entries returned by the
-                request.
+            path (str): Path to list.
+            max_results (int): The maximum results that should return the method.
+            first_level (bool): It True, may only first level objects.
 
-        Returns:
-            generator of tuple: object name str, object header dict
+        Yields:
+            tuple: object path str, object header dict, has content bool
         """
+        prefix = self.split_locator(path)[1]
         objects = tuple(
             self.client.get_locator(
-                prefix=path,
-                limit=max_request_entries,
+                prefix=prefix,
+                limit=max_results,
                 raise_404_if_empty=False,
                 **client_kwargs,
             ).items()
         )
         if not objects:
             _raise_404()
-        return objects
+
+        index = len(prefix)
+        for name, headers in objects:
+            yield name[index:], headers, False
 
 
 class MockRawIO(_ObjectRawIORandomWriteBase):

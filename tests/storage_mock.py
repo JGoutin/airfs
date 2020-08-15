@@ -98,6 +98,7 @@ class ObjectStorageMock:
         raise_404_if_empty=True,
         first_level=False,
         relative=False,
+        **_
     ):
         """
         Get locator content.

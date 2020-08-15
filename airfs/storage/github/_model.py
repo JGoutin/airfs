@@ -69,7 +69,7 @@ class Owner(GithubObject):
             spec (dict): Item spec.
 
         Returns:
-            generator of tuple: object name str, object header dict, directory bool
+            generator of tuple: object name str, object header dict, has content bool
         """
         raise UnsupportedOperation("Listing GitHub owners is not supported")
 

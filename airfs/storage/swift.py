@@ -171,35 +171,46 @@ class _SwiftSystem(_SystemBase):
             # Container
             return self.client.delete_container(client_kwargs["container"])
 
-    def _list_locators(self):
+    def _list_locators(self, max_results):
         """
         Lists locators.
 
-        Returns:
-            generator of tuple: locator name str, locator header dict
+        args:
+            max_results (int): The maximum results that should return the method.
+
+        Yields:
+            tuple: locator name str, locator header dict, has content bool
         """
+        kwargs = dict()
+        if max_results:
+            kwargs["limit"] = max_results
+        else:
+            kwargs["full_listing"] = True
+
         with _handle_client_exception():
-            response = self.client.get_account()
+            response = self.client.get_account(**kwargs)
 
         for container in response[1]:
-            yield container.pop("name"), container
+            yield container.pop("name"), container, True
 
-    def _list_objects(self, client_kwargs, path, max_request_entries):
+    def _list_objects(self, client_kwargs, path, max_results, first_level):
         """
         Lists objects.
 
         args:
             client_kwargs (dict): Client arguments.
-            path (str): Path relative to current locator.
-            max_request_entries (int): If specified, maximum entries returned by the
-                request.
+            path (str): Path to list.
+            max_results (int): The maximum results that should return the method.
+            first_level (bool): It True, may only first level objects.
 
-        Returns:
-            generator of tuple: object name str, object header dict
+        Yields:
+            tuple: object path str, object header dict, has content bool
         """
-        kwargs = dict(prefix=path)
-        if max_request_entries:
-            kwargs["limit"] = max_request_entries
+        prefix = self.split_locator(path)[1]
+        index = len(prefix)
+        kwargs = dict(prefix=prefix)
+        if max_results:
+            kwargs["limit"] = max_results
         else:
             kwargs["full_listing"] = True
 
@@ -207,7 +218,7 @@ class _SwiftSystem(_SystemBase):
             response = self.client.get_container(client_kwargs["container"], **kwargs)
 
         for obj in response[1]:
-            yield obj.pop("name"), obj
+            yield obj.pop("name")[index:], obj, False
 
     def _shareable_url(self, client_kwargs, expires_in):
         """

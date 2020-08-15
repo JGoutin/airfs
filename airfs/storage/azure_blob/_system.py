@@ -146,38 +146,43 @@ class _AzureBlobSystem(_AzureBaseSystem):
 
         return self._model_to_dict(result)
 
-    def _list_locators(self):
+    def _list_locators(self, max_results):
         """
         Lists locators.
 
-        Returns:
-            generator of tuple: locator name str, locator header dict
+        args:
+            max_results (int): The maximum results that should return the method.
+
+        Yields:
+            tuple: locator name str, locator header dict, has content bool
         """
         with _handle_azure_exception():
-            for container in self._client_block.list_containers():
-                yield container.name, self._model_to_dict(container)
+            for container in self._client_block.list_containers(
+                num_results=max_results
+            ):
+                yield container.name, self._model_to_dict(container), True
 
-    def _list_objects(self, client_kwargs, path, max_request_entries):
+    def _list_objects(self, client_kwargs, path, max_results, first_level):
         """
         Lists objects.
 
         args:
             client_kwargs (dict): Client arguments.
-            path (str): Path relative to current locator.
-            max_request_entries (int): If specified, maximum entries returned by the
-                request.
+            path (str): Path to list.
+            max_results (int): The maximum results that should return the method.
+            first_level (bool): It True, may only first level objects.
 
-        Returns:
-            generator of tuple: object name str, object header dict
+        Yields:
+            tuple: object path str, object header dict, has content bool
         """
-        client_kwargs = self._update_listing_client_kwargs(
-            client_kwargs, max_request_entries
-        )
+        prefix = self.split_locator(path)[1]
+        index = len(prefix)
+        client_kwargs = self._update_listing_client_kwargs(client_kwargs, max_results)
 
         blob = None
         with _handle_azure_exception():
-            for blob in self._client_block.list_blobs(prefix=path, **client_kwargs):
-                yield blob.name, self._model_to_dict(blob)
+            for blob in self._client_block.list_blobs(prefix=prefix, **client_kwargs):
+                yield blob.name[index:], self._model_to_dict(blob), False
 
         # None only if path don't exists
         if blob is None:

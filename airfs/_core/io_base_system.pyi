@@ -81,7 +81,7 @@ class SystemBase(ABC, WorkerPoolBase, metaclass=abc.ABCMeta):
         path: str = ...,
         relative: bool = ...,
         first_level: bool = ...,
-        max_request_entries: Optional[Any] = ...,
+        max_results: Optional[Any] = ...,
     ) -> None: ...
     def islink(
         self,

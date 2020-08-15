@@ -236,16 +236,17 @@ class GithubObject(Mapping):
         return model.next_model(spec)
 
     @classmethod
-    def list(cls, client, spec):
+    def list(cls, client, spec, first_level=False):
         """
         List objects of this GitHub class matching the spec.
 
         Args:
             client (airfs.storage.github._api.ApiV3): Client.
             spec (dict): Item spec.
+            first_level (bool): It True, returns only first level objects.
 
         Yields:
-            tuple: object name str, object header dict, directory bool
+            tuple: object name str, object header dict, has content bool
         """
         # Get from API
         response = client.get_paged(cls.LIST.format(**spec))
@@ -253,9 +254,10 @@ class GithubObject(Mapping):
         # Format result header and yield
         key = cls.LIST_KEY
         set_header = cls.set_header
+        is_dir = cls.STRUCT is not None
         for headers in response:
             name = headers[key]
-            yield headers[key], cls(client, spec, set_header(headers), name), True
+            yield name, cls(client, spec, set_header(headers), name), is_dir
 
     @classmethod
     def head_obj(cls, client, spec):

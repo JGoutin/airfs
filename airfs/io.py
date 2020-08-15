@@ -12,7 +12,6 @@ from airfs._core.io_random_write import (
     ObjectRawIORandomWriteBase,
     ObjectBufferedIORandomWriteBase,
 )
-from airfs._core.io_file_system import FileSystemBase
 
 __all__ = [
     "ObjectRawIOBase",
@@ -20,7 +19,6 @@ __all__ = [
     "SystemBase",
     "ObjectRawIORandomWriteBase",
     "ObjectBufferedIORandomWriteBase",
-    "FileSystemBase",
 ]
 
 # Makes cleaner namespace

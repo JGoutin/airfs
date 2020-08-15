@@ -67,14 +67,14 @@ def test_system_base():
                 raise ObjectPermissionError
             elif path in ("locator", "locator/dir1"):
                 for obj in objects:
-                    yield obj, object_header.copy()
+                    yield obj, object_header.copy(), False
             else:
-                raise StopIteration
+                return
 
-        def _list_locators(self):
+        def _list_locators(self, *_, **__):
             """Returns fake result"""
             for locator in locators:
-                yield locator, object_header.copy()
+                yield locator, object_header.copy(), True
 
         def _head(self, client_kwargs):
             """Checks arguments and returns fake result"""
@@ -217,15 +217,11 @@ def test_system_base():
 
     # Tests list_objects
     assert list(system.list_objects(path="root://", first_level=True)) == [
-        (locator, object_header) for locator in locators
+        (locator + "/", object_header) for locator in locators
     ]
 
-    excepted = (
-        [(locators[0], object_header)]
-        + [("/".join((locators[0], obj)), object_header) for obj in objects]
-        + [(locators[1], object_header)]
-    )
-    assert list(system.list_objects(path="root://")) == excepted
+    with pytest.raises(ObjectPermissionError):
+        list(system.list_objects(path="root://"))
 
     assert list(system.list_objects(path="root://locator")) == [
         (obj, object_header) for obj in objects
@@ -234,11 +230,3 @@ def test_system_base():
     assert list(system.list_objects(path="locator", relative=True)) == [
         (obj, object_header) for obj in objects
     ]
-
-    excepted = [(obj, object_header) for obj in ("object1", "object2", "object3")] + [
-        ("dir2/", dict())
-    ]
-    assert (
-        list(system.list_objects(path="root://locator/dir1", first_level=True))
-        == excepted
-    )

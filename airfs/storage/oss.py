@@ -245,41 +245,48 @@ class _OSSSystem(_SystemBase):
             if not attr.startswith("_") and attr not in ignore
         }
 
-    def _list_locators(self):
+    def _list_locators(self, max_results):
         """
         Lists locators.
 
-        Returns:
-            generator of tuple: locator name str, locator header dict
+        args:
+            max_results (int): The maximum results that should return the method.
+
+        Yields:
+            tuple: locator name str, locator header dict, has content bool
         """
         with _handle_oss_error():
-            response = _oss.Service(self.client, endpoint=self._endpoint).list_buckets()
+            response = _oss.Service(self.client, endpoint=self._endpoint).list_buckets(
+                max_keys=max_results or 100
+            )
 
         for bucket in response.buckets:
-            yield bucket.name, self._model_to_dict(bucket, ("name",))
+            yield bucket.name, self._model_to_dict(bucket, ("name",)), True
 
-    def _list_objects(self, client_kwargs, path, max_request_entries):
+    def _list_objects(self, client_kwargs, path, max_results, first_level):
         """
         Lists objects.
 
         args:
             client_kwargs (dict): Client arguments.
-            path (str): Path relative to current locator.
-            max_request_entries (int): If specified, maximum entries returned by the
-                request.
+            path (str): Path to list.
+            max_results (int): The maximum results that should return the method.
+            first_level (bool): It True, may only first level objects.
 
-        Returns:
-            generator of tuple: object name str, object header dict
+        Yields:
+            tuple: object path str, object header dict, has content bool
         """
-        kwargs = dict()
-        if max_request_entries:
-            kwargs["max_keys"] = max_request_entries
+        prefix = self.split_locator(path)[1]
+        index = len(prefix)
+        kwargs = dict(prefix=prefix)
+        if max_results:
+            kwargs["max_keys"] = max_results
 
         bucket = self._get_bucket(client_kwargs)
 
         while True:
             with _handle_oss_error():
-                response = bucket.list_objects(prefix=path, **kwargs)
+                response = bucket.list_objects(**kwargs)
 
             if not response.object_list:
                 # In case of empty dir, return empty dir path:
@@ -287,7 +294,7 @@ class _OSSSystem(_SystemBase):
                 raise _ObjectNotFoundError("Not found: %s" % path)
 
             for obj in response.object_list:
-                yield obj.key, self._model_to_dict(obj, ("key",))
+                yield obj.key[index:], self._model_to_dict(obj, ("key",)), False
 
             # Handles results on more than one page
             if response.next_marker:

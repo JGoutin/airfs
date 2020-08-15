@@ -99,7 +99,7 @@ def test_mocked_storage():
             return Share(props=props, name=share_name)
 
         @staticmethod
-        def list_shares():
+        def list_shares(**_):
             """azure.storage.file.fileservice.FileService.list_shares"""
             shares = []
             for share_name in storage_mock.get_locators():

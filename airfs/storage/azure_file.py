@@ -17,11 +17,11 @@ from airfs.storage.azure import (
 )
 from airfs.io import (
     ObjectBufferedIORandomWriteBase as _ObjectBufferedIORandomWriteBase,
-    FileSystemBase as _FileSystemBase,
+    SystemBase as _SystemBase,
 )
 
 
-class _AzureFileSystem(_AzureBaseSystem, _FileSystemBase):
+class _AzureFileSystem(_AzureBaseSystem, _SystemBase):
     """
     Azure Files Storage system.
 
@@ -142,33 +142,34 @@ class _AzureFileSystem(_AzureBaseSystem, _FileSystemBase):
 
         return self._model_to_dict(result)
 
-    def _list_locators(self):
+    def _list_locators(self, max_results):
         """
         Lists locators.
 
-        Returns:
-            generator of tuple: locator name str, locator header dict
+        args:
+            max_results (int): The maximum results that should return the method.
+
+        Yields:
+            tuple: locator name str, locator header dict, has content bool
         """
         with _handle_azure_exception():
-            for share in self.client.list_shares():
-                yield share.name, self._model_to_dict(share)
+            for share in self.client.list_shares(num_results=max_results):
+                yield share.name, self._model_to_dict(share), True
 
-    def _list_objects(self, client_kwargs, max_request_entries):
+    def _list_objects(self, client_kwargs, path, max_results, first_level):
         """
         Lists objects.
 
         args:
             client_kwargs (dict): Client arguments.
-            max_request_entries (int): If specified, maximum entries returned by the
-                request.
+            path (str): Path to list.
+            max_results (int): The maximum results that should return the method.
+            first_level (bool): It True, may only first level objects.
 
-        Returns:
-            generator of tuple: object name str, object header dict,
-            directory bool
+        Yields:
+            tuple: object path str, object header dict, has content bool
         """
-        client_kwargs = self._update_listing_client_kwargs(
-            client_kwargs, max_request_entries
-        )
+        client_kwargs = self._update_listing_client_kwargs(client_kwargs, max_results)
 
         with _handle_azure_exception():
             for obj in self.client.list_directories_and_files(**client_kwargs):

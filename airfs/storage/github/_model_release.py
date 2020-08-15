@@ -23,7 +23,7 @@ class ReleaseAsset(GithubObject):
             spec (dict): Item spec.
 
         Returns:
-            generator of tuple: object name str, object header dict, directory bool
+            generator of tuple: object name str, object header dict, has content bool
         """
         cls._raise_if_not_dir(spec.get("asset"), spec)
 
@@ -96,7 +96,7 @@ class ReleaseArchive(Archive):
             spec (dict): Item spec.
 
         Returns:
-            generator of tuple: object name str, object header dict, directory bool
+            generator of tuple: object name str, object header dict, has content bool
         """
         cls._raise_if_not_dir(spec.get("archive"), spec)
 

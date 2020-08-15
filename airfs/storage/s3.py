@@ -286,49 +286,58 @@ class _S3System(_SystemBase):
             # Bucket
             return self.client.delete_bucket(Bucket=client_kwargs["Bucket"])
 
-    def _list_locators(self):
+    def _list_locators(self, max_results):
         """
         Lists locators.
 
-        Returns:
-            generator of tuple: locator name str, locator header dict
+        args:
+            max_results (int): The maximum results that should return the method.
+
+        Yields:
+            tuple: locator name str, locator header dict, has content bool
         """
+        kwargs = dict()
+        if max_results:
+            kwargs["MaxKeys"] = max_results
+
         with _handle_client_error():
-            response = self.client.list_buckets()
+            response = self.client.list_buckets(**kwargs)
 
         for bucket in response["Buckets"]:
-            yield bucket.pop("Name"), bucket
+            yield bucket.pop("Name"), bucket, True
 
-    def _list_objects(self, client_kwargs, path, max_request_entries):
+    def _list_objects(self, client_kwargs, path, max_results, first_level):
         """
         Lists objects.
 
         args:
             client_kwargs (dict): Client arguments.
-            path (str): Path relative to current locator.
-            max_request_entries (int): If specified, maximum entries returned by the
-                request.
+            path (str): Path.
+            max_results (int): The maximum results that should return the method.
+            first_level (bool): It True, may only first level objects.
 
-        Returns:
-            generator of tuple: object name str, object header dict
+        Yields:
+            tuple: object path str, object header dict, has content bool
         """
-        client_kwargs = client_kwargs.copy()
-        if max_request_entries:
-            client_kwargs["MaxKeys"] = max_request_entries
+        prefix = self.split_locator(path)[1]
+        index = len(prefix)
+        kwargs = dict(Bucket=client_kwargs["Bucket"], Prefix=prefix)
+        if max_results:
+            kwargs["MaxKeys"] = max_results
 
         while True:
             with _handle_client_error():
-                response = self.client.list_objects_v2(Prefix=path, **client_kwargs)
+                response = self.client.list_objects_v2(**kwargs)
 
             try:
                 for obj in response["Contents"]:
-                    yield obj.pop("Key"), obj
+                    yield obj.pop("Key")[index:], obj, False
             except KeyError:
                 raise _ObjectNotFoundError("Not found: %s" % path)
 
             # Handles results on more than one page
             try:
-                client_kwargs["ContinuationToken"] = response["NextContinuationToken"]
+                kwargs["ContinuationToken"] = response["NextContinuationToken"]
             except KeyError:
                 # End of results
                 break

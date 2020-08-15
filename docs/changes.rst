@@ -44,6 +44,9 @@ Improvements:
 * Add `Flake8 <https://gitlab.com/pycqa/flake8>`_,
   `Mypy <http://www.mypy-lang.org/>`_ and
   `Bandit <https://github.com/PyCQA/bandit>`_ to the Pytest sequence.
+* Refactor `airfs.io.SystemBase.list_objects` to improve to support more input file
+  listing and make the API simpler. Remove `airfs.io.FileSystemBase` which is now a
+  duplicate.
 
 Fixes:
 

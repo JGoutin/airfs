@@ -79,7 +79,7 @@ class Reference(GithubObject):
             spec (dict): Item spec.
 
         Yields:
-            tuple: object name str, object header dict, directory bool
+            tuple: object name str, object header dict, has content bool
         """
         cls._get_ref(client, spec)
         return spec["object"].list(client, spec)
@@ -148,7 +148,7 @@ class DefaultBranch(GithubObject):
             spec (dict): Item spec.
 
         Yields:
-            tuple: object name str, object header dict, directory bool
+            tuple: object name str, object header dict, has content bool
         """
         cls._get_branch(client, spec)
         return Branch.list(client, spec)
