@@ -157,6 +157,22 @@ class MockSystem(_SystemBase):
         for name, headers in objects:
             yield name[index:], headers, False
 
+    def _shareable_url(self, client_kwargs, expires_in):
+        """
+        Get a shareable URL for the specified path.
+
+        Args:
+            client_kwargs (dict): Client arguments.
+            expires_in (int): Expiration in seconds.
+
+        Returns:
+            str: Shareable URL.
+        """
+        return "https://%s/%s#token=123456" % (
+            client_kwargs["locator"],
+            client_kwargs["path"],
+        )
+
 
 class MockRawIO(_ObjectRawIORandomWriteBase):
     """Mock Raw IO"""

@@ -886,8 +886,13 @@ class SystemBase(ABC, WorkerPoolBase):
         Args:
             path (str): Path or URL.
             expires_in (int): Expiration in seconds.
+
+        Returns:
+            str: Shareable URL.
         """
-        self._shareable_url(self.get_client_kwargs(self.relpath(path)), expires_in)
+        return self._shareable_url(
+            self.get_client_kwargs(self.relpath(path)), expires_in
+        )
 
     def _shareable_url(self, client_kwargs, expires_in):
         """

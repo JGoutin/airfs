@@ -38,12 +38,19 @@ def test_handle_client_exception():
 
 def test_mocked_storage():
     """Tests airfs.swift with a mock"""
+    from random import choice
+    from string import ascii_letters
     from json import loads
     import swiftclient
     from airfs.storage.swift import SwiftRawIO, _SwiftSystem, SwiftBufferedIO
 
     from tests.test_storage import StorageTester
     from tests.storage_mock import ObjectStorageMock
+
+    URL = "https://%s/v1/%s" % (
+        "".join(choice(ascii_letters) for _ in range(8)),
+        "".join(choice(ascii_letters) for _ in range(4)),
+    )
 
     # Mocks client
 
@@ -70,7 +77,7 @@ def test_mocked_storage():
         @staticmethod
         def get_auth():
             """swiftclient.client.Connection.get_auth"""
-            return ("###",)
+            return (URL,)
 
         @staticmethod
         def get_object(container, obj, headers=None, **_):
@@ -165,7 +172,7 @@ def test_mocked_storage():
     # Tests
     try:
         # Init mocked system
-        system = _SwiftSystem()
+        system = _SwiftSystem(storage_parameters=dict(temp_url_key="123456"))
         storage_mock.attach_io_system(system)
 
         # Tests

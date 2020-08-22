@@ -11,6 +11,7 @@ UNSUPPORTED_OPERATIONS = (
     "remove",
     "symlink",
     "write",
+    "shareable_url",
 )
 
 

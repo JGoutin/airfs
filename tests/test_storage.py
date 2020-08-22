@@ -6,6 +6,7 @@ from time import time as _time
 from uuid import uuid4 as _uuid
 
 import pytest as _pytest
+import requests as _requests
 
 
 def _urandom(size):
@@ -33,6 +34,7 @@ class StorageTester:
         storage_mock (tests.storage_mock.ObjectStorageMock instance): Storage mock in
             use, if any.
         storage_info (dict): Storage information from airfs.mount.
+        path_prefix (str): Prefix to append before any path.
     """
 
     def __init__(
@@ -45,6 +47,7 @@ class StorageTester:
         storage_info=None,
         system_parameters=None,
         root=None,
+        path_prefix=None,
     ):
 
         if system is None:
@@ -77,7 +80,11 @@ class StorageTester:
         self.locator = self._get_id()
         self.locator_url = "/".join((root, self.locator))
         self.base_dir_name = "%s/" % self._get_id()
-        self.base_dir_path = "%s/%s" % (self.locator, self.base_dir_name)
+        if path_prefix:
+            dir_parts = (self.locator, path_prefix, self.base_dir_name)
+        else:
+            dir_parts = (self.locator, self.base_dir_name)
+        self.base_dir_path = "/".join(dir_parts)
         self.base_dir_url = root + self.base_dir_path
 
         # Run test sequence
@@ -535,7 +542,7 @@ class StorageTester:
                 self._storage_mock.put_locator(self.locator)
 
         # Test: Check locator listed
-        if self._is_supported("listdir"):
+        if self._is_supported("listdir") and self._is_supported("list_locator"):
             for name, header, _ in system._list_locators(None):
                 if name == self.locator and isinstance(header, dict):
                     break
@@ -765,6 +772,21 @@ class StorageTester:
             # Test: Is symlink
             # assert system.islink(link_path)
             # assert system.islink(header=system.head(link_path)
+
+        # Test: Shared file
+        if self._is_supported("shareable_url"):
+            shareable_url = system.shareable_url(file_path, 60)
+            assert shareable_url.startswith("http"), "Shareable URL"
+
+            if self._storage_mock is None:
+                # Test file download
+                response = _requests.get(shareable_url)
+                response.raise_for_status()
+                assert response.content == content
+        else:
+            # Test: Unsupported
+            with _pytest.raises(_UnsupportedOperation):
+                system.shareable_url(file_path, 60)
 
         # Test: Remove file
         if self._is_supported("remove"):

@@ -48,12 +48,25 @@ def test_equivalent_to():
     assert cos_function(local_path, *dummy_args, **dummy_kwargs) == std
 
     # Tests path-like object compatibility
-    if (version_info[0] == 3 and version_info[1] >= 6) or version_info[0] > 3:
+    if version_info[0] == 3 and version_info[1] >= 6:
         import pathlib
 
         assert (
             cos_function(pathlib.Path(local_path), *dummy_args, **dummy_kwargs) == std
         )
+
+    # Test "keep_path_type"
+    assert cos_function(storage_path.encode(), *dummy_args, **dummy_kwargs) == cos
+
+    @equivalent_to(std_function, keep_path_type=True)
+    def cos_function_2(path, *args, **kwargs):
+        """Checks arguments and returns fake result"""
+        return cos
+
+    assert (
+        cos_function_2(storage_path.encode(), *dummy_args, **dummy_kwargs)
+        == cos.encode()
+    )
 
     # Tests exception conversion
     raises_exception = True

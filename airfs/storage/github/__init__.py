@@ -5,6 +5,7 @@ from os.path import (
     realpath as _realpath,
     join as _join,
     basename as _basename,
+    normpath as _normpath,
 )
 from re import compile as _compile
 
@@ -317,12 +318,15 @@ class _GithubSystem(_SystemBase):
 
         # Get absolute target path and related spec
         parent_path = client_kwargs["path"]
-        base_url = client_kwargs["full_path"][-len(parent_path) :]
+        target_path = _normpath(_join(_basename(parent_path), target))
+        if target_path.startswith(".."):
+            # Target is outside the Git repository
+            return target_path
 
         spec = client_kwargs.copy()
-        # TODO: Handle case path is outside the Tree directory
-        target_path = spec["path"] = _join(_basename(parent_path), target)
+        base_url = client_kwargs["full_path"][-len(parent_path) :]
         full_path = spec["full_path"] = base_url + target_path
+        spec["path"] = target_path
 
         # If target is a link, continue to follow
         if self.islink(full_path, spec):

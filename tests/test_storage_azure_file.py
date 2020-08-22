@@ -261,6 +261,17 @@ def test_mocked_storage():
                 data_range=(content_length - padding, content_length),
             )
 
+        @staticmethod
+        def make_file_url(share_name=None, file_name=None, sas_token=None, **_):
+            """azure.storage.file.fileservice.FileService.make_file_url"""
+            return "https://%s/%s#token=%s" % (share_name, file_name, sas_token)
+
+        @staticmethod
+        def generate_file_shared_access_signature(**_):
+            """azure.storage.file.fileservice.FileService.
+            generate_file_shared_access_signature"""
+            return "123456"
+
     azure_storage_file_file_service = azure_file._FileService
     azure_file._FileService = FileService
 

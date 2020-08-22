@@ -28,3 +28,7 @@ def test_handle_os_exceptions():
     with pytest.raises(NotADirectoryError):
         with handle_os_exceptions():
             raise ObjectNotADirectoryError("error")
+
+    with pytest.raises(FileExistsError):
+        with handle_os_exceptions():
+            raise FileExistsError()

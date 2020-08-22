@@ -140,6 +140,28 @@ def test_mocked_storage():
                 )
             )
 
+        @staticmethod
+        def make_blob_url(container_name=None, blob_name=None, sas_token=None, **_):
+            """azure.storage.blob.baseblobservice.BaseBlobService.make_blob_url"""
+            return "https://%s/%s#token=%s" % (container_name, blob_name, sas_token)
+
+        @staticmethod
+        def make_container_url(container_name=None, sas_token=None, **_):
+            """azure.storage.blob.baseblobservice.BaseBlobService.make_container_url"""
+            return "https://%s#token=%s" % (container_name, sas_token)
+
+        @staticmethod
+        def generate_blob_shared_access_signature(**_):
+            """azure.storage.blob.baseblobservice.BaseBlobService.
+            generate_blob_shared_access_signature"""
+            return "123456"
+
+        @staticmethod
+        def generate_container_shared_access_signature(**_):
+            """azure.storage.blob.baseblobservice.BaseBlobService.
+            generate_container_shared_access_signature"""
+            return "123456"
+
     class PageBlobService(BlobService):
         """azure.storage.blob.pageblobservice.PageBlobService"""
 

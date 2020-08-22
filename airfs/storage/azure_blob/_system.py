@@ -233,13 +233,13 @@ class _AzureBlobSystem(_AzureBaseSystem):
         """
         if "blob_name" in client_kwargs:
             # Blob
-            make_url = self.client.make_blob_url
-            generate_sas = self.client.generate_blob_shared_access_signature
+            make_url = self._client_block.make_blob_url
+            generate_sas = self._client_block.generate_blob_shared_access_signature
             permissions = BlobPermissions
         else:
             # Container
-            make_url = self.client.make_container_url
-            generate_sas = self.client.generate_container_shared_access_signature
+            make_url = self._client_block.make_container_url
+            generate_sas = self._client_block.generate_container_shared_access_signature
             permissions = ContainerPermissions
 
         return _make_sas_url(

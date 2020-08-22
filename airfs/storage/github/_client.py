@@ -51,8 +51,8 @@ class Client:
         wait_warn (bool): If True and "wait_rate_limit" is True, warn using
             "airfs.storage.github.GithubRateLimitWarning" when waiting for rate limit
             reset for the first time.
-        wait_retry_delay (int): Delay in seconds between two API get attempt when
-            waiting for rate limit reset.
+        wait_retry_delay (int or float): Delay in seconds between two API get attempt
+            when waiting for rate limit reset.
     """
 
     _RATE_LIMIT_WARNED = False
@@ -218,7 +218,7 @@ class Client:
             if max_page == 0:
                 # Get last page from the "link" header value.
                 try:
-                    links = headers["link"]
+                    links = headers["Link"]
                 except KeyError:
                     # If not present, there is only one page.
                     break
@@ -239,28 +239,30 @@ class Client:
             url, rel = link.split(";", 1)
             if rel.strip() == 'rel="last"':
                 return int(parse_qs(urlparse(url.strip("<>")).query)["page"][0])
+        raise RuntimeError('Last page not found in "Link" header: ' + links)
 
     def _handle_rate_limit(self):
         """
         Wait until remaining rate limit is greater than 0, or raise exception.
         """
-        while self._wait_rate_limit:
-            # Warn user once per session
+        if not self._wait_rate_limit:
+            raise GithubRateLimitException(self._rate_limit_reached())
+
+        url = GITHUB_API + "/rate_limit"
+        headers = self._api_headers()
+        remaining = 0
+        while remaining == 0:
+
             if self._wait_warn and not Client._RATE_LIMIT_WARNED:
+                # Warn user once per session
                 from warnings import warn
 
                 warn(self._rate_limit_reached(True), GithubRateLimitWarning)
                 Client._RATE_LIMIT_WARNED |= True
 
-            # Wait until rate limit API return remaining > 0
             sleep(self._wait_retry_delay)
-            resp = self.request(
-                "GET", GITHUB_API + "/rate_limit", headers=self._api_headers()
-            )
-            if int((resp.json())["resources"]["core"]["remaining"]):
-                return
-
-        raise GithubRateLimitException(self._rate_limit_reached())
+            resp = self._request("GET", url, headers=headers)
+            remaining = int((resp.json())["resources"]["core"]["remaining"])
 
     def _rate_limit_reached(self, waiting=False):
         """
@@ -275,6 +277,6 @@ class Client:
         msg = ["GitHub rate limit reached."]
         if waiting:
             msg.append("Waiting for limit reset...")
-        if "Authorization" not in self._headers:
+        if "Authorization" not in self._api_headers():
             msg.append("Authenticate to GitHub to increase the limit.")
         return " ".join(msg)

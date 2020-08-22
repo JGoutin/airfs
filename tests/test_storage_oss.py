@@ -6,6 +6,8 @@ pytest.importorskip("oss2")
 UNSUPPORTED_OPERATIONS = (
     # Not supported on some objects
     "getctime",
+    # Not supported
+    "shareable_url",
 )
 
 
