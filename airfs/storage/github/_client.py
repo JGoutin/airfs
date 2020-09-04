@@ -90,7 +90,6 @@ class Client:
         Returns:
             dict or None: API request headers.
         """
-        # Create headers base with authentication if token provided
         if self._headers is None:
             auth_headers = {}
             token = self._token
@@ -98,7 +97,6 @@ class Client:
                 auth_headers["Authorization"] = "token %s" % token
             self._headers = auth_headers
 
-        # Add If-Modified-Since to perform API Conditional requests
         if previous_headers is not None:
             headers = self._headers.copy()
             for condition, key in (
@@ -129,7 +127,6 @@ class Client:
         while True:
             response = self._request(method, GITHUB_API + path, **kwargs)
 
-            # If API Rate limit is reached, wait until ready and retry
             if (
                 response.status_code == 403
                 and int(response.headers.get("X-RateLimit-Remaining", "-1")) == 0
@@ -153,36 +150,29 @@ class Client:
         Returns:
             tuple: result dict, headers dict.
         """
-        # Retrieve request from cache
         cache_name = path
         if params:
             cache_name += dumps(params)
         try:
             result, headers = get_cache(cache_name)
         except NoCacheException:
-            # No cached result
             result = headers = None
 
         else:
-            # Return cached result directly if not expire
             if never_expire:
                 return result, headers
 
-            # Return cached result directly if very recent
             dt_date = parse(headers["Date"])
             if dt_date > datetime.now(dt_date.tzinfo) - _CACHE_SHORT_DELTA:
                 return result, headers
 
-        # Perform the request
         response = self.request(
             path, params=params, headers=self._api_headers(previous_headers=headers)
         )
 
-        # If not an unchanged result, return previously cached result directly
         if response.status_code == 304:
             return result, headers
 
-        # Else, return the new result and cache it for later
         _handle_http_errors(response, _CODES_CONVERSION)
         result = response.json()
         headers = dict(response.headers)
@@ -216,7 +206,6 @@ class Client:
             params["page"] = page
 
             if max_page == 0:
-                # Get last page from the "link" header value.
                 try:
                     links = headers["Link"]
                 except KeyError:
@@ -254,7 +243,6 @@ class Client:
         while remaining == 0:
 
             if self._wait_warn and not Client._RATE_LIMIT_WARNED:
-                # Warn user once per session
                 from warnings import warn
 
                 warn(self._rate_limit_reached(True), GithubRateLimitWarning)

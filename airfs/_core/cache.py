@@ -100,11 +100,9 @@ def get_cache(name):
         try:
             timestamp = getmtime(path)
         except FileNotFoundError:
-            # Not cached
             continue
 
         if timestamp < expiry[mode]:
-            # Expired, deleted
             remove(path)
             continue
 
@@ -112,11 +110,9 @@ def get_cache(name):
             # In long cache mode, reset expiry delay
             utime(path)
 
-        # Retrieve cached data
         with open_archive(path, "rt") as file:
             return load(file)
 
-    # Nothing cached
     raise NoCacheException()
 
 

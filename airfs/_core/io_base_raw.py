@@ -55,44 +55,34 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         if storage_parameters is not None:
             storage_parameters = storage_parameters.copy()
 
-        # Try to get cached head for this file
         try:
             self._cache["_head"] = storage_parameters.pop("airfs.raw_io._head")
         except (AttributeError, KeyError):
             pass
 
-        # Initializes system
         try:
-            # Try to get cached system
             self._system = storage_parameters.pop("airfs.system_cached")
         except (AttributeError, KeyError):
             self._system = None
 
         if not self._system:
-            # If none cached, create a new system
             self._system = self._SYSTEM_CLASS(
                 storage_parameters=storage_parameters, **kwargs
             )
 
-        # Gets storage local path from URL
         self._path = self._system.relpath(name)
         self._client_kwargs = self._system.get_client_kwargs(name)
 
-        # Mark as standalone RAW to avoid flush conflicts on close
         self._is_raw_of_buffered = False
 
-        # Configures write mode
         if self._writable:
             self._write_buffer = bytearray()
 
-            # Initializes starting data
             if "a" in mode:
-                # Initialize with existing file content
                 if self._exists() == 1:
                     with handle_os_exceptions():
                         self._init_append()
 
-                # Create new file
                 elif self._exists() == 0:
                     with handle_os_exceptions():
                         self._create()
@@ -102,7 +92,6 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
                         "Insufficient permission to check if file already " "exists."
                     )
 
-            # Checks if object exists, and raise if it is the case
             elif "x" in mode and self._exists() == 1:
                 raise FileExistsError
 
@@ -111,14 +100,11 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
                     "Insufficient permission to check if file already " "exists."
                 )
 
-            # Create new file
             else:
                 with handle_os_exceptions():
                     self._create()
 
-        # Configure read mode
         else:
-            # Get header and checks files exists
             with handle_os_exceptions():
                 self._head()
 
@@ -126,10 +112,7 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         """
         Initializes file on 'a' mode.
         """
-        # Require to load the full file content in buffer
         self._write_buffer[:] = self._readall()
-
-        # Make initial seek position to current end of file
         self._seek = self._size
 
     @property
@@ -274,16 +257,13 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
             raise UnsupportedOperation("read")
 
         with self._seek_lock:
-            # Get data starting from seek
             with handle_os_exceptions():
                 if self._seek and self._seekable:
                     data = self._read_range(self._seek)
 
-                # Get all data
                 else:
                     data = self._readall()
 
-            # Update seek
             self._seek += len(data)
         return data
 
@@ -310,28 +290,23 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         if not self._readable:
             raise UnsupportedOperation("read")
 
-        # Get and update stream positions
         size = len(b)
         with self._seek_lock:
             start = self._seek
             end = start + size
             self._seek = end
 
-        # Read data range
         with handle_os_exceptions():
             read_data = self._read_range(start, end)
 
-        # Copy to bytes-like object
         read_size = len(read_data)
         if read_size:
             memoryview(b)[:read_size] = read_data
 
-        # Update stream position if end of file
         if read_size != size:
             with self._seek_lock:
                 self._seek = start + read_size
 
-        # Return read size
         return read_size
 
     @abstractmethod
@@ -368,7 +343,6 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
 
         seek = self._update_seek(offset, whence)
 
-        # If seek move out of file, add padding until new seek position.
         if self._writable:
             size = len(self._write_buffer)
             if seek > size:
@@ -412,8 +386,6 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         if not self._writable:
             raise UnsupportedOperation("write")
 
-        # This function write data in a buffer "flush()" need to be called to really
-        # write content on Storage
         size = len(b)
         with self._seek_lock:
             start = self._seek

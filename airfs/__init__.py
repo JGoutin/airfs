@@ -19,7 +19,6 @@ __version__ = "1.5.0"
 __copyright__ = "Copyright 2020 J.Goutin"
 __licence__ = "Apache 2.0"
 
-# Adds names to public interface
 # Shadowing "open" built-in name is done to provide "airfs.open" function
 from airfs._core.functions_io import cos_open as open  # noqa: F401
 from airfs._core.functions_os import (  # noqa: F401
@@ -99,7 +98,6 @@ __all__ = list(
     )
 )
 
-# Makes cleaner namespace
 for _name in __all__:
     locals()[_name].__module__ = __name__
 locals()["open"].__qualname__ = "open"

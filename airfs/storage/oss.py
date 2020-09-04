@@ -186,11 +186,9 @@ class _OSSSystem(_SystemBase):
         with _handle_oss_error():
             bucket = self._get_bucket(client_kwargs)
 
-            # Object
             if "key" in client_kwargs:
                 return bucket.head_object(key=client_kwargs["key"]).headers
 
-            # Bucket
             return bucket.get_bucket_info().headers
 
     def _make_dir(self, client_kwargs):
@@ -203,11 +201,9 @@ class _OSSSystem(_SystemBase):
         with _handle_oss_error():
             bucket = self._get_bucket(client_kwargs)
 
-            # Object
             if "key" in client_kwargs:
                 return bucket.put_object(key=client_kwargs["key"], data=b"")
 
-            # Bucket
             return bucket.create_bucket()
 
     def _remove(self, client_kwargs):
@@ -220,11 +216,9 @@ class _OSSSystem(_SystemBase):
         with _handle_oss_error():
             bucket = self._get_bucket(client_kwargs)
 
-            # Object
             if "key" in client_kwargs:
                 return bucket.delete_object(key=client_kwargs["key"])
 
-            # Bucket
             return bucket.delete_bucket()
 
     @staticmethod
@@ -289,18 +283,14 @@ class _OSSSystem(_SystemBase):
                 response = bucket.list_objects(**kwargs)
 
             if not response.object_list:
-                # In case of empty dir, return empty dir path:
-                # if empty result, the dir do not exists.
                 raise _ObjectNotFoundError("Not found: %s" % path)
 
             for obj in response.object_list:
                 yield obj.key[index:], self._model_to_dict(obj, ("key",)), False
 
-            # Handles results on more than one page
             if response.next_marker:
                 client_kwargs["marker"] = response.next_marker
             else:
-                # End of results
                 break
 
 
@@ -356,20 +346,17 @@ class OSSRawIO(_ObjectRawIOBase):
             # EOF. Do not detect using 416 (Out of range) error, 200 returned.
             return bytes()
 
-        # Get object bytes range
         with _handle_oss_error():
             response = self._bucket.get_object(
                 key=self._key,
                 headers=dict(
                     Range=self._http_range(
-                        # Returns full file if end > size
                         start,
                         end if end <= self._size else self._size,
                     )
                 ),
             )
 
-        # Get object content
         return response.read()
 
     def _readall(self):
@@ -428,14 +415,12 @@ class OSSBufferedIO(_ObjectBufferedIOBase):
         """
         Flush the write buffers of the stream.
         """
-        # Initialize multipart upload
         if self._upload_id is None:
             with _handle_oss_error():
                 self._upload_id = self._bucket.init_multipart_upload(
                     self._key
                 ).upload_id
 
-        # Upload part with workers
         response = self._workers.submit(
             self._bucket.upload_part,
             key=self._key,
@@ -444,14 +429,12 @@ class OSSBufferedIO(_ObjectBufferedIOBase):
             data=self._get_buffer().tobytes(),
         )
 
-        # Save part information
         self._write_futures.append(dict(response=response, part_number=self._seek))
 
     def _close_writable(self):
         """
         Close the object in write mode.
         """
-        # Wait parts upload completion
         parts = [
             _PartInfo(
                 part_number=future["part_number"], etag=future["response"].result().etag
@@ -459,14 +442,12 @@ class OSSBufferedIO(_ObjectBufferedIOBase):
             for future in self._write_futures
         ]
 
-        # Complete multipart upload
         with _handle_oss_error():
             try:
                 self._bucket.complete_multipart_upload(
                     key=self._key, upload_id=self._upload_id, parts=parts
                 )
             except _OssError:
-                # Clean up failed upload
                 self._bucket.abort_multipart_upload(
                     key=self._key, upload_id=self._upload_id
                 )

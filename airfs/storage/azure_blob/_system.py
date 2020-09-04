@@ -14,7 +14,6 @@ from airfs.storage.azure import _handle_azure_exception, _AzureBaseSystem, _make
 from airfs._core.exceptions import ObjectNotFoundError
 from airfs._core.io_base import memoizedmethod
 
-# Default blob type
 _DEFAULT_BLOB_TYPE = _BlobTypes.BlockBlob
 
 
@@ -55,7 +54,6 @@ class _AzureBlobSystem(_AzureBaseSystem):
         """
         parameters = self._secured_storage_parameters().copy()
 
-        # Parameter added by airfs and unsupported by blob services.
         try:
             del parameters["blob_type"]
         except KeyError:
@@ -100,7 +98,6 @@ class _AzureBlobSystem(_AzureBaseSystem):
         Returns:
             dict: client args
         """
-        # Remove query string from URL
         path = path.split("?", 1)[0]
 
         container_name, blob_name = self.split_locator(path)
@@ -136,11 +133,9 @@ class _AzureBlobSystem(_AzureBaseSystem):
             dict: HTTP header.
         """
         with _handle_azure_exception():
-            # Blob
             if "blob_name" in client_kwargs:
                 result = self._client_block.get_blob_properties(**client_kwargs)
 
-            # Container
             else:
                 result = self._client_block.get_container_properties(**client_kwargs)
 
@@ -184,7 +179,6 @@ class _AzureBlobSystem(_AzureBaseSystem):
             for blob in self._client_block.list_blobs(prefix=prefix, **client_kwargs):
                 yield blob.name[index:], self._model_to_dict(blob), False
 
-        # None only if path don't exists
         if blob is None:
             raise ObjectNotFoundError
 
@@ -196,13 +190,11 @@ class _AzureBlobSystem(_AzureBaseSystem):
             client_kwargs (dict): Client arguments.
         """
         with _handle_azure_exception():
-            # Blob
             if "blob_name" in client_kwargs:
                 return self._client_block.create_blob_from_bytes(
                     blob=b"", **client_kwargs
                 )
 
-            # Container
             return self._client_block.create_container(**client_kwargs)
 
     def _remove(self, client_kwargs):
@@ -213,11 +205,9 @@ class _AzureBlobSystem(_AzureBaseSystem):
             client_kwargs (dict): Client arguments.
         """
         with _handle_azure_exception():
-            # Blob
             if "blob_name" in client_kwargs:
                 return self._client_block.delete_blob(**client_kwargs)
 
-            # Container
             return self._client_block.delete_container(**client_kwargs)
 
     def _shareable_url(self, client_kwargs, expires_in):
@@ -232,12 +222,10 @@ class _AzureBlobSystem(_AzureBaseSystem):
             str: Shareable URL.
         """
         if "blob_name" in client_kwargs:
-            # Blob
             make_url = self._client_block.make_blob_url
             generate_sas = self._client_block.generate_blob_shared_access_signature
             permissions = BlobPermissions
         else:
-            # Container
             make_url = self._client_block.make_container_url
             generate_sas = self._client_block.generate_container_shared_access_signature
             permissions = ContainerPermissions

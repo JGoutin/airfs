@@ -53,7 +53,6 @@ class AzureBlockBlobRawIO(AzureBlobRawIO):
             buffer (memoryview): Buffer content.
         """
         with _handle_azure_exception():
-            # Write entire file at once
             self._client.create_blob_from_bytes(
                 blob=buffer.tobytes(), **self._client_kwargs
             )
@@ -113,7 +112,6 @@ class AzureBlockBlobBufferedIO(AzureBlobBufferedIO):
         """
         block_id = self._get_random_block_id(32)
 
-        # Upload block with workers
         self._write_futures.append(
             self._workers.submit(
                 self._client.put_block,
@@ -123,7 +121,6 @@ class AzureBlockBlobBufferedIO(AzureBlobBufferedIO):
             )
         )
 
-        # Save block information
         self._blocks.append(BlobBlock(id=block_id))
 
     def _close_writable(self):

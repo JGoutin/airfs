@@ -72,7 +72,9 @@ class ObjectStorageMock:
         Args:
             locator (str): locator name
         """
-        self._locators[locator] = locator = dict(_content=dict(),)
+        self._locators[locator] = locator = dict(
+            _content=dict(),
+        )
         if self._header_ctime:
             locator[self._header_ctime] = self._format_date(_time())
         if self._header_mtime:
@@ -121,21 +123,17 @@ class ObjectStorageMock:
             if name.startswith(prefix):
 
                 if (relative and prefix) or first_level:
-                    # Relative path
                     if prefix:
                         name = name.split(prefix)[1].lstrip("/")
 
-                    # Get first level element
                     if first_level and "/" in name.rstrip("/"):
                         name = name.split("/", 1)[0].rstrip("/")
                         if name:
                             name += "/"
 
-                    # Set name absolute
                     if not relative and prefix and name:
                         name = "%s/%s" % (prefix.rstrip("/"), name)
 
-                    # Skip already existing
                     if first_level and name in headers:
                         continue
 
@@ -259,10 +257,8 @@ class ObjectStorageMock:
             if new_file:
                 self.delete_object(locator, path, not_exists_ok=True)
             try:
-                # Existing file
                 file = self._get_locator_content(locator)[path]
             except KeyError:
-                # New file
                 self._get_locator_content(locator)[path] = file = {
                     "Accept-Ranges": "bytes",
                     "ETag": str(_uuid()),
@@ -281,26 +277,21 @@ class ObjectStorageMock:
             if content:
                 file_content = file["_content"]
 
-                # Write full content
                 if not data_range or (data_range[0] is None and data_range[1] is None):
                     file_content[:] = content
 
-                # Write content range
                 else:
-                    # Define range
                     start, end = data_range
                     if start is None:
                         start = 0
                     if end is None:
                         end = start + len(content)
 
-                    # Add padding if missing data
                     if start > len(file_content):
                         file_content[len(file_content) : start] = (
                             start - len(file_content)
                         ) * b"\0"
 
-                    # Flush new content
                     file_content[start:end] = content
 
             if headers:
@@ -312,7 +303,6 @@ class ObjectStorageMock:
             if self._header_mtime:
                 file[self._header_mtime] = self._format_date(_time())
 
-            # Return Header
             header = file.copy()
         del header["_content"]
         return header
@@ -371,7 +361,6 @@ class ObjectStorageMock:
         Returns:
             dict: Object
         """
-        # Get object
         try:
             return self._get_locator_content(locator)[path]
         except KeyError:
@@ -390,16 +379,13 @@ class ObjectStorageMock:
         Returns:
             bytes: File content.
         """
-        # Simulate server error
         if self._raise_server_error:
             self._raise_500()
 
-        # Read file
         content = self._get_object(locator, path)["_content"]
         size = len(content)
 
         if header and header.get("Range"):
-            # Return object part
             data_range = header["Range"].split("=")[1]
             start, end = data_range.split("-")
             start = int(start)
@@ -416,7 +402,6 @@ class ObjectStorageMock:
         if start is None:
             start = 0
         elif start >= size:
-            # EOF reached
             self._raise_416()
 
         if end is None or end > size:

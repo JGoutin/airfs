@@ -1,5 +1,3 @@
-# Coverage.py configuration (Used pytest-cov)
-
 [run]
 branch = True
 

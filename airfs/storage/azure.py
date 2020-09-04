@@ -19,7 +19,6 @@ from airfs.io import (
     ObjectRawIORandomWriteBase as _ObjectRawIORandomWriteBase,
 )
 
-#: 'azure' can be used to mount following storage at once with airfs.mount
 MOUNT_REDIRECT = ("azure_blob", "azure_file")
 
 _ERROR_CODES = {403: _ObjectPermissionError, 404: _ObjectNotFoundError}
@@ -172,7 +171,6 @@ class _AzureBaseSystem(_SystemBase):
         """
         parameters = self._storage_parameters or dict()
 
-        # Handles unsecure mode
         if self._unsecure:
             parameters = parameters.copy()
             parameters["protocol"] = "http"
@@ -194,7 +192,6 @@ class _AzureBaseSystem(_SystemBase):
         """
         path = "%s/%s" % (self._endpoint, self.relpath(path))
 
-        # If SAS token available, use it to give cross account copy access.
         if caller_system is not self:
             try:
                 path = "%s?%s" % (path, self._storage_parameters["sas_token"])
@@ -279,10 +276,8 @@ class _AzureStorageRawIOBase(_ObjectRawIOBase):
                     **self._client_kwargs,
                 )
 
-        # Check for end of file
         except _AzureHttpError as exception:
             if exception.status_code == 416:
-                # EOF
                 return bytes()
             raise
 
@@ -313,16 +308,12 @@ class _AzureStorageRawIORangeWriteBase(
     _MAX_FLUSH_SIZE = None
 
     def __init__(self, *args, **kwargs):
-
-        # If a content length is provided, allocate pages for this blob
         self._content_length = kwargs.get("content_length", 0)
 
         _ObjectRawIORandomWriteBase.__init__(self, *args, **kwargs)
         _WorkerPoolBase.__init__(self)
 
         if self._writable:
-
-            # Create lock for resizing
             self._size_lock = _Lock()
 
     @property
@@ -350,19 +341,16 @@ class _AzureStorageRawIORangeWriteBase(
         Initializes file on 'a' mode.
         """
         if self._content_length:
-            # Adjust size if content length specified
             with _handle_azure_exception():
                 self._resize(content_length=self._content_length, **self._client_kwargs)
                 self._reset_head()
 
-        # Make initial seek position to current end of file
         self._seek = self._size
 
     def _create(self):
         """
         Create the file if not exists.
         """
-        # Create new file
         with _handle_azure_exception():
             self._create_from_size(
                 content_length=self._content_length, **self._client_kwargs
@@ -392,26 +380,19 @@ class _AzureStorageRawIORangeWriteBase(
         if not buffer_size:
             return
 
-        # Write range normally
         with self._size_lock:
             if end > self._size:
-                # Require to resize the blob if note enough space
                 with _handle_azure_exception():
                     self._resize(content_length=end, **self._client_kwargs)
                 self._reset_head()
 
         if buffer_size > self.MAX_FLUSH_SIZE:
-            # Too large buffer, needs to split in multiples requests
             futures = []
             for part_start in range(0, buffer_size, self.MAX_FLUSH_SIZE):
-
-                # Split buffer
                 buffer_part = buffer[part_start : part_start + self.MAX_FLUSH_SIZE]
                 if not len(buffer_part):
-                    # No more data
                     break
 
-                # Upload split buffer in parallel
                 start_range = start + part_start
                 futures.append(
                     self._workers.submit(
@@ -424,12 +405,10 @@ class _AzureStorageRawIORangeWriteBase(
                 )
 
             with _handle_azure_exception():
-                # Wait for upload completion
                 for future in _as_completed(futures):
                     future.result()
 
         else:
-            # Buffer lower than limit, do one requests.
             with _handle_azure_exception():
                 self._update_range(
                     data=buffer.tobytes(),

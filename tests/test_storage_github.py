@@ -12,11 +12,6 @@ UNSUPPORTED_OPERATIONS = (
 
 def test_mocked_storage():
     """Tests airfs.github with a mock"""
-    # TODO: adapt mocked test for GitHub
-    import pytest
-
-    pytest.skip("WIP")
-
     from datetime import datetime
 
     from tests.test_storage import StorageTester
@@ -79,6 +74,7 @@ def test_mocked_storage():
 
         # Return exception as response with status_code
         except HTTPException as exception:
+
             resp.status_code = exception.status_code
 
         print(method, url, resp.headers, resp.content, resp.status_code)  # TODO: remove

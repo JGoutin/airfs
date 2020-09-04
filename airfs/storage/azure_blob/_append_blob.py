@@ -40,7 +40,6 @@ class AzureAppendBlobRawIO(AzureBlobRawIO, ObjectRawIORandomWriteBase):
         AzureBlobRawIO.__init__(self, *args, **kwargs)
 
         if self._writable:
-            # Not seekable in append mode
             self._seekable = False
 
     def _create(self):
@@ -70,11 +69,9 @@ class AzureAppendBlobRawIO(AzureBlobRawIO, ObjectRawIORandomWriteBase):
         """
         buffer_size = len(buffer)
 
-        # If buffer too large, must flush by parts sequentially
         if buffer_size > self.MAX_FLUSH_SIZE:
             for part_start in range(0, buffer_size, self.MAX_FLUSH_SIZE):
 
-                # Split buffer and append
                 buffer_part = buffer[part_start : part_start + self.MAX_FLUSH_SIZE]
 
                 with _handle_azure_exception():
@@ -82,7 +79,6 @@ class AzureAppendBlobRawIO(AzureBlobRawIO, ObjectRawIORandomWriteBase):
                         block=buffer_part.tobytes(), **self._client_kwargs
                     )
 
-        # Small buffer, send it in one command.
         elif buffer_size:
             with _handle_azure_exception():
                 self._client.append_block(block=buffer.tobytes(), **self._client_kwargs)

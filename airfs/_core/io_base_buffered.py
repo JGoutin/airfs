@@ -44,7 +44,7 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
         "_read_queue",
     )
 
-    # Raw I/O class
+    #: Raw I/O class
     _RAW_CLASS = ObjectRawIOBase
 
     #: Default buffer_size value in bytes (Default to 8MB)
@@ -56,8 +56,8 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
     #: Maximum buffer_size value in bytes (0 for no limit)
     MAXIMUM_BUFFER_SIZE = 0
 
-    # Time to wait before try a new flush if number of buffer currently in
-    # flush > max_buffer
+    #: Time to wait before try a new flush if number of buffer currently in
+    #: flush > max_buffer
     _FLUSH_WAIT = 0.01
 
     def __init__(
@@ -71,23 +71,18 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
     ):
 
         if "a" in mode:
-            # TODO: Implement append mode and remove this exception
-            raise NotImplementedError("Not implemented yet in airfs")
+            raise NotImplementedError('"a" mode not implemented yet')
 
         BufferedIOBase.__init__(self)
         ObjectIOBase.__init__(self, name, mode=mode)
         WorkerPoolBase.__init__(self, max_workers)
 
-        # Instantiate raw IO
         self._raw = self._RAW_CLASS(name, mode=mode, **kwargs)
         self._raw._is_raw_of_buffered = True
-
-        # Link to RAW methods
         self._mode = self._raw.mode
         self._name = self._raw.name
         self._client_kwargs = self._raw._client_kwargs
 
-        # Initializes buffer
         if not buffer_size or buffer_size < 0:
             self._buffer_size = self.DEFAULT_BUFFER_SIZE
         elif buffer_size < self.MINIMUM_BUFFER_SIZE:
@@ -97,7 +92,6 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
         else:
             self._buffer_size = buffer_size
 
-        # Initialize write mode
         if self._writable:
             self._max_buffers = max_buffers
             self._buffer_seek = 0
@@ -112,7 +106,6 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
             self._size = 0
             self._size_lock = Lock()
 
-        # Initialize read mode
         else:
             self._size = self._raw._size
             self._read_range = self.raw._read_range
@@ -151,7 +144,6 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
         Performs any finalization operation required to complete the object writing on
         the storage.
         """
-        # Default implementation only wait for tasks termination
         for future in as_completed(self._write_futures):
             future.result()
 
@@ -162,8 +154,6 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
         if self._writable:
             with self._seek_lock:
                 self._flush_raw_or_buffered()
-
-                # Clear the buffer
                 self._write_buffer = bytearray(self._buffer_size)
                 self._buffer_seek = 0
 
@@ -228,12 +218,10 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
         workers_submit = self._workers.submit
         indexes = tuple(range(start, end, size))
 
-        # Drops buffer out of current range
         for seek in tuple(queue):
             if seek not in indexes:
                 del queue[seek]
 
-        # Launch buffer preloading for current range
         read_range = self._read_range
         for seek in indexes:
             if seek not in queue:
@@ -265,23 +253,18 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
         if not self._readable:
             raise UnsupportedOperation("read")
 
-        # Checks if EOF
         if self._seek == self._size:
             return b""
 
-        # Returns existing buffer with no copy
         if size == self._buffer_size:
             queue_index = self._seek
 
-            # Starts initial preloading on first call
             if queue_index == 0:
                 self._preload_range()
 
-            # Get buffer from future
             with handle_os_exceptions():
                 buffer = self._read_queue.pop(queue_index).result()
 
-            # Append another buffer preload at end of queue
             buffer_size = self._buffer_size
             index = queue_index + buffer_size * self._max_buffers
             if index < self._size:
@@ -289,15 +272,12 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
                     self._read_range, index, index + buffer_size
                 )
 
-            # Update seek and return buffer
             self._seek += len(buffer)
             return buffer
 
-        # Uses a prealocated buffer
         if size != -1:
             buffer = bytearray(size)
 
-        # Uses a mutable buffer
         else:
             buffer = bytearray()
 
@@ -334,16 +314,12 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
             raise UnsupportedOperation("read")
 
         with self._seek_lock:
-            # Gets seek
             seek = self._seek
-
-            # Initializes queue
             queue = self._read_queue
+
             if seek == 0:
-                # Starts initial preloading on first call
                 self._preload_range()
 
-            # Initializes read data buffer
             size = len(b)
             if size:
                 # Preallocated buffer: Use memory view to avoid copies
@@ -355,75 +331,58 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
                 size_left = -1
             b_end = 0
 
-            # Starts reading
             buffer_size = self._buffer_size
             while size_left > 0 or size_left == -1:
-
-                # Finds buffer position in queue and buffer seek
                 start = seek % buffer_size
                 queue_index = seek - start
-
-                # Gets preloaded buffer
                 try:
                     buffer = queue[queue_index]
                 except KeyError:
                     # EOF
                     break
 
-                # Get buffer from future
                 with handle_os_exceptions():
                     try:
                         queue[queue_index] = buffer = buffer.result()
 
-                    # Already evaluated
                     except AttributeError:
+                        # Already evaluated
                         pass
                 buffer_view = memoryview(buffer)
                 data_size = len(buffer)
 
-                # Checks if end of file reached
                 if not data_size:
                     break
 
-                # Gets theoretical range to copy
                 if size_left != -1:
                     end = start + size_left
                 else:
                     end = data_size - start
 
-                # Checks for end of buffer
                 if end >= data_size:
-                    # Adjusts range to copy
                     end = data_size
 
-                    # Removes consumed buffer from queue
                     del queue[queue_index]
 
-                    # Append another buffer preload at end of queue
                     index = queue_index + buffer_size * self._max_buffers
                     if index < self._size:
                         queue[index] = self._workers.submit(
                             self._read_range, index, index + buffer_size
                         )
 
-                # Gets read size, updates seek and updates size left
                 read_size = end - start
                 if size_left != -1:
                     size_left -= read_size
                 seek += read_size
 
-                # Defines read buffer range
                 b_start = b_end
                 b_end = b_start + read_size
 
-                # Copy data from preload buffer to read buffer
                 b_view[b_start:b_end] = buffer_view[start:end]
 
-            # Updates seek and sync raw
             self._seek = seek
             self._raw.seek(seek)
 
-        # Returns read size
         return b_end
 
     def readinto1(self, b):
@@ -460,13 +419,10 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
         if not self._seekable:
             raise UnsupportedOperation("seek")
 
-        # Only read mode is seekable
         with self._seek_lock:
-            # Set seek using raw method and sync buffered seek with raw seek
             self.raw.seek(offset, whence)
             self._seek = seek = self.raw._seek
 
-            # Preload starting from current seek
             self._preload_range()
 
         return seek
@@ -496,12 +452,10 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
             buffer_view = memoryview(self._write_buffer)
 
             while size_left > 0:
-                # Get range to copy
                 start = end
                 end = start + size_left
 
                 if end > buffer_size:
-                    # End of buffer, need flush after copy
                     end = buffer_size
                     flush = True
                 else:
@@ -509,22 +463,15 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
 
                 buffer_range = end - start
 
-                # Update not remaining data size
                 b_start = size - size_left
                 size_left -= buffer_range
 
-                # Copy data
                 buffer_view[start:end] = b_view[b_start : b_start + buffer_range]
 
-                # Flush buffer if needed
                 if flush:
-                    # Update buffer seek, needed to write the good amount of data
                     self._buffer_seek = end
-
-                    # Update global seek, this is the number of buffer flushed
                     self._seek += 1
 
-                    # Block flush based on maximum number of buffers in flush progress
                     if max_buffers:
                         futures = self._write_futures
                         flush_wait = self._FLUSH_WAIT
@@ -534,15 +481,12 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
                         ):
                             sleep(flush_wait)
 
-                    # Flush
                     with handle_os_exceptions():
                         self._flush()
 
-                    # Clear buffer
                     self._write_buffer = bytearray(buffer_size)
                     buffer_view = memoryview(self._write_buffer)
                     end = 0
 
-            # Update buffer seek
             self._buffer_seek = end
             return size

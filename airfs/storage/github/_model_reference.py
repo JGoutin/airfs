@@ -36,7 +36,6 @@ class Reference(GithubObject):
             # Already evaluated
             return
 
-        # Find the good GitHub class
         if ref == "HEAD":
             obj_cls = DefaultBranch
             key = obj_cls.KEY
@@ -61,12 +60,10 @@ class Reference(GithubObject):
             else:
                 raise ObjectNotFoundError(spec["full_path"])
 
-        # Update spec with the relevant class
         spec["object"] = obj_cls
         spec[key] = ref
         del spec["ref"]
 
-        # Profit to return headers if present
         return headers
 
     @classmethod

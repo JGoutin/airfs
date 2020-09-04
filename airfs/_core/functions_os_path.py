@@ -106,7 +106,6 @@ def isabs(path):
     Returns:
         bool: True if path is absolute.
     """
-    # If detected as storage path, it is an absolute path.
     return True
 
 
@@ -127,8 +126,6 @@ def isdir(path):
     """
     system = get_instance(path)
 
-    # User may use directory path without trailing '/'
-    # like on standard file systems
     return system.isdir(system.ensure_dir_path(path))
 
 
@@ -211,7 +208,7 @@ def relpath(path, start=None):
     """
     relative = get_instance(path).relpath(path)
     if start:
-        # Storage relative path; replaces "\" by "/" for Windows.
+        # Replaces "\" by "/" for Windows.
         return os_path_relpath(relative, start=start).replace("\\", "/")
     return relative
 
@@ -231,29 +228,23 @@ def samefile(path1, path2):
     Returns:
         bool: True if same file or directory.
     """
-    # Handles path-like objects and checks if storage
     path1, path1_is_storage = format_and_is_storage(path1)
     path2, path2_is_storage = format_and_is_storage(path2)
 
-    # Local files: Redirects to "os.path.samefile"
     if not path1_is_storage and not path2_is_storage:
         return os_path_samefile(path1, path2)
 
-    # One path is local, the other storage
     if not path1_is_storage or not path2_is_storage:
         return False
 
     with handle_os_exceptions():
-        # Paths don't use same storage
         system = get_instance(path1)
         if system is not get_instance(path2):
             return False
 
-        # Relative path are different
         elif system.relpath(path1) != system.relpath(path2):
             return False
 
-    # Same files
     return True
 
 
@@ -279,7 +270,6 @@ def splitdrive(path):
     relative = get_instance(path).relpath(path)
     drive = path.rsplit(relative, 1)[0]
     if drive and not drive[-2:] == "//":
-        # Keep "/" tail side
         relative = "/" + relative
         drive = drive.rstrip("/")
     return drive, relative

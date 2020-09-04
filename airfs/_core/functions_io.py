@@ -69,16 +69,13 @@ def cos_open(
         OSError: If the file cannot be opened.
         FileExistsError: File open in 'x' mode already exists.
     """
-    # Handles file-like objects:
     if hasattr(file, "read"):
         with _text_io_wrapper(file, mode, encoding, errors, newline) as wrapped:
             yield wrapped
         return
 
-    # Handles path-like objects
     file = fsdecode(file).replace("\\", "/")
 
-    # Storage object
     if is_storage(file, storage):
         with get_instance(
             name=file,
@@ -94,7 +91,6 @@ def cos_open(
             ) as wrapped:
                 yield wrapped
 
-    # Local file: Redirect to "io.open"
     else:
         with io_open(
             file, mode, buffering, encoding, errors, newline, **kwargs
@@ -113,7 +109,6 @@ def _text_io_wrapper(stream, mode, encoding, errors, newline):
         errors (str): Decoding error handling.
         newline (str): Universal newlines
     """
-    # Text mode, if not already a text stream that has the "encoding" attribute
     if "t" in mode and not hasattr(stream, "encoding"):
         text_stream = TextIOWrapper(
             stream, encoding=encoding, errors=errors, newline=newline
@@ -121,6 +116,5 @@ def _text_io_wrapper(stream, mode, encoding, errors, newline):
         yield text_stream
         text_stream.flush()
 
-    # Binary mode (Or already text stream)
     else:
         yield stream

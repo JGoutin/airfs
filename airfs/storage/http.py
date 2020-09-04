@@ -45,7 +45,7 @@ class _HTTPSystem(_SystemBase):
     HTTP system.
     """
 
-    # Request Timeout (seconds)
+    #: Request Timeout (seconds)
     _TIMEOUT = 5
 
     def get_client_kwargs(self, path):
@@ -107,12 +107,8 @@ class HTTPRawIO(_ObjectRawIOBase):
     def __init__(self, *args, **kwargs):
 
         _ObjectRawIOBase.__init__(self, *args, **kwargs)
-
-        # Only support readonly
         if "r" not in self._mode:
             raise _UnsupportedOperation("write")
-
-        # Check if object support random read
         self._seekable = self._head().get("Accept-Ranges") == "bytes"
 
     def _read_range(self, start, end=0):
@@ -125,7 +121,6 @@ class HTTPRawIO(_ObjectRawIOBase):
         Returns:
             bytes: number of bytes read
         """
-        # Get object part
         response = self._client.request(
             "GET",
             self.name,
@@ -134,10 +129,8 @@ class HTTPRawIO(_ObjectRawIOBase):
         )
 
         if response.status_code == 416:
-            # EOF
             return b""
 
-        # Get object content
         return _handle_http_errors(response).content
 
     def _readall(self):

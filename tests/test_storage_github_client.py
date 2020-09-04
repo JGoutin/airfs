@@ -140,7 +140,10 @@ def test_client_get(tmpdir):
             except (KeyError, TypeError):
                 page = 2
 
-            self.headers = dict(Counter=self.counter, Date=datetime.now().isoformat(),)
+            self.headers = dict(
+                Counter=self.counter,
+                Date=datetime.now().isoformat(),
+            )
             if max_pages > 1:
                 self.headers["Link"] = (
                     '<https://api.github.com/resource?page=%s>; rel="next"' % page

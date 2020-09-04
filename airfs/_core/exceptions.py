@@ -78,16 +78,13 @@ def handle_os_exceptions():
     try:
         yield
 
-    # Convert airfs exception to equivalent OSError
     except AirfsException:
         exc_type, exc_value, _ = exc_info()
         raise _OS_EXCEPTIONS.get(exc_type, OSError)(exc_value)
 
-    # Re-raise generic exceptions
     except (OSError, SameFileError, UnsupportedOperation):
         raise
 
-    # Raise generic OSError for other exceptions
     except Exception:
         exc_type, exc_value, _ = exc_info()
         raise OSError("%s%s" % (exc_type, (", %s" % exc_value) if exc_value else ""))

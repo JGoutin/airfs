@@ -50,7 +50,7 @@ class _GithubSystem(_SystemBase):
     _CTIME_KEYS = ("created_at",)
     _MTIME_KEYS = ("pushed_at", "updated_at", "published_at")
 
-    # Keys to retrieve from parents for virtual directories
+    #: Keys to retrieve from parents for virtual directories
     _VIRTUAL_KEYS = set(_CTIME_KEYS)  # type: ignore
     _VIRTUAL_KEYS.update(_MTIME_KEYS)  # type: ignore
 
@@ -125,8 +125,6 @@ class _GithubSystem(_SystemBase):
         """
         content = client_kwargs["content"]
         if isinstance(content, dict):
-            # "Virtual" directory only represented by a dict and not a real GitHub
-            # object
             parent_header = self._head(client_kwargs)
             header = {
                 key: parent_header[key]
@@ -136,7 +134,6 @@ class _GithubSystem(_SystemBase):
                 yield key, header, True
 
         elif content is not None:
-            # GitHub object
             for item in content.list(
                 self.client, client_kwargs, first_level=first_level
             ):
@@ -161,14 +158,12 @@ class _GithubSystem(_SystemBase):
             client_kwargs = self.get_client_kwargs(path)
         obj_cls = client_kwargs["object"]
 
-        # Check if islink from git file mode.
         if obj_cls == _Tree:
             try:
                 return self.head(path, client_kwargs, header)["mode"] == "120000"
             except _ObjectNotFoundError:
                 return False
 
-        # Virtual symlinks
         return obj_cls.SYMLINK is not None
 
     def isdir(
@@ -194,15 +189,12 @@ class _GithubSystem(_SystemBase):
             client_kwargs = self.get_client_kwargs(path)
         obj_cls = client_kwargs["object"]
 
-        # Virtual directory
         if obj_cls.STRUCT is not None:
             return True
 
-        # Git object
         elif obj_cls == _Tree:
             return self._has_git_mode("040")
 
-        # Not a directory
         return False
 
     def isfile(self, path=None, client_kwargs=None, assume_exists=None):
@@ -224,15 +216,12 @@ class _GithubSystem(_SystemBase):
             client_kwargs = self.get_client_kwargs(path)
         obj_cls = client_kwargs["object"]
 
-        # Virtual directory
         if obj_cls.STRUCT is not None:
             return False
 
-        # Git object
         elif obj_cls == _Tree:
             return self._has_git_mode("100")
 
-        # Archive or asset
         return self.exists(path, client_kwargs, assume_exists)
 
     def _has_git_mode(self, mode_start, path=None, client_kwargs=None):
@@ -254,11 +243,9 @@ class _GithubSystem(_SystemBase):
             return False
         mode = header["mode"]
 
-        # Git directory
         if mode.startswith(mode_start):
             return True
 
-        # Git symlink, requires to check its target
         elif mode == "120000":
             target = self.read_link(path, client_kwargs, recursive=True)
             try:
@@ -282,7 +269,6 @@ class _GithubSystem(_SystemBase):
         client_kwargs = self.get_client_kwargs(path)
         obj_cls = client_kwargs["object"]
 
-        # Virtual directory
         if obj_cls == _Tree:
             st_mode = self.head(path, client_kwargs, header)["mode"]
             return int(st_mode[-3:], 8) or 0o644
@@ -308,15 +294,12 @@ class _GithubSystem(_SystemBase):
 
         target = client_kwargs["object"].read_link(client, client_kwargs)
 
-        # If not recursive return absolute or relative target
         if not recursive:
             return target
 
-        # If target is an absolute local path, continue to follow locally
         elif _isabs(target):
             return _realpath(target)
 
-        # Get absolute target path and related spec
         parent_path = client_kwargs["path"]
         target_path = _normpath(_join(_basename(parent_path), target))
         if target_path.startswith(".."):
@@ -328,9 +311,7 @@ class _GithubSystem(_SystemBase):
         full_path = spec["full_path"] = base_url + target_path
         spec["path"] = target_path
 
-        # If target is a link, continue to follow
         if self.islink(full_path, spec):
             return self.read_link(full_path, spec, recursive=True)
 
-        # Return the absolute destination path
         return full_path

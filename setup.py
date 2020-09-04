@@ -1,5 +1,5 @@
 #! /usr/bin/env python3
-"""airfs setup script
+"""Setup script
 
 run "./setup.py --help-commands" for help.
 """
@@ -10,13 +10,11 @@ from sys import argv
 
 from setuptools import setup, find_packages  # type: ignore
 
-# Sets Package information
 PACKAGE_INFO = dict(
     name="airfs",
     description="A Python library for cloud and remote file Systems",
     long_description_content_type="text/markdown; charset=UTF-8",
     classifiers=[
-        # Must be listed on: https://pypi.org/classifiers/
         "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: Apache Software License",
@@ -48,7 +46,6 @@ PACKAGE_INFO = dict(
         'importlib_resources>=2.0.0; python_version < "3.7"',
     ],
     extras_require={
-        # Storage specific requirements
         "azure_blob": ["azure-storage-blob>=1.3.0,<=2.1.0"],
         "azure_file": ["azure-storage-file>=1.3.0,<=2.1.0"],
         "oss": ["oss2>=2.3.0"],
@@ -62,7 +59,6 @@ PACKAGE_INFO = dict(
     command_options={},
 )
 
-# Gets package __version__ from package
 SETUP_DIR = abspath(dirname(__file__))
 with open(join(SETUP_DIR, "airfs", "__init__.py")) as source_file:
     for line in source_file:
@@ -70,19 +66,15 @@ with open(join(SETUP_DIR, "airfs", "__init__.py")) as source_file:
             PACKAGE_INFO["version"] = line.split("=", 1)[1].strip(" \"'\n")
             break
 
-# Gets long description from readme
 with open(join(SETUP_DIR, "README.md")) as source_file:
     PACKAGE_INFO["long_description"] = source_file.read()
 
-# Add pytest_runner requirement if needed
 if {"pytest", "test", "ptr"}.intersection(argv):
     PACKAGE_INFO["setup_requires"].append("pytest-runner")
 
-# Add Sphinx requirements if needed
 elif "build_sphinx" in argv:
     PACKAGE_INFO["setup_requires"] += ["sphinx", "sphinx_rtd_theme"]
 
-# Generates wildcard "all" extras_require
 PACKAGE_INFO["extras_require"]["all"] = list(
     set(
         requirement
@@ -91,7 +83,6 @@ PACKAGE_INFO["extras_require"]["all"] = list(
     )
 )
 
-# Gets Sphinx configuration
 PACKAGE_INFO["command_options"]["build_sphinx"] = {
     "project": ("setup.py", PACKAGE_INFO["name"].capitalize()),
     "version": ("setup.py", PACKAGE_INFO["version"]),
@@ -103,7 +94,6 @@ PACKAGE_INFO["command_options"]["build_sphinx"] = {
     ),
 }
 
-# Runs setup
 if __name__ == "__main__":
     chdir(SETUP_DIR)
     setup(**PACKAGE_INFO)

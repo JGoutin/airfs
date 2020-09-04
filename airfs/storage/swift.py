@@ -95,13 +95,11 @@ class _SwiftSystem(_SystemBase):
         """
         kwargs = self._storage_parameters
 
-        # Handle temporary URL secret key
         try:
             self._temp_url_key = kwargs.pop("temp_url_key")
         except KeyError:
             self._temp_url_key = None
 
-        # Handles unsecure mode
         if self._unsecure:
             kwargs = kwargs.copy()
             kwargs["ssl_compression"] = False
@@ -130,11 +128,9 @@ class _SwiftSystem(_SystemBase):
             dict: HTTP header.
         """
         with _handle_client_exception():
-            # Object
             if "obj" in client_kwargs:
                 return self.client.head_object(**client_kwargs)
 
-            # Container
             return self.client.head_container(**client_kwargs)
 
     def _make_dir(self, client_kwargs):
@@ -145,13 +141,11 @@ class _SwiftSystem(_SystemBase):
             client_kwargs (dict): Client arguments.
         """
         with _handle_client_exception():
-            # Object
             if "obj" in client_kwargs:
                 return self.client.put_object(
                     client_kwargs["container"], client_kwargs["obj"], b""
                 )
 
-            # Container
             return self.client.put_container(client_kwargs["container"])
 
     def _remove(self, client_kwargs):
@@ -162,13 +156,11 @@ class _SwiftSystem(_SystemBase):
             client_kwargs (dict): Client arguments.
         """
         with _handle_client_exception():
-            # Object
             if "obj" in client_kwargs:
                 return self.client.delete_object(
                     client_kwargs["container"], client_kwargs["obj"]
                 )
 
-            # Container
             return self.client.delete_container(client_kwargs["container"])
 
     def _list_locators(self, max_results):
@@ -236,16 +228,13 @@ class _SwiftSystem(_SystemBase):
                 "Shared URLs to containers are not supported on Openstack Swift"
             )
 
-        # Ensure secret key is present
         if not self._temp_url_key:
             raise _ConfigurationException(
                 'The "temp_url_key" storage parameter is not defined.'
             )
 
-        # Ensure object exists
         self._head(client_kwargs)
 
-        # Build temporary path
         scheme, full_path = self._get_roots()[0].split("://", 1)
         netloc, account_path = full_path.split("/", 1)
         temp_path = _generate_temp_url(
@@ -365,13 +354,11 @@ class SwiftBufferedIO(_ObjectBufferedIOBase):
         """
         Flush the write buffers of the stream.
         """
-        # Upload segment with workers
         name = self._segment_name % self._seek
         response = self._workers.submit(
             self._client.put_object, self._container, name, self._get_buffer()
         )
 
-        # Save segment information in manifest
         self._write_futures.append(
             dict(etag=response, path="/".join((self._container, name)))
         )
@@ -380,11 +367,9 @@ class SwiftBufferedIO(_ObjectBufferedIOBase):
         """
         Close the object in write mode.
         """
-        # Wait segments upload completion
         for segment in self._write_futures:
             segment["etag"] = segment["etag"].result()
 
-        # Upload manifest file
         with _handle_client_exception():
             self._client.put_object(
                 self._container,

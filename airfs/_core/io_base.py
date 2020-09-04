@@ -34,18 +34,10 @@ class ObjectIOBase(IOBase):
 
         self._name = fsdecode(name)
         self._mode = mode
-
-        # Thread safe stream position
         self._seek = 0
         self._seek_lock = Lock()
-
-        # Cache for values
         self._cache = {}
-
-        # Set to True once file is closed
         self._closed = False
-
-        # Select supported features based on mode
         self._writable = False
         self._readable = False
         self._seekable = True
@@ -153,11 +145,9 @@ def memoizedmethod(method):
     @wraps(method)
     def patched(self, *args, **kwargs):
         """Patched method"""
-        # Gets value from cache
         try:
             return self._cache[method_name]
 
-        # Evaluates and cache value
         except KeyError:
             result = self._cache[method_name] = method(self, *args, **kwargs)
             return result
@@ -183,7 +173,6 @@ class WorkerPoolBase:
 
         Returns:
             concurrent.futures.Executor: Executor pool"""
-        # Lazy instantiate workers pool on first call
         return ThreadPoolExecutor(max_workers=self._workers_count)
 
     def _generate_async(self, generator):

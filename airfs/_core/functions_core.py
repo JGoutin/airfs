@@ -78,11 +78,8 @@ def equivalent_to(std_function, keep_path_type=False):
             Args:
                 path (path-like object): Path or URL.
             """
-
-            # Handles path-like objects
             path_str = fsdecode(path).replace("\\", "/")
 
-            # Storage object: Handle with Cloud object storage function
             if is_storage(path_str):
                 with handle_os_exceptions():
                     result = cos_function(path_str, *args, **kwargs)
@@ -90,7 +87,6 @@ def equivalent_to(std_function, keep_path_type=False):
                     result = fsencode(result)
                 return result
 
-            # Local file: Redirect to standard function
             return std_function(path, *args, **kwargs)
 
         return decorated

@@ -10,14 +10,14 @@ from airfs._core.io_base_system import SystemBase
 from airfs._core.compat import Pattern
 from airfs._core.exceptions import MountException
 
-# Packages where to search for storage
+#: Packages where to search for storage
 STORAGE_PACKAGE = ["airfs.storage"]
 
-# Mounted storage
+#: Mounted storage
 MOUNTED = OrderedDict()
 _MOUNT_LOCK = RLock()
 
-# List Base classes, and advanced base classes that are not abstract.
+#: List Base classes, and advanced base classes that are not abstract.
 _BASE_CLASSES = {
     "raw": ObjectRawIOBase,
     "buffered": ObjectBufferedIOBase,
@@ -44,14 +44,12 @@ def _automount():
     from os.path import splitext
     from sys import modules
 
-    # Find all modules in the package by listing its files
     package_name = package.__name__
     automount = dict()
     for file in contents(package_name):
         if file.endswith(".py") and not file.startswith("_"):
             storage = splitext(file)[0]
 
-            # Import the automount storage module just the time to get its roots
             module_name = "%s.%s" % (package_name, storage)
             module = import_module(module_name)
             automount[storage] = module.ROOTS
@@ -60,10 +58,10 @@ def _automount():
     return automount
 
 
-# Storage to automount
+#: Storage to automount
 AUTOMOUNT = _automount()
 _AUTOMOUNT_LOCK = RLock()
-del _automount  # Must be called only once
+del _automount
 
 
 def get_instance(
@@ -95,19 +93,16 @@ def get_instance(
         unsecure=unsecure, storage_parameters=storage_parameters
     )
 
-    # Gets storage information
     info, system_parameters, unchanged = _get_storage_info(
         name, storage, system_parameters
     )
 
-    # Returns system class
     if cls == "system":
         if unchanged:
             return info["system_cached"]
         else:
             return info["system"](roots=info["roots"], **system_parameters)
 
-    # Returns other classes
     if unchanged:
         if "storage_parameters" not in system_parameters:
             system_parameters["storage_parameters"] = dict()
@@ -137,7 +132,6 @@ def _get_storage_info(name, storage, system_parameters):
             if _match_root(root, name):
                 info = MOUNTED[root]
 
-                # Get stored storage parameters
                 stored_parameters = info.get("system_parameters") or dict()
                 if not system_parameters:
                     unchanged = True
@@ -146,7 +140,6 @@ def _get_storage_info(name, storage, system_parameters):
                     unchanged = True
                 else:
                     unchanged = False
-                    # Copy not specified parameters from default
                     system_parameters.update(
                         {
                             key: value
@@ -156,7 +149,6 @@ def _get_storage_info(name, storage, system_parameters):
                     )
                 break
 
-        # If not found, tries to mount before getting
         else:
             mount_info = mount(storage=storage, name=name, **system_parameters)
             info = mount_info[tuple(mount_info)[0]]
@@ -191,17 +183,14 @@ def mount(
     Returns:
         dict: keys are mounted storage, values are dicts of storage information.
     """
-    # Tries to infer storage from name
     if storage is None:
         storage = _find_storage(name)
 
-    # Saves storage parameters
     system_parameters = _system_parameters(
         unsecure=unsecure, storage_parameters=storage_parameters
     )
     storage_info = dict(storage=storage, system_parameters=system_parameters)
 
-    # Case module is a mount redirection to mount multiple storage at once
     module = _import_storage_module(storage)
     if hasattr(module, "MOUNT_REDIRECT"):
         if extra_root:
@@ -218,13 +207,10 @@ def mount(
             )
         return result
 
-    # Finds storage subclass
     _find_storage_classes(module, storage_info)
 
-    # Caches a system instance
     storage_info["system_cached"] = storage_info["system"](**system_parameters)
 
-    # Update roots and mounts information
     _storage_roots(storage_info, extra_root)
     _updates_mounts(storage, storage_info)
 
@@ -244,29 +230,24 @@ def _find_storage_classes(module, storage_info):
         member = getattr(module, member_name)
         for cls_name, cls in classes_items:
 
-            # Skip if not subclass of the target class
             try:
                 if not issubclass(member, cls) or member is cls:
                     continue
             except TypeError:
                 continue
 
-            # The class may have been flag as default or not-default
             default_flag = "_%s__DEFAULT_CLASS" % member.__name__.strip("_")
             try:
                 is_default = getattr(member, default_flag)
             except AttributeError:
                 is_default = None
 
-            # Skip if explicitly flagged as non default
             if is_default is False:
                 continue
 
-            # Skip if is an abstract class not explicitly flagged as default
             elif is_default is not True and member.__abstractmethods__:
                 continue
 
-            # Is the default class
             storage_info[cls_name] = member
             break
 
@@ -279,19 +260,16 @@ def _updates_mounts(storage, storage_info):
         storage (str): Storage name.
         storage_info (dict): Storage information.
     """
-    # Updates storage in mounts
     with _MOUNT_LOCK:
         for root in storage_info["roots"]:
             MOUNTED[root] = storage_info
 
-        # Reorder to have correct lookup
         items = OrderedDict(
             (key, MOUNTED[key]) for key in reversed(sorted(MOUNTED, key=_root_sort_key))
         )
         MOUNTED.clear()
         MOUNTED.update(items)
 
-    # Removes storage from automount
     with _AUTOMOUNT_LOCK:
         try:
             del AUTOMOUNT[storage]
@@ -334,7 +312,6 @@ def _import_storage_module(storage):
         try:
             return import_module(module_name)
         except ImportError:
-            # Re-raise if exception come from inside the module
             if find_spec(module_name) is not None:
                 raise
     raise MountException('No storage named "%s" found' % storage)
@@ -352,7 +329,6 @@ def _find_storage(name):
     """
     candidate = None
 
-    # First, looks for storage specific schemes
     try:
         scheme, _ = name.split("://", 1)
     except ValueError:
@@ -361,10 +337,8 @@ def _find_storage(name):
         if scheme not in ("http", "https"):
             return scheme
 
-        # Use the "http" storage as wildcard
         candidate = "http"
 
-    # Looks for matching automount roots
     with _AUTOMOUNT_LOCK:
         for storage, roots in AUTOMOUNT.items():
             if any(_match_root(root, name) for root in roots):

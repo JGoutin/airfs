@@ -1,10 +1,8 @@
 """Microsoft Azure Blobs Storage"""
 
-# Generic classes
 from airfs.storage.azure_blob._system import _AzureBlobSystem  # noqa: F401
 from airfs.storage.azure_blob._base_blob import AzureBlobRawIO, AzureBlobBufferedIO
 
-# Specific blob types classes
 from airfs.storage.azure_blob._append_blob import (
     AzureAppendBlobRawIO,
     AzureAppendBlobBufferedIO,
@@ -29,7 +27,6 @@ __all__ = [
     "AzurePageBlobBufferedIO",
 ]
 
-# Makes cleaner namespace
 for _name in __all__:
     locals()[_name].__module__ = __name__
 del _name

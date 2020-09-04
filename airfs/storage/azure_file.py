@@ -49,7 +49,7 @@ class _AzureFileSystem(_AzureBaseSystem, _SystemBase):
                 **self.get_client_kwargs(dst),
             )
 
-    copy_from_azure_blobs = copy  # Allows copy from Azure Blobs Storage
+    copy_from_azure_blobs = copy
 
     def _get_client(self):
         """
@@ -71,17 +71,14 @@ class _AzureFileSystem(_AzureBaseSystem, _SystemBase):
         Returns:
             dict: client args
         """
-        # Remove query string from URL
         path = path.split("?", 1)[0]
 
         share_name, relpath = self.split_locator(path)
         kwargs = dict(share_name=share_name)
 
-        # Directory
         if relpath and relpath[-1] == "/":
             kwargs["directory_name"] = relpath.rstrip("/")
 
-        # File
         elif relpath:
             try:
                 kwargs["directory_name"], kwargs["file_name"] = relpath.rsplit("/", 1)
@@ -89,7 +86,6 @@ class _AzureFileSystem(_AzureBaseSystem, _SystemBase):
                 kwargs["directory_name"] = ""
                 kwargs["file_name"] = relpath
 
-        # Else, Share only
         return kwargs
 
     def _get_roots(self):
@@ -128,15 +124,12 @@ class _AzureFileSystem(_AzureBaseSystem, _SystemBase):
             dict: HTTP header.
         """
         with _handle_azure_exception():
-            # File
             if "file_name" in client_kwargs:
                 result = self.client.get_file_properties(**client_kwargs)
 
-            # Directory
             elif "directory_name" in client_kwargs:
                 result = self.client.get_directory_properties(**client_kwargs)
 
-            # Share
             else:
                 result = self.client.get_share_properties(**client_kwargs)
 
@@ -183,14 +176,12 @@ class _AzureFileSystem(_AzureBaseSystem, _SystemBase):
             client_kwargs (dict): Client arguments.
         """
         with _handle_azure_exception():
-            # Directory
             if "directory_name" in client_kwargs:
                 return self.client.create_directory(
                     share_name=client_kwargs["share_name"],
                     directory_name=client_kwargs["directory_name"],
                 )
 
-            # Share
             return self.client.create_share(**client_kwargs)
 
     def _remove(self, client_kwargs):
@@ -201,7 +192,6 @@ class _AzureFileSystem(_AzureBaseSystem, _SystemBase):
             client_kwargs (dict): Client arguments.
         """
         with _handle_azure_exception():
-            # File
             if "file_name" in client_kwargs:
                 return self.client.delete_file(
                     share_name=client_kwargs["share_name"],
@@ -209,14 +199,12 @@ class _AzureFileSystem(_AzureBaseSystem, _SystemBase):
                     file_name=client_kwargs["file_name"],
                 )
 
-            # Directory
             elif "directory_name" in client_kwargs:
                 return self.client.delete_directory(
                     share_name=client_kwargs["share_name"],
                     directory_name=client_kwargs["directory_name"],
                 )
 
-            # Share
             return self.client.delete_share(share_name=client_kwargs["share_name"])
 
     def _shareable_url(self, client_kwargs, expires_in):

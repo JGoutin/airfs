@@ -15,12 +15,10 @@ __all__ = [
     "Pattern",
 ]
 
-# Raise import error on incompatible versions
 if _py[0] < 3 or (_py[0] == 3 and _py[1] < 5):
     raise ImportError("airfs require Python 3.5 or more.")
 
 
-# Warn about future incompatibles versions
 def _deprecation_warning():
     """
     Warn user about deprecation of this Python version in next airfs version.

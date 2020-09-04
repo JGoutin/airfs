@@ -61,11 +61,9 @@ def makedirs(name, mode=0o777, exist_ok=False):
     """
     system = get_instance(name)
 
-    # Checks if directory not already exists
     if not exist_ok and system.isdir(system.ensure_dir_path(name)):
         raise ObjectExistsError("File exists: '%s'" % name)
 
-    # Create directory
     system.make_dir(name)
 
 
@@ -94,18 +92,15 @@ def mkdir(path, mode=0o777, *, dir_fd=None):
     system = get_instance(path)
     relative = system.relpath(path)
 
-    # Checks if parent directory exists
     parent_dir = dirname(relative.rstrip("/"))
     if parent_dir:
         parent = "{}{}/".format(path.rsplit(relative, 1)[0], parent_dir)
         if not system.isdir(parent):
             raise ObjectNotFoundError("No such file or directory: '%s'" % parent)
 
-    # Checks if directory not already exists
     if system.isdir(system.ensure_dir_path(path)):
         raise ObjectExistsError("File exists: '%s'" % path)
 
-    # Create directory
     system.make_dir(relative, relative=True)
 
 
@@ -152,15 +147,12 @@ def remove(path, *, dir_fd=None):
     """
     system = get_instance(path)
 
-    # Only support files
     if system.is_locator(path) or path[-1] == "/":
         raise IsADirectoryError("Is a directory: '%s'" % path)
 
-    # Remove
     system.remove(path)
 
 
-# "os.unlink" is alias of "os.remove"
 unlink = remove
 
 
@@ -354,7 +346,6 @@ class DirEntry:
             )
 
         except ObjectPermissionError:
-            # The directory was listed, but unable to head it or access to its content
             return True
 
     @memoizedmethod
@@ -428,7 +419,6 @@ def scandir(path="."):
     Returns:
         Generator of os.DirEntry: Entries information.
     """
-    # Handles path-like objects
     scandir_path = fsdecode(path).replace("\\", "/")
 
     if not is_storage(scandir_path):

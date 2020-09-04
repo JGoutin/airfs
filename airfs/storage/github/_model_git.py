@@ -49,27 +49,21 @@ class Tree(GithubObject):
         Returns:
             object: Header value matching the key.
         """
-        # Try in current object cache
         try:
             return self._headers[key]
         except KeyError:
             if key == "size" and not self._is_dir():
-                # No size on directories
                 raise
 
-        # Update cache from current object
         if key in self.HEAD_KEYS:
             self._update_headers()
 
-        # Update from latest commit with this path modified
         else:
             spec = self._spec
 
-            # Get parent SHA
             parent = spec["parent"]
             sha = parent.head(self._client, spec)["sha"]
 
-            # Get latest commit for this path starting from parent sha
             response = self._client.get(
                 Commit.LIST.format(**spec), params=dict(path=spec["path"], sha=sha)
             )[0]
@@ -93,17 +87,13 @@ class Tree(GithubObject):
         Returns:
             dict: Object headers.
         """
-        # Github does not provide a way to directly get a tree from a path
-        # listing all entries in the parent tree is required.
         path = spec["path"]
         parent_spec = spec.copy()
         parent_spec["path"] = dirname(path)
 
-        # Listing only first level when searching file on root allow to use
-        # a lighter request.
-        first_level = "/" not in path
-
-        for _, abspath, _, headers, _ in cls._list(client, parent_spec, first_level):
+        for _, abspath, _, headers, _ in cls._list(
+            client, parent_spec, "/" not in path
+        ):
             if path == abspath:
                 return cls.set_header(headers)
 
@@ -122,7 +112,6 @@ class Tree(GithubObject):
             str: Path.
         """
         if cls.head(client, spec)["mode"] != "120000":
-            # Check is a symlink first to avoid returning a file content
             raise AirfsException("Not a symbolic link")
         response = request("GET", cls.GET.format(**spec))
         _handle_http_errors(response)
@@ -145,7 +134,6 @@ class Tree(GithubObject):
         for relpath, abspath, spec, headers, isdir in cls._list(
             client, spec, first_level
         ):
-            # Yields formatted results
             yield relpath, cls(client, spec, set_header(headers), abspath), isdir
 
     @classmethod
@@ -161,76 +149,60 @@ class Tree(GithubObject):
         Yields:
             tuple: Relative path, Absolute path, spec, headers, has content bool
         """
-        # Find top level tree SHA from the parent if not specified
         if "tree_sha" not in spec:
             parent = spec["parent"] if spec["object"] == cls else spec["object"]
             spec["tree_sha"] = parent.head(client, spec)["tree_sha"]
 
-        # Current working directory
         cwd = spec.get("path", "").rstrip("/")
         cwd_index = len(cwd)
         if cwd_index:
             # Include the ending "/"
             cwd_index += 1
 
-        # First, get the tree recursively
         response = client.get(
             cls.LIST.format(**spec),
             never_expire=True,
             params=dict(recursive=cwd or not first_level),
         )[0]
 
-        # If truncated, store already seen entries and last processed tree
         truncated = response["truncated"]
         if truncated:
             seen = set()
             add_seen = seen.add
             last_tree = ""
 
-        # Yield raw result
         for headers in response["tree"]:
             abspath = headers["path"]
 
-            # Get relative path
             if cwd:
                 if commonpath((abspath, cwd)) != cwd:
-                    # Skip any entry outside the current working directory
                     continue
 
                 relpath = abspath[cwd_index:]
             else:
                 relpath = abspath
 
-            # Get object type object type (file = blob, directory = tree)
             isdir = headers["type"] == "tree"
 
-            # Handle current directory case
             if not relpath:
-                # Ensure not trying to list a file
                 cls._raise_if_not_dir(isdir, spec)
 
                 # Do not yield current working directory itself
                 continue
 
-            # Update tree SHA
             if truncated:
                 add_seen(abspath)
                 if isdir:
                     last_tree = abspath
 
-            # Yield result
             yield relpath, abspath, spec, headers, False
 
-        # If truncated, populate remaining result from the non recursive method
         if truncated:
-            # based on the last tree processed, create a set of trees that may be
-            # incompletely processed
             last_tree = last_tree.split("/")
             partial_trees = set(
                 "/".join(last_tree[:index]) for index in range((len(last_tree)))
             )
 
-            # Iterate over trees recursively
             for relpath, abspath, spec, headers, _ in cls._list_non_recursive(
                 client,
                 spec,
@@ -283,17 +255,14 @@ class Tree(GithubObject):
         for headers in client.get(cls.LIST.format(**tree_spec), never_expire=True)[0][
             "tree"
         ]:
-            # Get entry absolute path
             if tree_path:
                 abspath = "/".join((tree_path, headers["path"]))
             else:
                 abspath = headers["path"]
 
-            # Get relative path and common path with current working directory
             if cwd:
                 cwd_common = commonpath((abspath, cwd))
                 if not cwd_common:
-                    # Skip any entry outside the current working directory
                     continue
 
                 in_cwd = cwd_common == cwd
@@ -303,19 +272,14 @@ class Tree(GithubObject):
                 in_cwd = True
                 relpath = abspath
 
-            # Get object type object type
             isdir = headers["type"] == "tree"
 
-            # Ensure not trying to list a file
             cls._raise_if_not_dir(not relpath and not isdir, spec)
 
-            # Yield only files that are in current working directory or its
-            # subdirectories are have not already be seen
             not_seen = abspath not in seen
             if in_cwd and relpath and not_seen:
                 yield relpath, abspath, spec, headers, isdir
 
-            # Yield subdirectories content
             if (
                 isdir
                 and (not in_cwd or not first_level)
@@ -387,7 +351,6 @@ class Commit(GithubObject):
         Returns:
             dict: Object headers.
         """
-        # Since commit cannot be updated without SHA change, do not expire head result
         return cls.set_header(client.get(cls.HEAD.format(**spec), never_expire=True)[0])
 
 

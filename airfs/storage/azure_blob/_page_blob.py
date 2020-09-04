@@ -75,23 +75,24 @@ class AzurePageBlobRawIO(AzureBlobRawIO, _AzureStorageRawIORangeWriteBase):
         """
         Initializes file on 'a' mode.
         """
-        # Ensure content length is page aligned
-        if self._content_length % 512:
-            self._content_length += 512 - self._content_length % 512
-
+        self._align_page()
         _AzureStorageRawIORangeWriteBase._init_append(self)
 
-        # If ignore padding, seek to real end of blob
         if self._ignore_padding:
             self._seek = self._seek_end_ignore_padding()
+
+    def _align_page(self):
+        """
+        Ensure content length is page aligned.
+        """
+        if self._content_length % 512:
+            self._content_length += 512 - self._content_length % 512
 
     def _create(self):
         """
         Create the file if not exists.
         """
-        # Ensure content length is page aligned
-        if self._content_length % 512:
-            self._content_length += 512 - self._content_length % 512
+        self._align_page()
         _AzureStorageRawIORangeWriteBase._create(self)
 
     @property  # type: ignore
@@ -128,7 +129,6 @@ class AzurePageBlobRawIO(AzureBlobRawIO, _AzureStorageRawIORangeWriteBase):
         data = AzureBlobRawIO._read_range(self, start, end)
 
         if (null_strip is None and self._ignore_padding) or null_strip:
-            # Remove trailing Null chars (Empty page end)
             return data.rstrip(b"\0")
 
         return data
@@ -142,7 +142,6 @@ class AzurePageBlobRawIO(AzureBlobRawIO, _AzureStorageRawIORangeWriteBase):
         """
         data = AzureBlobRawIO._readall(self)
         if self._ignore_padding:
-            # Remove trailing Null chars (Empty page end)
             return data.rstrip(b"\0")
         return data
 
@@ -162,7 +161,6 @@ class AzurePageBlobRawIO(AzureBlobRawIO, _AzureStorageRawIORangeWriteBase):
             int: The new absolute position.
         """
         if self._ignore_padding and whence == SEEK_END:
-            # If seek on last page, remove padding
             offset = self._seek_end_ignore_padding(offset)
             whence = SEEK_SET
 
@@ -178,13 +176,11 @@ class AzurePageBlobRawIO(AzureBlobRawIO, _AzureStorageRawIORangeWriteBase):
         Returns:
             int: New seek value.
         """
-        # Read last pages
         page_end = self._size
         page_seek = page_end + min(offset, 0)
         page_start = page_seek - (page_seek % 512 or 512)
         last_pages = self._read_range(page_start, page_end, null_strip=True)
 
-        # Move seek to last not null byte
         return page_start + len(last_pages) + offset
 
     def _flush(self, buffer, start, end):
@@ -201,11 +197,9 @@ class AzurePageBlobRawIO(AzureBlobRawIO, _AzureStorageRawIORangeWriteBase):
         buffer_size = len(buffer)
 
         if buffer_size:
-            # Buffer must be aligned on pages
             end_page_diff = end % 512
             start_page_diff = start % 512
             if end_page_diff or start_page_diff:
-                # Create a new aligned buffer
                 end_page_diff = 512 - end_page_diff
 
                 end += end_page_diff
@@ -215,13 +209,11 @@ class AzurePageBlobRawIO(AzureBlobRawIO, _AzureStorageRawIORangeWriteBase):
                 buffer_size = end - start
                 buffer = memoryview(bytearray(buffer_size))
 
-                # If exists, Get aligned range from current file
                 if self._exists() == 1 and start < self._size:
                     buffer[:] = memoryview(
                         self._read_range(start, end, null_strip=False)
                     )
 
-                # Update with current buffer
                 buffer[start_page_diff:-end_page_diff] = unaligned_buffer
 
         _AzureStorageRawIORangeWriteBase._flush(self, buffer, start, end)
@@ -268,7 +260,6 @@ class AzurePageBlobBufferedIO(AzureBlobBufferedIO, ObjectBufferedIORandomWriteBa
         if self._writable:
             page_diff = self._buffer_size % 512
             if page_diff:
-                # Round buffer size if not multiple of page size
                 self._buffer_size = min(
                     self._buffer_size + 512 - page_diff, self.MAXIMUM_BUFFER_SIZE
                 )

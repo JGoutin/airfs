@@ -121,7 +121,6 @@ class _S3System(_SystemBase):
         """
         client_kwargs = self._storage_parameters.get("client", dict())
 
-        # Handles unsecure mode
         if self._unsecure:
             client_kwargs = client_kwargs.copy()
             client_kwargs["use_ssl"] = False
@@ -238,15 +237,12 @@ class _S3System(_SystemBase):
             dict: HTTP header.
         """
         with _handle_client_error():
-            # Object
             if "Key" in client_kwargs:
                 header = self.client.head_object(**client_kwargs)
 
-            # Bucket
             else:
                 header = self.client.head_bucket(**client_kwargs)
 
-        # Clean up HTTP request information
         for key in ("AcceptRanges", "ResponseMetadata"):
             header.pop(key, None)
         return header
@@ -259,11 +255,9 @@ class _S3System(_SystemBase):
             client_kwargs (dict): Client arguments.
         """
         with _handle_client_error():
-            # Object
             if "Key" in client_kwargs:
                 return self.client.put_object(Body=b"", **client_kwargs)
 
-            # Bucket
             return self.client.create_bucket(
                 Bucket=client_kwargs["Bucket"],
                 CreateBucketConfiguration=dict(
@@ -279,11 +273,9 @@ class _S3System(_SystemBase):
             client_kwargs (dict): Client arguments.
         """
         with _handle_client_error():
-            # Object
             if "Key" in client_kwargs:
                 return self.client.delete_object(**client_kwargs)
 
-            # Bucket
             return self.client.delete_bucket(Bucket=client_kwargs["Bucket"])
 
     def _list_locators(self, max_results):
@@ -335,11 +327,9 @@ class _S3System(_SystemBase):
             except KeyError:
                 raise _ObjectNotFoundError("Not found: %s" % path)
 
-            # Handles results on more than one page
             try:
                 kwargs["ContinuationToken"] = response["NextContinuationToken"]
             except KeyError:
-                # End of results
                 break
 
     def _shareable_url(self, client_kwargs, expires_in):
@@ -392,21 +382,17 @@ class S3RawIO(_ObjectRawIOBase):
         Returns:
             bytes: number of bytes read
         """
-        # Get object part from S3
         try:
             with _handle_client_error():
                 response = self._client.get_object(
                     Range=self._http_range(start, end), **self._client_kwargs
                 )
 
-        # Check for end of file
         except _ClientError as exception:
             if exception.response["Error"]["Code"] == "InvalidRange":
-                # EOF
                 return bytes()
             raise
 
-        # Get object content
         return response["Body"].read()
 
     def _readall(self):
@@ -459,10 +445,7 @@ class S3BufferedIO(_ObjectBufferedIOBase):
     MINIMUM_BUFFER_SIZE = 5242880
 
     def __init__(self, *args, **kwargs):
-
         _ObjectBufferedIOBase.__init__(self, *args, **kwargs)
-
-        # Use multipart upload as write buffered mode
         if self._writable:
             self._upload_args = self._client_kwargs.copy()
 
@@ -470,14 +453,12 @@ class S3BufferedIO(_ObjectBufferedIOBase):
         """
         Flush the write buffers of the stream.
         """
-        # Initialize multi-part upload
         if "UploadId" not in self._upload_args:
             with _handle_client_error():
                 self._upload_args["UploadId"] = self._client.create_multipart_upload(
                     **self._client_kwargs
                 )["UploadId"]
 
-        # Upload part with workers
         response = self._workers.submit(
             self._client.upload_part,
             Body=self._get_buffer().tobytes(),
@@ -485,18 +466,15 @@ class S3BufferedIO(_ObjectBufferedIOBase):
             **self._upload_args,
         )
 
-        # Save part information
         self._write_futures.append(dict(response=response, PartNumber=self._seek))
 
     def _close_writable(self):
         """
         Close the object in write mode.
         """
-        # Wait parts upload completion
         for part in self._write_futures:
             part["ETag"] = part.pop("response").result()["ETag"]
 
-        # Complete multipart upload
         with _handle_client_error():
             try:
                 self._client.complete_multipart_upload(
@@ -505,7 +483,6 @@ class S3BufferedIO(_ObjectBufferedIOBase):
                     **self._client_kwargs,
                 )
             except _ClientError:
-                # Clean up if failure
                 self._client.abort_multipart_upload(
                     UploadId=self._upload_args["UploadId"], **self._client_kwargs
                 )

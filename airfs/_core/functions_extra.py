@@ -18,10 +18,8 @@ def shareable_url(path, expires_in=3600):
         path (str): Path or URL.
         expires_in (int): Expiration in seconds. Default to 1 hour.
     """
-    # Handles path-like objects
     path_str = fsdecode(path).replace("\\", "/")
 
-    # Not available for local path
     if not is_storage(path_str):
         raise UnsupportedOperation("shareable_url")
 

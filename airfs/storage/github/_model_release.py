@@ -127,7 +127,6 @@ class ReleaseArchive(Archive):
         Args:
             parent_key (str): The parent key (parent_class.KEY).
         """
-        # Should only occur with "LatestRelease", "tag" is already known with "Release"
         self._latest_release(self._client, self._spec)
 
     @staticmethod
@@ -164,7 +163,7 @@ class Release(GithubObject):
 class LatestRelease(Release):
     """Latest GitHub release, with fallback to HEAD"""
 
-    KEY = None  # type: ignore # Valid value
+    KEY = None  # type: ignore
     HEAD = "/repos/{owner}/{repo}/releases/latest"
     SYMLINK = "github://{owner}/{repo}/releases/{tag}"
 

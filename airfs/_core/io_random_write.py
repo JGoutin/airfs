@@ -31,14 +31,11 @@ class ObjectRawIORandomWriteBase(ObjectRawIOBase):
             with self._seek_lock:
                 buffer = self._get_buffer()
 
-                # Flush that part of the file
                 end = self._seek
                 start = end - len(buffer)
 
-                # Clear buffer
                 self._write_buffer = bytearray()
 
-            # Flush content
             with handle_os_exceptions():
                 self._flush(buffer, start, end)
 
@@ -80,7 +77,6 @@ class ObjectRawIORandomWriteBase(ObjectRawIOBase):
         if not self._seekable:
             raise UnsupportedOperation("seek")
 
-        # Flush before moving position
         self.flush()
 
         return self._update_seek(offset, whence)
@@ -101,7 +97,6 @@ class ObjectBufferedIORandomWriteBase(ObjectBufferedIOBase):
 
         In write mode, send the buffer content to the storage object.
         """
-        # Flush buffer to specified range
         buffer = self._get_buffer()
         start = self._buffer_size * (self._seek - 1)
         end = start + len(buffer)
@@ -127,7 +122,6 @@ class ObjectBufferedIORandomWriteBase(ObjectBufferedIOBase):
             future (concurrent.futures._base.Future): future.
         """
         with self._size_lock:
-            # Update value
             if size > self._size and future.done:
                 # Size can be lower if seek down on an 'a' mode open file.
                 self._size = size
@@ -144,7 +138,6 @@ class ObjectBufferedIORandomWriteBase(ObjectBufferedIOBase):
             start (int): Start of buffer position to flush.
             end (int): End of buffer position to flush.
         """
-        # On first call, Get file size if exists
         with self._size_lock:
             if not self._size_synched:
                 self._size_synched = True
@@ -153,10 +146,7 @@ class ObjectBufferedIORandomWriteBase(ObjectBufferedIOBase):
                 except (ObjectNotFoundError, UnsupportedOperation):
                     self._size = 0
 
-        # It is not possible to flush a part if start > size: If it is the case, wait
-        # that previous parts are flushed before flushing this one
         while start > self._size:
             sleep(self._FLUSH_WAIT)
 
-        # Flush buffer using RAW IO
         self._raw_flush(buffer, start, end)

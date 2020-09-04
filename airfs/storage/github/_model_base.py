@@ -85,22 +85,18 @@ class GithubObject(Mapping):
         Returns:
             object: Header value matching the key.
         """
-        # Try in current object cache
         try:
             return self._headers[key]
         except KeyError:
             pass
 
-        # Update cache
         try:
             parent = self.HEAD_FROM[key]
 
         except KeyError:
-            # Update cache from current object
             self._update_headers()
 
         else:
-            # Update cache from parent
             self._update_headers_from_parent(parent)
 
         return self._headers[key]
@@ -150,7 +146,6 @@ class GithubObject(Mapping):
         Args:
             parent_key (str): The parent key (parent_class.KEY).
         """
-        # By default, search in headers since can contain values like "sha"
         self._update_headers()
         self._spec[parent_key] = self._headers[parent_key]
 
@@ -171,12 +166,9 @@ class GithubObject(Mapping):
             parent (airfs.storage.github._model_base.GithubObject subclass instance):
                 Parent.
         """
-        # Get the parent key from object headers if missing
-        # This ensure the required parent reference is present
         if parent.KEY not in self._spec and parent.KEY is not None:
             self._update_spec_parent_ref(parent.KEY)
 
-        # Get parent headers
         parent_headers = parent.head(self._client, self._spec)
         headers = self._headers
         for key, obj_cls in self.HEAD_FROM.items():
@@ -195,7 +187,6 @@ class GithubObject(Mapping):
             _Model subclass instance: model.
         """
         if cls.STRUCT is None:
-            # End of model, this model does not have sub-model
             spec[cls.KEY] = "/".join(spec["keys"])
             spec["keys"].clear()
             spec["object"] = cls
@@ -203,26 +194,21 @@ class GithubObject(Mapping):
             return cls
 
         elif cls.KEY is not None:
-            # Update spec with current model key
             spec[cls.KEY] = spec["keys"].popleft()
 
-        # Get next model key
         try:
             key = spec["keys"].popleft()
         except IndexError:
-            # End of model, no more keys to follow
             spec["object"] = cls
             spec["content"] = cls.STRUCT
             return cls
 
-        # Get next model in a dict sub-model
         model = cls.STRUCT
         while isinstance(model, dict):
             model = model[key]
             try:
                 key = spec["keys"].popleft()
             except IndexError:
-                # End of model, no more keys to follow
                 if model.KEY is not None:
                     spec["content"] = model
                     model = cls
@@ -248,10 +234,8 @@ class GithubObject(Mapping):
         Yields:
             tuple: object name str, object header dict, has content bool
         """
-        # Get from API
         response = client.get_paged(cls.LIST.format(**spec))
 
-        # Format result header and yield
         key = cls.LIST_KEY
         set_header = cls.set_header
         is_dir = cls.STRUCT is not None
@@ -321,10 +305,8 @@ class GithubObject(Mapping):
         Returns:
             dict: Object header.
         """
-        # Filter response keys
         head = {key: response[key] for key in (response.keys() & cls.HEAD_KEYS)}
 
-        # Retrieve extra information from sub-dicts
         for key_name, key_path in cls.HEAD_EXTRA:
             value = response
             try:

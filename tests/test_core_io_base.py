@@ -8,7 +8,6 @@ def test_object_base_io():
 
     name = "name"
 
-    # Tests mode
     object_io = ObjectIOBase(name)
     assert object_io.name == name
     assert object_io.mode == "r"
@@ -37,7 +36,6 @@ def test_memoizedmethod():
     """Tests airfs._core.utilities.memoizedmethod"""
     from airfs._core.io_base import memoizedmethod
 
-    # Tests _memoize
     class Dummy:
         """Dummy class"""
 

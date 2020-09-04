@@ -44,17 +44,13 @@ class SystemBase(ABC, WorkerPoolBase):
     _CTIME_KEYS = ()
     _MTIME_KEYS = ("Last-Modified",)
 
-    # Caches compiled regular expression
     _CHAR_FILTER = compile(r"[^a-z0-9_]*")
 
     def __init__(self, storage_parameters=None, unsecure=False, roots=None, **_):
-        # Initialize worker pool
         WorkerPoolBase.__init__(self)
 
-        # Save storage parameters
         if storage_parameters:
             storage_parameters = storage_parameters.copy()
-            # Drop airfs internal keys
             for key in tuple(storage_parameters):
                 if key.startswith("airfs."):
                     del storage_parameters[key]
@@ -65,13 +61,10 @@ class SystemBase(ABC, WorkerPoolBase):
         self._unsecure = unsecure
         self._storage = self.__module__.rsplit(".", 1)[1]
 
-        # Initialize client
         self._client = None
 
-        # Cache for values
         self._cache = {}
 
-        # Initialize roots
         if roots:
             self._roots = roots
         else:
@@ -242,10 +235,8 @@ class SystemBase(ABC, WorkerPoolBase):
             except KeyError:
                 continue
             try:
-                # String to convert
                 return parse(date_value).timestamp()
             except TypeError:
-                # Already number
                 return float(date_value)
         raise UnsupportedOperation(name)
 
@@ -282,7 +273,6 @@ class SystemBase(ABC, WorkerPoolBase):
         Returns:
             int: Size in bytes.
         """
-        # By default, assumes that information are in a standard HTTP header
         for key in self._SIZE_KEYS:
             try:
                 return int(header.pop(key))
@@ -322,8 +312,6 @@ class SystemBase(ABC, WorkerPoolBase):
             if exists:
                 return True
 
-            # Some directories only exists virtually in object path and don't have
-            # headers.
             elif virtual_dir:
                 try:
                     next(self.list_objects(relative, relative=True, max_results=1))
@@ -429,18 +417,14 @@ class SystemBase(ABC, WorkerPoolBase):
             str: relative path.
         """
         for root in self.roots:
-            # Root is regex, convert to matching root string
             if isinstance(root, Pattern):
                 match = root.match(path)
                 if not match:
                     continue
                 root = match.group(0)
 
-            # Split root and relative path
             try:
                 relative = path.split(root, 1)[1]
-                # Strip "/" only at path start. "/" is used to known if path is a
-                # directory on some storage.
                 return relative.lstrip("/")
             except IndexError:
                 continue
@@ -462,7 +446,6 @@ class SystemBase(ABC, WorkerPoolBase):
         """
         if not relative:
             path = self.relpath(path)
-        # Bucket is the main directory
         return path and "/" not in path.rstrip("/")
 
     def split_locator(self, path):
@@ -545,14 +528,12 @@ class SystemBase(ABC, WorkerPoolBase):
         else:
             rel_path = path
 
-        # Locator
         if self.is_locator(rel_path, relative=True):
             path = path.rstrip("/")
 
-        # Directory
         elif rel_path:
             path = path.rstrip("/") + "/"
-        # else: root
+
         return path
 
     def list_objects(
@@ -575,7 +556,6 @@ class SystemBase(ABC, WorkerPoolBase):
         """
         seats = SeatsCounter(max_results)
 
-        # Select the starting path
         if not relative:
             path = self.relpath(path)
 
@@ -586,13 +566,11 @@ class SystemBase(ABC, WorkerPoolBase):
                 self.get_client_kwargs(path), path, max_results, first_level
             )
 
-        # Select listing method
         if first_level:
             generator = self._list_first_level_only(generator)
         else:
             generator = self._list_all_levels(generator, path, seats)
 
-        # Yield results
         take_seat = seats.take_seat
         for item in generator:
             yield item
@@ -671,7 +649,6 @@ class SystemBase(ABC, WorkerPoolBase):
             try:
                 obj_path, _ = obj_path.split("/", 1)
 
-            # File or real directory
             except ValueError:
 
                 if is_dir:
@@ -679,11 +656,9 @@ class SystemBase(ABC, WorkerPoolBase):
                     obj_path += "/"
                 yield obj_path, header
 
-            # Virtual directory
             else:
                 add_virtual_dir(obj_path)
 
-        # Yields virtual directories not already seen as real directories
         for obj_path in virtual_dirs - dirs:
             yield obj_path + "/", dict()
 
@@ -742,7 +717,6 @@ class SystemBase(ABC, WorkerPoolBase):
         Returns:
             bool: True if object is Symlink.
         """
-        # Not supported by default
         return False
 
     def _getuid(self, path=None, client_kwargs=None, header=None):
@@ -772,7 +746,7 @@ class SystemBase(ABC, WorkerPoolBase):
         Returns:
             int: Group ID.
         """
-        # Default to current process UID
+        # Default to current process GID
         return getgid()
 
     def _getmode(self, path=None, client_kwargs=None, header=None):
@@ -803,7 +777,6 @@ class SystemBase(ABC, WorkerPoolBase):
             namedtuple: Stat result object. Follow the "os.stat_result" specification
                 and may contain storage dependent extra entries.
         """
-        # Should contain at least the strict minimum of os.stat_result
         stat = OrderedDict(
             (
                 ("st_mode", self._getmode(path, client_kwargs, header)),
@@ -822,7 +795,6 @@ class SystemBase(ABC, WorkerPoolBase):
             )
         )
 
-        # Populate standard os.stat_result values with object header content
         header = self.head(path, client_kwargs, header)
         try:
             stat["st_size"] = int(self._getsize_from_header(header))
@@ -840,25 +812,19 @@ class SystemBase(ABC, WorkerPoolBase):
             stat[st_time] = int(time_value)
             stat[st_time_ns] = int(time_value * 1000000000)
 
-        # File mode
         if self.islink(path=path, header=header):
-            # Symlink
             stat["st_mode"] = S_IFLNK
         elif (not path or path[-1] == "/" or self.is_locator(path)) and not stat[
             "st_size"
         ]:
-            # Directory
             stat["st_mode"] = S_IFDIR
         else:
-            # File
             stat["st_mode"] = S_IFREG
 
-        # Add storage specific keys
         sub = self._CHAR_FILTER.sub
         for key, value in tuple(header.items()):
             stat[sub("", key.lower().replace("-", "_"))] = value
 
-        # Convert to "os.stat_result" like object
         stat_result = namedtuple("stat_result", tuple(stat))
         stat_result.__name__ = "os.stat_result"
         stat_result.__module__ = "airfs"
