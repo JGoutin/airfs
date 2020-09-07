@@ -7,6 +7,7 @@ out/
 
 # Test user configuration
 mount.json
+test_mount.json
 
 # Build generated files
 docs/_build/

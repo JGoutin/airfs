@@ -10,6 +10,7 @@ This section describes the ``airfs`` Python package API.
 .. toctree::
    :maxdepth: 2
 
+   api_config
    api_io
    api_os
    api_os_path

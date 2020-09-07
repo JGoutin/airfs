@@ -1,7 +1,7 @@
 Changelog
 =========
 
-1.5.0 (2020/08)
+1.5.0 (2020/09)
 ---------------
 
 New storage support:
@@ -15,6 +15,9 @@ New standard library equivalent functions:
 New features:
 
 * ``airfs.shareable_url`` function to get a shareable URL of an existing object.
+* airfs now supports a user configuration that can be used to define storage to
+  mount with their parameters. The configuration can be managed using the `airfs.config`
+  module.
 
 Improvements:
 

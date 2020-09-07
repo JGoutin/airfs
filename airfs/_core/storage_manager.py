@@ -7,6 +7,7 @@ from threading import RLock
 from airfs._core.io_base_raw import ObjectRawIOBase
 from airfs._core.io_base_buffered import ObjectBufferedIOBase
 from airfs._core.io_base_system import SystemBase
+from airfs._core.config import read_config
 from airfs._core.compat import Pattern
 from airfs._core.exceptions import MountException
 
@@ -62,6 +63,26 @@ def _automount():
 AUTOMOUNT = _automount()
 _AUTOMOUNT_LOCK = RLock()
 del _automount
+
+#: Default configuration from users
+_DEFAULTS = dict()
+
+
+def _user_mount():
+    """
+    Mount user configured storages.
+    """
+    for storage, system_parameters in read_config().items():
+        if "." in storage:
+            # User specific storage: mounted immediately
+            mount(storage.split(".", 0)[0], **system_parameters)
+
+        else:
+            # Default storage: Mounted lazily
+            _DEFAULTS[storage] = system_parameters
+
+
+_user_mount()
 
 
 def get_instance(
@@ -185,6 +206,10 @@ def mount(
     """
     if storage is None:
         storage = _find_storage(name)
+
+    storage_parameters = _get_default(storage, "storage_parameters", storage_parameters)
+    unsecure = _get_default(storage, "unsecure", unsecure)
+    extra_root = _get_default(storage, "extra_root", extra_root)
 
     system_parameters = _system_parameters(
         unsecure=unsecure, storage_parameters=storage_parameters
@@ -397,3 +422,23 @@ def _match_root(root, name):
     return (isinstance(root, Pattern) and root.match(name)) or (
         not isinstance(root, Pattern) and name.startswith(root)
     )
+
+
+def _get_default(storage, key, value):
+    """
+    Get default if value is not specified.
+
+    Args:
+        storage (str): Storage name.
+        key (str): Parameter key.
+        value: Parameter value.
+
+    Returns:
+        value: Parameter value.
+    """
+    if value is None:
+        try:
+            return _DEFAULTS[storage][key]
+        except KeyError:
+            return
+    return value

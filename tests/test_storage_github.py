@@ -1,4 +1,5 @@
 """Test airfs.storage.github"""
+import pytest
 
 UNSUPPORTED_OPERATIONS = (
     "copy",
@@ -12,89 +13,69 @@ UNSUPPORTED_OPERATIONS = (
 
 def test_mocked_storage():
     """Tests airfs.github with a mock"""
+    pytest.xfail(
+        "Unable to test using the generic test scenario due to "
+        "fixed virtual filesystem tree."
+    )
+
+
+def test_github_storage():
+    """Tests airfs.github specificities"""
+    from airfs._core.storage_manager import _DEFAULTS
+
+    try:
+        assert _DEFAULTS["github"]["storage_parameters"]["token"]
+    except (KeyError, AssertionError):
+        pytest.skip("GitHub test with real API require a configured API token.")
+
+    github_storage_scenario()
+
+
+def test_github_mocked_storage():
+    """Tests airfs.github specificities with a mock"""
+    from collections import OrderedDict
     from datetime import datetime
+    from requests import HTTPError
+    import airfs._core.storage_manager as storage_manager
 
-    from tests.test_storage import StorageTester
-    from tests.storage_mock import ObjectStorageMock
-
-    from airfs.storage.github import HTTPRawIO, _GithubSystem, HTTPBufferedIO
-    import airfs.storage.github._client as _client
-
-    # Mock
-
-    class HTTPException(Exception):
-        """HTTP Exception
-
-        Args:
-            status_code (int): HTTP status
-        """
-
-        def __init__(self, status_code):
-            self.status_code = status_code
-
-    def raise_404():
-        """Raise 404 error"""
-        raise HTTPException(404)
-
-    def raise_416():
-        """Raise 416 error"""
-        raise HTTPException(416)
-
-    def raise_500():
-        """Raise 500 error"""
-        raise HTTPException(500)
+    # Mock API responses
 
     class Response:
         """Mocked Response"""
 
-        def __init__(self):
+        def __init__(self, url, **kwargs):
             self.headers = dict(Date=datetime.now().isoformat())
             self.status_code = 200
             self.content = None
+            self.url = url
 
         def json(self):
             """Mocked Json result"""
             return self.content
 
-    def request(method, url, **_):
+        def raise_for_status(self):
+            """Mocked exception"""
+            if self.status_code >= 400:
+                raise HTTPError(
+                    "Error %s on %s" % (self.status_code, self.url), response=self
+                )
+
+    def request(_, url, **kwargs):
         """Mocked requests.request"""
-        resp = Response()
+        return Response(url, **kwargs)
 
-        try:
-            # API call
-            if url.startswith(_client.GITHUB_API):
-                locator, path = url.split(_client.GITHUB_API)[1].split("/", 1)
-                headers = storage_mock.head_object(locator, path)
-                resp.content = dict()
+    mounted = storage_manager.MOUNTED
+    storage_manager.MOUNTED = OrderedDict()
+    try:
+        storage = storage_manager.mount(storage="github", name="github_test")
+        storage["github"]["system_cached"].client._request = request
+        github_storage_scenario()
+    finally:
+        storage_manager.MOUNTED = mounted
 
-            else:
-                # Raw Github call
-                _, locator, path = url.split("://")[1].split("/", 2)
-                resp.content = storage_mock.get_object(locator, path)
 
-        # Return exception as response with status_code
-        except HTTPException as exception:
-
-            resp.status_code = exception.status_code
-
-        print(method, url, resp.headers, resp.content, resp.status_code)  # TODO: remove
-        return resp
-
-    # Init mocked system
-    system = _GithubSystem()
-    system.client._request = request
-    storage_mock = ObjectStorageMock(raise_404, raise_416, raise_500)
-    storage_mock.attach_io_system(system)
-
-    # Tests
-    with StorageTester(
-        system,
-        HTTPRawIO,
-        HTTPBufferedIO,
-        storage_mock,
-        unsupported_operations=UNSUPPORTED_OPERATIONS,
-        path_prefix="repo_name/HEAD",
-    ) as tester:
-
-        # Common tests
-        tester.test_common()
+def github_storage_scenario():
+    """
+    Test scenario. Called from both mocked and non-mocked tests.
+    """
+    # TODO: WIP

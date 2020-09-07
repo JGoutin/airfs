@@ -12,10 +12,10 @@ Cache modes:
 from gzip import open as open_archive
 from airfs._core.compat import blake2b
 from json import load, dump
-import os
-from os import listdir, utime, remove, chmod, getenv, makedirs
-from os.path import join, getmtime, expandvars, expanduser
+from os import listdir, utime, remove, makedirs, chmod
+from os.path import join, getmtime
 from time import time
+from airfs._core.config import CACHE_DIR
 
 
 class NoCacheException(Exception):
@@ -28,18 +28,8 @@ CACHE_LONG_EXPIRY = 172800
 #: Short cache default expiry
 CACHE_SHORT_EXPIRY = 60
 
-# Cache directory
-if os.name == "nt":
-    CACHE_DIR = join(expandvars("%LOCALAPPDATA%"), "airfs/cache")
-
-elif os.getuid() != 0:
-    CACHE_DIR = join(getenv("XDG_CACHE_HOME", expanduser("~/.cache")), "airfs")
-
-else:
-    CACHE_DIR = "/var/cache/airfs"
-
-makedirs(CACHE_DIR, exist_ok=True)
-chmod(CACHE_DIR, 0o700)
+#: To initialize cache directories only once
+_CACHE_INITIALIZED = False
 
 
 def _hash_name(name):
@@ -126,5 +116,12 @@ def set_cache(name, obj, long=False):
         long (bool): If true, enable "long cache".
     """
     path = join(CACHE_DIR, _hash_name(name) + ("l" if long else "s"))
+
+    global _CACHE_INITIALIZED
+    if not _CACHE_INITIALIZED:
+        makedirs(CACHE_DIR, exist_ok=True)
+        chmod(CACHE_DIR, 0o700)
+        _CACHE_INITIALIZED = True
+
     with open_archive(path, "wt") as file:
         dump(obj, file)

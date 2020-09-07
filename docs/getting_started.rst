@@ -128,8 +128,8 @@ Once mounted, all functions can be used without the needs to pass the
 
     # The storage is mounted on first use by passing "storage_parameters"
     with airfs.open('https://my_storage.com/my_object', 'rt',
-                      storage='my_storage',
-                      storage_parameters=storage_parameters) as file:
+                    storage='my_storage',
+                    storage_parameters=storage_parameters) as file:
         file.read()
 
     # Next calls use mounted storage transparently
@@ -138,3 +138,70 @@ Once mounted, all functions can be used without the needs to pass the
             'rt'
             ) as file:
         file.read()
+
+
+Save Configuration
+------------------
+
+It is possible to save a airfs mount configuration to use it automatically instead of
+specifying all parameters each time.
+
+Setting the configuration works almost like mounting:
+
+.. code-block:: python
+
+    import airfs.config
+
+    airfs.config.set_mount(
+        storage='my_storage',
+        storage_parameters=dict(
+            client_id='my_client_id',
+            secret_id='my_secret_id'
+            )
+        )
+
+Once configured, and airfs restarted, a storage can be mount without specifying
+parameters. This storage is either mounted lazily or manually mounted with
+`airfs.mount` function like normally:
+
+.. code-block:: python
+
+    import airfs
+
+    # Mount "my_storage" storage with "mount" function
+    airfs.mount(storage='my_storage')
+
+    # _Storage files can now be used transparently
+    with airfs.open('https://my_storage.com/object', 'rt') as file:
+        file.read()
+
+By default, the configuration apply to the default configuration of this storage.
+Therefore, it is sometime it may be useful to have multiple configuration for a same
+storage kind, this may occur when using multiples storage providers that use the same
+storage machinery. The `config_name` parameter allow to define this kind of storage:
+
+.. code-block:: python
+
+    import airfs.config
+
+    airfs.config.set_mount(
+        storage='my_storage',
+        config_name='my_config'
+        storage_parameters=dict(
+            client_id='my_client_id',
+            secret_id='my_secret_id',
+            endpoint='https://my_endpoint'
+            )
+        )
+
+    airfs.config.set_mount(
+        storage='my_storage',
+        config_name='my_other_config'
+        storage_parameters=dict(
+            client_id='my_other_client_id',
+            secret_id='my_other_secret_id',
+            endpoint='https://my_other_endpoint'
+            )
+        )
+
+Storage configured with this method are automatically mounted on airfs import.

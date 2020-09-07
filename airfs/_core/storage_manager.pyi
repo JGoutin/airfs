@@ -3,6 +3,7 @@ from typing import Any, Dict, Optional
 STORAGE_PACKAGE: Any
 MOUNTED: Dict[Any, Dict[str, Any]]
 AUTOMOUNT: Any
+_DEFAULTS: Dict[str, Dict[str, Any]]
 
 def get_instance(
     name: Any,

@@ -8,7 +8,7 @@ def pytest_addoption(parser):
     parser.addoption(
         "--mount",
         action="store",
-        default="./mount.json",
+        default="./test_mount.json",
         help="Specify a file of defining storage to mount and tests.",
     )
     parser.addoption(
