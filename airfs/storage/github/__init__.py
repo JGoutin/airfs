@@ -107,7 +107,8 @@ class _GithubSystem(_SystemBase):
         Returns:
             dict: HTTP header.
         """
-        # TODO: return a subset of header like "list" when heading a "dict"
+        if isinstance(client_kwargs["object"], dict):
+            return dict()
         return client_kwargs["object"].head(self.client, client_kwargs)
 
     def _list_objects(self, client_kwargs, path, max_results, first_level):
@@ -140,7 +141,7 @@ class _GithubSystem(_SystemBase):
                 yield item
 
         else:
-            raise _ObjectNotADirectoryError()
+            raise _ObjectNotADirectoryError(path=client_kwargs["full_path"])
 
     def islink(self, path=None, client_kwargs=None, header=None):
         """
@@ -185,17 +186,22 @@ class _GithubSystem(_SystemBase):
         Returns:
             bool: True if directory exists.
         """
-        if client_kwargs is None:
-            client_kwargs = self.get_client_kwargs(path)
-        obj_cls = client_kwargs["object"]
+        try:
+            if client_kwargs is None:
+                client_kwargs = self.get_client_kwargs(path)
+            obj_cls = client_kwargs["object"]
 
-        if obj_cls.STRUCT is not None:
-            return True
+            if obj_cls.STRUCT is not None:
+                self.head(path, client_kwargs)
+                return True
 
-        elif obj_cls == _Tree:
-            return self._has_git_mode("040")
+            elif obj_cls == _Tree:
+                return self._has_git_mode("040", path, client_kwargs)
 
-        return False
+            return False
+
+        except _ObjectNotFoundError:
+            return False
 
     def isfile(self, path=None, client_kwargs=None, assume_exists=None):
         """
@@ -212,19 +218,22 @@ class _GithubSystem(_SystemBase):
         Returns:
             bool: True if file exists.
         """
-        if client_kwargs is None:
-            client_kwargs = self.get_client_kwargs(path)
-        obj_cls = client_kwargs["object"]
+        try:
+            if client_kwargs is None:
+                client_kwargs = self.get_client_kwargs(path)
+            obj_cls = client_kwargs["object"]
 
-        if obj_cls.STRUCT is not None:
+            if obj_cls.STRUCT is not None:
+                return False
+
+            elif obj_cls == _Tree:
+                return self._has_git_mode("100", path, client_kwargs)
+
+            return self.exists(path, client_kwargs, assume_exists)
+        except _ObjectNotFoundError:
             return False
 
-        elif obj_cls == _Tree:
-            return self._has_git_mode("100")
-
-        return self.exists(path, client_kwargs, assume_exists)
-
-    def _has_git_mode(self, mode_start, path=None, client_kwargs=None):
+    def _has_git_mode(self, mode_start, path, client_kwargs):
         """
         Check if the Git object has the specified Git mode.
         Follow symlinks if any.
@@ -237,21 +246,14 @@ class _GithubSystem(_SystemBase):
         Returns:
             bool: True if excepted mode or non existing object.
         """
-        try:
-            header = self.head(path, client_kwargs)
-        except _ObjectNotFoundError:
-            return False
+        header = self.head(path, client_kwargs)
         mode = header["mode"]
-
         if mode.startswith(mode_start):
             return True
 
         elif mode == "120000":
             target = self.read_link(path, client_kwargs, recursive=True)
-            try:
-                target_mode = self.head(target)["mode"]
-            except _ObjectNotFoundError:
-                return False
+            target_mode = self.head(target)["mode"]
             return target_mode.startswith(mode_start)
 
     def _getmode(self, path=None, client_kwargs=None, header=None):

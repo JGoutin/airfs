@@ -79,7 +79,7 @@ class StorageTester:
         # Defines randomized names for locator and objects
         self.locator = self._get_id()
         self.locator_url = "/".join((root, self.locator))
-        self.base_dir_name = "%s/" % self._get_id()
+        self.base_dir_name = f"{self._get_id()}/"
         if path_prefix:
             dir_parts = (self.locator, path_prefix, self.base_dir_name)
         else:
@@ -139,7 +139,7 @@ class StorageTester:
         Returns:
             str: id
         """
-        return "airfs%s" % (str(_uuid()).replace("-", ""))
+        return f"airfs{str(_uuid()).replace('-', '')}"
 
     def _test_raw_io(self):
         """
@@ -547,7 +547,7 @@ class StorageTester:
                 if name == self.locator and isinstance(header, dict):
                     break
             else:
-                _pytest.fail('Locator "%s" not found' % self.locator)
+                _pytest.fail(f'Locator "{self.locator}" not found')
 
             # Test: Check locator header return a mapping
             assert hasattr(
@@ -700,13 +700,13 @@ class StorageTester:
         for i in range(11):
             if i < 10:
                 # Files in directory
-                file_name = "file%d.dat" % i
+                file_name = f"file{i}.dat"
                 path = self.base_dir_path + file_name
                 rel_path = self.base_dir_name + file_name
             else:
                 # File in locator
                 rel_path = self._get_id() + ".dat"
-                path = "%s/%s" % (self.locator, rel_path)
+                path = f"{self.locator}/{rel_path}"
 
             files.add(path)
             self._to_clean(path)
@@ -720,7 +720,7 @@ class StorageTester:
         # Test: List objects
         if self._is_supported("listdir"):
             objects = tuple(system.list_objects(self.locator))
-            objects_list = set("%s/%s" % (self.locator, name) for name, _ in objects)
+            objects_list = set(f"{self.locator}/{name}" for name, _ in objects)
             for file in files:
                 assert file in objects_list, "List objects, file name match"
             for _, header in objects:
@@ -838,7 +838,7 @@ class StorageTester:
             set of str: objects names.
         """
         return set(
-            "%s/%s" % (self.locator, name)
+            f"{self.locator}/{name}"
             for name, _ in self._system.list_objects(self.locator)
         )
 
@@ -857,7 +857,7 @@ def test_user_storage(storage_test_kwargs):
     from importlib import import_module
 
     module = import_module(
-        "tests.test_storage_%s" % storage_test_kwargs["storage_info"]["storage"]
+        f"tests.test_storage_{storage_test_kwargs['storage_info']['storage']}"
     )
     try:
         unsupported_operations = module.UNSUPPORTED_OPERATIONS

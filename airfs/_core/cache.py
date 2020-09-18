@@ -10,7 +10,7 @@ Cache modes:
         This is useful to store data that will not change.
 """
 from gzip import open as open_archive
-from airfs._core.compat import blake2b
+from hashlib import blake2b
 from json import load, dump
 from os import listdir, utime, remove, makedirs, chmod
 from os.path import join, getmtime

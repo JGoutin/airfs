@@ -19,7 +19,7 @@ def get_mount(storage, config_name=None):
         dict or None: Storage configuration, None if not configured.
     """
     if config_name:
-        storage = "%s.%s" % (storage, config_name)
+        storage = f"{storage}.{config_name}"
     try:
         return _read_config()[storage]
     except KeyError:
@@ -51,7 +51,7 @@ def set_mount(
             "https://www.my_storage.com/user/container/object".
     """
     if config_name:
-        storage = "%s.%s" % (storage, config_name)
+        storage = f"{storage}.{config_name}"
 
     config = _read_config()
     config[storage] = {

@@ -129,7 +129,7 @@ def test_mocked_storage():
             stream=None,
             start_range=None,
             end_range=None,
-            **_
+            **_,
         ):
             """azure.storage.blob.baseblobservice.BaseBlobService.get_blob_to_stream"""
             if end_range is not None:
@@ -143,12 +143,12 @@ def test_mocked_storage():
         @staticmethod
         def make_blob_url(container_name=None, blob_name=None, sas_token=None, **_):
             """azure.storage.blob.baseblobservice.BaseBlobService.make_blob_url"""
-            return "https://%s/%s#token=%s" % (container_name, blob_name, sas_token)
+            return f"https://{container_name}/{blob_name}#token={sas_token}"
 
         @staticmethod
         def make_container_url(container_name=None, sas_token=None, **_):
             """azure.storage.blob.baseblobservice.BaseBlobService.make_container_url"""
-            return "https://%s#token=%s" % (container_name, sas_token)
+            return f"https://{container_name}#token={sas_token}"
 
         @staticmethod
         def generate_blob_shared_access_signature(**_):
@@ -229,7 +229,7 @@ def test_mocked_storage():
             page=None,
             start_range=None,
             end_range=None,
-            **_
+            **_,
         ):
             """azure.storage.blob.pageblobservice.PageBlobService.update_page"""
             # Don't use pythonic indexation
@@ -270,7 +270,7 @@ def test_mocked_storage():
         ):
             """azure.storage.blob.blockblobservice.BlockBlobService.put_block"""
             storage_mock.put_object(
-                container_name, "%s.%s" % (blob_name, block_id), content=block
+                container_name, f"{blob_name}.{block_id}", content=block
             )
 
         @staticmethod
@@ -278,7 +278,7 @@ def test_mocked_storage():
             """azure.storage.blob.blockblobservice.BlockBlobService.put_block_list"""
             blocks = []
             for block in block_list:
-                blocks.append("%s.%s" % (blob_name, block.id))
+                blocks.append(f"{blob_name}.{block.id}")
             storage_mock.concat_objects(container_name, blob_name, blocks)
 
         @staticmethod

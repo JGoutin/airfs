@@ -51,7 +51,7 @@ def _automount():
         if file.endswith(".py") and not file.startswith("_"):
             storage = splitext(file)[0]
 
-            module_name = "%s.%s" % (package_name, storage)
+            module_name = f"{package_name}.{storage}"
             module = import_module(module_name)
             automount[storage] = module.ROOTS
             del modules[module_name]
@@ -92,7 +92,7 @@ def get_instance(
     storage_parameters=None,
     unsecure=None,
     *args,
-    **kwargs
+    **kwargs,
 ):
     """
     Get a storage instance.
@@ -220,8 +220,8 @@ def mount(
     if hasattr(module, "MOUNT_REDIRECT"):
         if extra_root:
             raise MountException(
-                "Can't define extra_root with %s. "
-                "%s can't have a common root." % (storage, extra_root)
+                f"Can't define extra_root with {storage}. "
+                f"{extra_root} can't have a common root."
             )
         result = dict()
         for storage in getattr(module, "MOUNT_REDIRECT"):
@@ -261,7 +261,7 @@ def _find_storage_classes(module, storage_info):
             except TypeError:
                 continue
 
-            default_flag = "_%s__DEFAULT_CLASS" % member.__name__.strip("_")
+            default_flag = f"_{member.__name__.strip('_')}__DEFAULT_CLASS"
             try:
                 is_default = getattr(member, default_flag)
             except AttributeError:
@@ -333,13 +333,13 @@ def _import_storage_module(storage):
         Storage Python module.
     """
     for package in STORAGE_PACKAGE:
-        module_name = "%s.%s" % (package, storage)
+        module_name = f"{package}.{storage}"
         try:
             return import_module(module_name)
         except ImportError:
             if find_spec(module_name) is not None:
                 raise
-    raise MountException('No storage named "%s" found' % storage)
+    raise MountException(f'No storage named "{storage}" found')
 
 
 def _find_storage(name):

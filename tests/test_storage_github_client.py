@@ -36,6 +36,8 @@ def test_client_rate_limit():
     class Response:
         """Mocked Response"""
 
+        reason = "Error"
+
         def __init__(self):
             self.headers = dict()
             self.json_content = None
@@ -95,7 +97,7 @@ def test_client_rate_limit():
     # Test: Rate limit not reached
     client = Client()
     previous_remaining = RateLimit.remaining
-    response = client.request(_client.GITHUB_API)
+    response = client.request("/path")
     assert int(response.headers["X-RateLimit-Remaining"]) == RateLimit.remaining
     assert response.status_code == 200
     assert RateLimit.remaining == previous_remaining - 1
@@ -104,13 +106,13 @@ def test_client_rate_limit():
     RateLimit.remaining = 0
     client = Client(token="123", wait_rate_limit=False)
     with pytest.raises(_client.GithubRateLimitException):
-        client.request(_client.GITHUB_API)
+        client.request("/path")
 
     # Test: Rate limit reached, wait
     RateLimit.remaining = 0
     client = Client(wait_retry_delay=0.001)
     assert not client._RATE_LIMIT_WARNED
-    response = client.request(_client.GITHUB_API)
+    response = client.request("/path")
     assert client._RATE_LIMIT_WARNED
     assert response.status_code == 200
 
@@ -145,13 +147,13 @@ def test_client_get(tmpdir):
                 Date=datetime.now().isoformat(),
             )
             if max_pages > 1:
-                self.headers["Link"] = (
-                    '<https://api.github.com/resource?page=%s>; rel="next"' % page
-                )
+                self.headers[
+                    "Link"
+                ] = f'<https://api.github.com/resource?page={page}>; rel="next"'
                 if valid_link_header:
                     self.headers["Link"] += (
-                        ', <https://api.github.com/resource?page=%s>; rel="last"'
-                        % max_pages
+                        f", <https://api.github.com/resource?page={max_pages}>; "
+                        'rel="last"'
                     )
             self.json_content = None
 

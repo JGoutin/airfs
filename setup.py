@@ -21,7 +21,6 @@ PACKAGE_INFO = dict(
         "Topic :: System :: Filesystems",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
@@ -38,7 +37,7 @@ PACKAGE_INFO = dict(
         "Download": "https://pypi.org/project/airfs",
     },
     license="Apache License, Version 2.0",
-    python_requires=">=3.5",
+    python_requires=">=3.6",
     install_requires=[
         "requests>=2.20.0",
         "python-dateutil>=2.6.0"
@@ -89,8 +88,7 @@ PACKAGE_INFO["command_options"]["build_sphinx"] = {
     "release": ("setup.py", PACKAGE_INFO["version"]),
     "copyright": (
         "setup.py",
-        "2018-2019, Accelize; 2020-%s, %s"
-        % (datetime.now().year, PACKAGE_INFO["author"]),
+        f"2018-2019, Accelize; 2020-{datetime.now().year}, {PACKAGE_INFO['author']}",
     ),
 }
 

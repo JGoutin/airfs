@@ -34,7 +34,7 @@ def _copy(src, dst, src_is_storage, dst_is_storage):
             if system_src is system_dst:
 
                 if system_src.relpath(src) == system_dst.relpath(dst):
-                    raise SameFileError("'%s' and '%s' are the same file" % (src, dst))
+                    raise SameFileError(f"'{src}' and '{dst}' are the same file")
 
                 try:
                     return system_dst.copy(src, dst)
@@ -108,7 +108,7 @@ def copy(src, dst, *, follow_symlinks=True):
                 dst = join(dst, basename(src))
 
             elif not isdir(dirname(dst)):
-                raise FileNotFoundError("No such file or directory: '%s'" % dst)
+                raise FileNotFoundError(f"No such file or directory: '{dst}'")
 
         except PermissionError:
             # Unable to check target directory due to missing read access, but do not
@@ -145,7 +145,7 @@ def copyfile(src, dst, *, follow_symlinks=True):
 
     try:
         if not hasattr(dst, "read") and not isdir(dirname(dst)):
-            raise FileNotFoundError("No such file or directory: '%s'" % dst)
+            raise FileNotFoundError(f"No such file or directory: '{dst}'")
 
     except PermissionError:
         # Unable to check target directory due to missing read access, but do not raise

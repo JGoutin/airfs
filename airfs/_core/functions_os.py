@@ -1,10 +1,9 @@
 """Cloud object compatibles standard library 'os' equivalent functions"""
 import os
-from os import scandir as os_scandir, fsdecode, fsencode
+from os import scandir as os_scandir, fsdecode, fsencode, fspath
 from os.path import dirname
 from stat import S_ISLNK, S_ISDIR
 
-from airfs._core.compat import fspath
 from airfs._core.storage_manager import get_instance
 from airfs._core.functions_core import equivalent_to, is_storage
 from airfs._core.exceptions import (
@@ -12,6 +11,7 @@ from airfs._core.exceptions import (
     ObjectNotFoundError,
     handle_os_exceptions,
     ObjectPermissionError,
+    ObjectIsADirectoryError,
 )
 from airfs._core.io_base import memoizedmethod
 
@@ -62,7 +62,7 @@ def makedirs(name, mode=0o777, exist_ok=False):
     system = get_instance(name)
 
     if not exist_ok and system.isdir(system.ensure_dir_path(name)):
-        raise ObjectExistsError("File exists: '%s'" % name)
+        raise ObjectExistsError(path=name)
 
     system.make_dir(name)
 
@@ -96,10 +96,10 @@ def mkdir(path, mode=0o777, *, dir_fd=None):
     if parent_dir:
         parent = "{}{}/".format(path.rsplit(relative, 1)[0], parent_dir)
         if not system.isdir(parent):
-            raise ObjectNotFoundError("No such file or directory: '%s'" % parent)
+            raise ObjectNotFoundError(path=parent)
 
     if system.isdir(system.ensure_dir_path(path)):
-        raise ObjectExistsError("File exists: '%s'" % path)
+        raise ObjectExistsError(path=path)
 
     system.make_dir(relative, relative=True)
 
@@ -148,7 +148,7 @@ def remove(path, *, dir_fd=None):
     system = get_instance(path)
 
     if system.is_locator(path) or path[-1] == "/":
-        raise IsADirectoryError("Is a directory: '%s'" % path)
+        raise ObjectIsADirectoryError(path=path)
 
     system.remove(path)
 
@@ -261,7 +261,7 @@ class DirEntry:
 
     @memoizedmethod
     def __str__(self):
-        return "<DirEntry '%s'>" % self._name.rstrip("/")
+        return f"<DirEntry '{self._name.rstrip('/')}'>"
 
     __repr__ = __str__
 

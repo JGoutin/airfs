@@ -325,7 +325,7 @@ class _S3System(_SystemBase):
                 for obj in response["Contents"]:
                     yield obj.pop("Key")[index:], obj, False
             except KeyError:
-                raise _ObjectNotFoundError("Not found: %s" % path)
+                raise _ObjectNotFoundError(path=path)
 
             try:
                 kwargs["ContinuationToken"] = response["NextContinuationToken"]

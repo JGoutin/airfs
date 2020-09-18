@@ -5,18 +5,16 @@ import shutil as _shutil
 from sys import version_info as _py
 
 __all__ = [
-    "blake2b",
     "getgid",
     "getuid",
-    "fspath",
     "contents",
     "copytree",
     "COPY_BUFSIZE",
     "Pattern",
 ]
 
-if _py[0] < 3 or (_py[0] == 3 and _py[1] < 5):
-    raise ImportError("airfs require Python 3.5 or more.")
+if _py[0] < 3 or (_py[0] == 3 and _py[1] < 6):
+    raise ImportError("airfs require Python 3.6 or more.")
 
 
 def _deprecation_warning():
@@ -26,29 +24,11 @@ def _deprecation_warning():
     import warnings
 
     warnings.warn(
-        "Next airfs version will not support Python %d.%d." % (_py[0], _py[1]),
+        f"Next airfs version will not support Python {_py[0]}.{_py[1]}.",
         DeprecationWarning,
         stacklevel=2,
     )
 
-
-# Python < 3.6 compatibility
-if _py[0] == 3 and _py[1] < 6:
-
-    # Missing "os.fspath"
-    def fspath(filename):
-        """Return filename unchanged"""
-        return filename
-
-    # Missing hashlib.black2b, replace it by SHA1 since only used for cache files names
-    from hashlib import sha1 as blake2b  # type: ignore
-
-    # Deprecated on 2020-09-13
-    _deprecation_warning()
-
-else:
-    fspath = _os.fspath
-    from hashlib import blake2b  # type: ignore
 
 # Python < 3.7 compatibility
 if _py[0] < 3 or (_py[0] == 3 and _py[1] < 7):

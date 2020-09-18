@@ -187,7 +187,7 @@ def test_mocked_storage():
         def generate_presigned_url(ClientMethod, Params=None, **_):
             """boto3.client.generate_presigned_url"""
             assert ClientMethod == "get_object", "get_object Client method"
-            return "https://%s/%s#token=123456" % (Params["Bucket"], Params["Key"])
+            return f"https://{Params['Bucket']}/{Params['Key']}#token=123456"
 
     class Session:
         """boto3.session.Session"""

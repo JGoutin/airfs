@@ -10,6 +10,22 @@ UNSUPPORTED_OPERATIONS = (
 )
 
 
+def token(size):
+    """
+    Get token.
+
+    Args:
+        size (int): Size.
+
+    Returns:
+        str: Token
+    """
+    from random import choice
+    from string import ascii_letters
+
+    return "".join(choice(ascii_letters) for _ in range(size))
+
+
 def test_handle_client_exception():
     """Test airfs.swift._handle_client_exception"""
     from airfs.storage.swift import _handle_client_exception
@@ -38,8 +54,6 @@ def test_handle_client_exception():
 
 def test_mocked_storage():
     """Tests airfs.swift with a mock"""
-    from random import choice
-    from string import ascii_letters
     from json import loads
     import swiftclient
     from airfs.storage.swift import SwiftRawIO, _SwiftSystem, SwiftBufferedIO
@@ -47,10 +61,7 @@ def test_mocked_storage():
     from tests.test_storage import StorageTester
     from tests.storage_mock import ObjectStorageMock
 
-    URL = "https://%s/v1/%s" % (
-        "".join(choice(ascii_letters) for _ in range(8)),
-        "".join(choice(ascii_letters) for _ in range(4)),
-    )
+    URL = f"https://{token(8)}/v1/{token(4)}"
 
     # Mocks client
 

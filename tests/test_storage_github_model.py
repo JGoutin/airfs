@@ -58,14 +58,14 @@ def test_get_client_kwargs():
         ("tree", Reference),
         ("blob", Reference),
     ):
-        spec = get_client_kwargs("my_owner/my_repo/%s" % path)
+        spec = get_client_kwargs(f"my_owner/my_repo/{path}")
         assert spec["object"] == Repo
         assert spec["content"] == model_cls
         assert spec["owner"] == "my_owner"
         assert spec["repo"] == "my_repo"
         assert model_cls.KEY not in spec
 
-        spec = get_client_kwargs("my_owner/my_repo/%s/my_ref" % path)
+        spec = get_client_kwargs(f"my_owner/my_repo/{path}/my_ref")
         assert spec["object"] == model_cls
         assert spec["content"] == Tree
         assert spec["owner"] == "my_owner"
@@ -73,7 +73,7 @@ def test_get_client_kwargs():
         assert spec[model_cls.KEY] == "my_ref"
         assert "path" not in spec
 
-        spec = get_client_kwargs("my_owner/my_repo/%s/my_ref/my_dir/my_file" % path)
+        spec = get_client_kwargs(f"my_owner/my_repo/{path}/my_ref/my_dir/my_file")
         assert spec["object"] == Tree
         assert spec["content"] == Tree
         assert spec["owner"] == "my_owner"

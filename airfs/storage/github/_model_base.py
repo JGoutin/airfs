@@ -1,11 +1,12 @@
 """Github object base class"""
 from collections import ChainMap
 from collections.abc import Mapping
-
+from itertools import chain
 from airfs._core.exceptions import (
     ObjectIsADirectoryError,
-    AirfsException,
+    ObjectNotASymlinkError,
     ObjectNotADirectoryError,
+    ObjectNotFoundError,
 )
 
 
@@ -71,9 +72,11 @@ class GithubObject(Mapping):
         self._spec = spec
 
         if headers is None:
-            headers = dict()
-        self._headers = headers
-        self._header_updated = False
+            self._headers = self.head_obj(self._client, self._spec)
+            self._header_updated = True
+        else:
+            self._headers = headers
+            self._header_updated = False
 
     def __getitem__(self, key):
         """
@@ -108,11 +111,9 @@ class GithubObject(Mapping):
         Yields:
             str: keys
         """
-        for key in self.HEAD_KEYS:
-            yield key
-        for key, _ in self.HEAD_EXTRA:
-            yield key
-        for key in self.HEAD_FROM:
+        for key in chain(
+            self.HEAD_KEYS, (key for key, _ in self.HEAD_EXTRA), self.HEAD_FROM
+        ):
             yield key
 
     def __len__(self):
@@ -205,15 +206,21 @@ class GithubObject(Mapping):
 
         model = cls.STRUCT
         while isinstance(model, dict):
-            model = model[key]
+            try:
+                model = model[key]
+            except KeyError:
+                raise ObjectNotFoundError(path=spec["full_path"])
             try:
                 key = spec["keys"].popleft()
             except IndexError:
-                if model.KEY is not None:
+                if hasattr(model, "KEY") and model.KEY is not None:
                     spec["content"] = model
                     model = cls
-                else:
+                elif hasattr(model, "STRUCT"):
                     spec["content"] = model.STRUCT
+                else:
+                    # Is a dict
+                    spec["content"] = model
                 spec["object"] = model
                 return model
 
@@ -291,7 +298,7 @@ class GithubObject(Mapping):
             str: Object URL.
         """
         if cls.GET is None:
-            raise ObjectIsADirectoryError("Is a directory: %s" % spec["full_path"])
+            raise ObjectIsADirectoryError(spec["full_path"])
         return cls.GET.format(spec)
 
     @classmethod
@@ -331,21 +338,26 @@ class GithubObject(Mapping):
             str: Path.
         """
         if cls.SYMLINK is None:
-            raise AirfsException("Not a symbolic link")
+            raise ObjectNotASymlinkError(path=spec["full_path"])
 
-        return cls.SYMLINK.format(*ChainMap(spec, cls.head(client, spec)))
+        return cls.SYMLINK.format(**ChainMap(spec, cls.head(client, spec)))
 
     @classmethod
-    def _raise_if_not_dir(cls, isdir, spec):
+    def _raise_if_not_dir(cls, isdir, spec, client=None):
         """
         Raise exception if not a directory.
 
         Args:
             isdir (bool): True is a directory.
             spec (dict): Item spec.
+            client (airfs.storage.github._api.ApiV3): Client. If present, also checks
+                if exists if not a directory.
 
         Raises:
             airfs._core.exceptions.ObjectNotADirectoryError: Not a directory.
         """
         if not isdir:
-            raise ObjectNotADirectoryError(spec["full_path"])
+            if client:
+                # Check if exists
+                cls.head_obj(client, spec)
+            raise ObjectNotADirectoryError(path=spec["full_path"])

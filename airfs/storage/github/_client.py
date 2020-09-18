@@ -94,7 +94,7 @@ class Client:
             auth_headers = {}
             token = self._token
             if token:
-                auth_headers["Authorization"] = "token %s" % token
+                auth_headers["Authorization"] = f"token {token}"
             self._headers = auth_headers
 
         if previous_headers is not None:
@@ -113,17 +113,23 @@ class Client:
 
     def request(self, path, method="GET", **kwargs):
         """
-        Perform an HTTP request over the GitHub API. Also handle the case where the
-        rate-limit is reached.
+        Perform an HTTP request over the GitHub API and other GitHub domains.
+
+        Handle the case where the API rate-limit is reached.
 
         Args:
-            path (str): GitHub API path.
+            path (str): GitHub API relative path or GitHub non API full URL.
             method (str): HTTP method. Default to "GET".
             kwargs: requests.request keyword arguments.
 
         Returns:
             requests.Response: Response.
         """
+        if path.startswith("https://"):
+            response = self._request(method, path, **kwargs)
+            _handle_http_errors(response, _CODES_CONVERSION)
+            return response
+
         while True:
             response = self._request(method, GITHUB_API + path, **kwargs)
 
@@ -157,7 +163,6 @@ class Client:
             result, headers = get_cache(cache_name)
         except NoCacheException:
             result = headers = None
-
         else:
             if never_expire:
                 return result, headers

@@ -283,7 +283,7 @@ class _OSSSystem(_SystemBase):
                 response = bucket.list_objects(**kwargs)
 
             if not response.object_list:
-                raise _ObjectNotFoundError("Not found: %s" % path)
+                raise _ObjectNotFoundError(path=path)
 
             for obj in response.object_list:
                 yield obj.key[index:], self._model_to_dict(obj, ("key",)), False

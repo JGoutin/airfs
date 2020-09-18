@@ -180,7 +180,7 @@ class _AzureBlobSystem(_AzureBaseSystem):
                 yield blob.name[index:], self._model_to_dict(blob), False
 
         if blob is None:
-            raise ObjectNotFoundError
+            raise ObjectNotFoundError(path=path)
 
     def _make_dir(self, client_kwargs):
         """

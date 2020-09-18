@@ -13,18 +13,19 @@ class Archive(GithubObject):
     HEAD_FROM = {"pushed_at": Reference, "sha": Reference}
 
     @classmethod
-    def list(cls, client, spec):
+    def list(cls, client, spec, first_level=False):
         """
         List archives for all branches and tags.
 
         Args:
             client (airfs.storage.github._api.ApiV3): Client.
             spec (dict): Item spec.
+            first_level (bool): It True, returns only first level objects.
 
         Returns:
             generator of tuple: object name str, object header dict, has content bool
         """
-        cls._raise_if_not_dir(spec.get("archive"), spec)
+        cls._raise_if_not_dir(not spec.get("archive"), spec, client)
 
         for parent in (Tag, Branch):
             response = client.get(parent.LIST.format(**spec))[0]
@@ -54,7 +55,7 @@ class Archive(GithubObject):
         headers = ""
         # Sometime, Content-Length is missing from response, so retry until success
         while "Content-Length" not in headers:
-            headers = client.request("HEAD", url).headers
+            headers = client.request(url, method="HEAD").headers
         return cls.set_header(headers)
 
     def _update_spec_parent_ref(self, parent_key):

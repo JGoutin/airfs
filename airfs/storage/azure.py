@@ -153,11 +153,9 @@ class _AzureBaseSystem(_SystemBase):
 
         suffix = storage_parameters.get("endpoint_suffix", "core.windows.net")
 
-        self._endpoint = "http%s://%s.%s.%s" % (
-            "" if self._unsecure else "s",
-            account_name,
-            sub_domain,
-            suffix,
+        self._endpoint = (
+            f"http{'' if self._unsecure else 's'}://"
+            f"{account_name}.{sub_domain}.{suffix}"
         )
 
         return account_name, suffix.replace(".", r"\.")
@@ -190,11 +188,11 @@ class _AzureBaseSystem(_SystemBase):
         Returns:
             str: URL.
         """
-        path = "%s/%s" % (self._endpoint, self.relpath(path))
+        path = f"{self._endpoint}/{self.relpath(path)}"
 
         if caller_system is not self:
             try:
-                path = "%s?%s" % (path, self._storage_parameters["sas_token"])
+                path = f"{path}?{self._storage_parameters['sas_token']}"
             except KeyError:
                 pass
 

@@ -100,7 +100,7 @@ class ObjectStorageMock:
         raise_404_if_empty=True,
         first_level=False,
         relative=False,
-        **_
+        **_,
     ):
         """
         Get locator content.
@@ -132,7 +132,7 @@ class ObjectStorageMock:
                             name += "/"
 
                     if not relative and prefix and name:
-                        name = "%s/%s" % (prefix.rstrip("/"), name)
+                        name = f"{prefix.rstrip('/')}/{name}"
 
                     if first_level and name in headers:
                         continue

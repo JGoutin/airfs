@@ -41,19 +41,19 @@ language = "en"
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 pygments_style = "default"
 html_theme = "sphinx_rtd_theme"
-htmlhelp_basename = "%sdoc" % project
+htmlhelp_basename = f"{project}doc"
 latex_elements = {}  # type: ignore
 latex_documents = [
-    (master_doc, "%s.tex" % project, "%s Documentation" % project, author, "manual")
+    (master_doc, f"{project}.tex", f"{project} Documentation", author, "manual")
 ]
 man_pages = [
-    (master_doc, PACKAGE_INFO["name"], "%s Documentation" % project, [author], 1)
+    (master_doc, PACKAGE_INFO["name"], f"{project} Documentation", [author], 1)
 ]
 texinfo_documents = [
     (
         master_doc,
         project,
-        "%s Documentation" % project,
+        f"{project} Documentation",
         author,
         project,
         PACKAGE_INFO["description"],

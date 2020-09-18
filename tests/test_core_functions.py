@@ -38,7 +38,7 @@ def test_equivalent_to():
         assert args == dummy_args, "cos_function, args"
         assert kwargs == dummy_kwargs, "cos_function, kwargs"
         if raises_exception:
-            raise ObjectNotFoundError("Error")
+            raise ObjectNotFoundError
         return cos
 
     # Tests storage function

@@ -58,7 +58,7 @@ class Reference(GithubObject):
                 except ObjectNotFoundError:
                     continue
             else:
-                raise ObjectNotFoundError(spec["full_path"])
+                raise ObjectNotFoundError(path=spec["full_path"])
 
         spec["object"] = obj_cls
         spec[key] = ref

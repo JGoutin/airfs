@@ -238,13 +238,12 @@ class _SwiftSystem(_SystemBase):
         scheme, full_path = self._get_roots()[0].split("://", 1)
         netloc, account_path = full_path.split("/", 1)
         temp_path = _generate_temp_url(
-            path="/%s/%s/%s"
-            % (account_path, client_kwargs["container"], client_kwargs["obj"]),
+            path=f"/{account_path}/{client_kwargs['container']}/{client_kwargs['obj']}",
             seconds=expires_in,
             key=self._temp_url_key,
             method="GET",
         )
-        return "%s://%s%s" % (scheme, netloc, temp_path)
+        return f"{scheme}://{netloc}{temp_path}"
 
 
 class SwiftRawIO(_ObjectRawIOBase):

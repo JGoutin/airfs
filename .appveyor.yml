@@ -4,7 +4,6 @@ environment:
         - PYTHON: "C:\\Python38-x64"
         - PYTHON: "C:\\Python37-x64"
         - PYTHON: "C:\\Python36-x64"
-        - PYTHON: "C:\\Python35-x64"
 platform:
     - x64
 
@@ -13,7 +12,7 @@ build: off
 install:
     # Python environment
     - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
-    - "python -m pip install --upgrade setuptools pip wheel pytest-cov pytest-mypy pytest-flake8 pytest-black pytest-bandit codecov"
+    - "python -m pip install --upgrade setuptools pip wheel pytest-cov pytest-flake8 pytest-black pytest-bandit codecov"
 
     # Installs all package dependencies
     - "python -m pip install -e .[all]"

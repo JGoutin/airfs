@@ -15,19 +15,19 @@ def test_handle_os_exceptions():
 
     with pytest.raises(FileNotFoundError):
         with handle_os_exceptions():
-            raise ObjectNotFoundError("error")
+            raise ObjectNotFoundError
 
     with pytest.raises(PermissionError):
         with handle_os_exceptions():
-            raise ObjectPermissionError("error")
+            raise ObjectPermissionError
 
     with pytest.raises(FileExistsError):
         with handle_os_exceptions():
-            raise ObjectExistsError("error")
+            raise ObjectExistsError
 
     with pytest.raises(NotADirectoryError):
         with handle_os_exceptions():
-            raise ObjectNotADirectoryError("error")
+            raise ObjectNotADirectoryError
 
     with pytest.raises(FileExistsError):
         with handle_os_exceptions():

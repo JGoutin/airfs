@@ -68,8 +68,8 @@ class Tree(GithubObject):
                 Commit.LIST.format(**spec), params=dict(path=spec["path"], sha=sha)
             )[0]
             commit_header = Commit.set_header(response[0])
-            for key in self.HEAD_FROM:
-                self._headers[key] = commit_header[key]
+            for from_key in self.HEAD_FROM:
+                self._headers[from_key] = commit_header[from_key]
 
         return self._headers[key]
 
@@ -97,7 +97,7 @@ class Tree(GithubObject):
             if path == abspath:
                 return cls.set_header(headers)
 
-        raise ObjectNotFoundError(spec["full_path"])
+        raise ObjectNotFoundError(path=spec["full_path"])
 
     @classmethod
     def read_link(cls, client, spec):

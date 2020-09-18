@@ -44,8 +44,7 @@ Improvements:
 * airfs now raises `airfs.MountException` on mounting errors instead of `ValueError`.
 * airfs now raises `airfs.ConfigurationException` on configuration errors.
 * The S3 storage now support any supported S3 compatible storage and not only AWS.
-* Add `Flake8 <https://gitlab.com/pycqa/flake8>`_,
-  `Mypy <http://www.mypy-lang.org/>`_ and
+* Add `Flake8 <https://gitlab.com/pycqa/flake8>`_ and
   `Bandit <https://github.com/PyCQA/bandit>`_ to the Pytest sequence.
 * Refactor `airfs.io.SystemBase.list_objects` to improve to support more input file
   listing and make the API simpler. Remove `airfs.io.FileSystemBase` which is now a
@@ -62,7 +61,7 @@ Fixes:
 
 Deprecations:
 
-* Warn about the Python 3.5 deprecation in the next version.
+* Python 3.5 support is removed.
 
 1.4.0 (2020/01)
 ---------------
@@ -101,7 +100,7 @@ Fixes:
 
 Contributors:
 
-* Thanks to Stewart Adam (stewartadam)for the tests and fixes for Azure.
+* Thanks to Stewart Adam (stewartadam) for the tests and fixes for Azure.
 
 1.3.1 (2019/04)
 ---------------

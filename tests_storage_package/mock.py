@@ -168,9 +168,9 @@ class MockSystem(_SystemBase):
         Returns:
             str: Shareable URL.
         """
-        return "https://%s/%s#token=123456" % (
-            client_kwargs["locator"],
-            client_kwargs["path"],
+        return (
+            f"https://{client_kwargs['locator']}/"
+            f"{client_kwargs['path']}#token=123456"
         )
 
 

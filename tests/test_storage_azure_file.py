@@ -47,7 +47,7 @@ def test_mocked_storage():
             str: Path
         """
         if directory_name and file_name:
-            return "%s/%s" % (directory_name, file_name)
+            return f"{directory_name}/{file_name}"
         elif directory_name:
             return directory_name
         return file_name
@@ -160,7 +160,7 @@ def test_mocked_storage():
             directory_name=None,
             file_name=None,
             content_length=None,
-            **_
+            **_,
         ):
             """azure.storage.file.fileservice.FileService.create_file"""
             if content_length:
@@ -199,7 +199,7 @@ def test_mocked_storage():
             stream=None,
             start_range=None,
             end_range=None,
-            **_
+            **_,
         ):
             """azure.storage.file.fileservice.FileService.get_file_to_stream"""
             if end_range is not None:
@@ -229,7 +229,7 @@ def test_mocked_storage():
             data=None,
             start_range=None,
             end_range=None,
-            **_
+            **_,
         ):
             """azure.storage.file.fileservice.FileService.update_range"""
             if end_range is not None:
@@ -247,7 +247,7 @@ def test_mocked_storage():
             directory_name=None,
             file_name=None,
             content_length=None,
-            **_
+            **_,
         ):
             """azure.storage.file.fileservice.FileService.resize_file"""
             path = join(directory_name, file_name)
@@ -264,7 +264,7 @@ def test_mocked_storage():
         @staticmethod
         def make_file_url(share_name=None, file_name=None, sas_token=None, **_):
             """azure.storage.file.fileservice.FileService.make_file_url"""
-            return "https://%s/%s#token=%s" % (share_name, file_name, sas_token)
+            return f"https://{share_name}/{file_name}#token={sas_token}"
 
         @staticmethod
         def generate_file_shared_access_signature(**_):
@@ -315,9 +315,12 @@ def test_mocked_storage():
             other_system = _AzureFileSystem(
                 storage_parameters=dict(account_name="other", sas_token=sas_token)
             )
-            assert other_system._format_src_url(
-                "smb://other.file.core.windows.net" + rel_path, system
-            ) == "https://other.file.core.windows.net%s?%s" % (rel_path, sas_token)
+            assert (
+                other_system._format_src_url(
+                    "smb://other.file.core.windows.net" + rel_path, system
+                )
+                == f"https://other.file.core.windows.net{rel_path}?{sas_token}"
+            )
 
             # Test: Cross account copy source URL with no SAS token
             other_system = _AzureFileSystem(

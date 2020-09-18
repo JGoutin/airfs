@@ -228,8 +228,8 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
             str: range.
         """
         if end:
-            return "bytes=%d-%d" % (start, end - 1)
-        return "bytes=%d-" % start
+            return f"bytes={start}-{end - 1}"
+        return f"bytes={start}-"
 
     def _peek(self, size=-1):
         """
@@ -369,7 +369,7 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
             elif whence == SEEK_END:
                 self._seek = offset + self._size
             else:
-                raise ValueError("whence value %s unsupported" % whence)
+                raise ValueError(f"whence value {whence} unsupported")
         return self._seek
 
     def write(self, b):

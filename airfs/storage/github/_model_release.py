@@ -14,18 +14,19 @@ class ReleaseAsset(GithubObject):
     HEAD_FROM = {"sha": Tag}
 
     @classmethod
-    def list(cls, client, spec):
+    def list(cls, client, spec, first_level=False):
         """
         List assets of a release.
 
         Args:
             client (airfs.storage.github._api.ApiV3): Client.
             spec (dict): Item spec.
+            first_level (bool): It True, returns only first level objects.
 
         Returns:
             generator of tuple: object name str, object header dict, has content bool
         """
-        cls._raise_if_not_dir(spec.get("asset"), spec)
+        cls._raise_if_not_dir(not spec.get("asset"), spec, client)
 
         for asset in cls._parent_release(client, spec)["assets"]:
             name = asset["name"]
@@ -48,7 +49,7 @@ class ReleaseAsset(GithubObject):
             if asset["name"] == name:
                 return cls.set_header(asset)
 
-        raise ObjectNotFoundError("No such file or directory: '%s'" % spec["full_path"])
+        raise ObjectNotFoundError(path=spec["full_path"])
 
     @classmethod
     def get_url(cls, client, spec):
@@ -87,18 +88,19 @@ class ReleaseArchive(Archive):
     HEAD_FROM = {"pushed_at": Tag, "sha": Tag}  # type: ignore
 
     @classmethod
-    def list(cls, client, spec):
+    def list(cls, client, spec, first_level=False):
         """
         List archives for all branches and tags.
 
         Args:
             client (airfs.storage.github._api.ApiV3): Client.
             spec (dict): Item spec.
+            first_level (bool): It True, returns only first level objects.
 
         Returns:
             generator of tuple: object name str, object header dict, has content bool
         """
-        cls._raise_if_not_dir(spec.get("archive"), spec)
+        cls._raise_if_not_dir(not spec.get("archive"), spec, client)
 
         tag = spec.get("tag", "latest")
         for ext in (".tar.gz", ".zip"):

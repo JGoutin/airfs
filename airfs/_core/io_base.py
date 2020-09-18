@@ -49,14 +49,12 @@ class ObjectIOBase(IOBase):
             self._readable = True
 
         else:
-            raise ValueError('Invalid mode "%s"' % mode)
+            raise ValueError(f'Invalid mode "{mode}"')
 
     def __str__(self):
-        return "<%s.%s name='%s' mode='%s'>" % (
-            self.__class__.__module__,
-            self.__class__.__name__,
-            self._name,
-            self._mode,
+        return (
+            f"<{self.__class__.__module__}.{self.__class__.__name__} "
+            f"name='{self._name}' mode='{self._mode}'>"
         )
 
     __repr__ = __str__

@@ -231,7 +231,7 @@ class SystemBase(ABC, WorkerPoolBase):
         """
         for key in keys:
             try:
-                date_value = header.pop(key)
+                date_value = header[key]
             except KeyError:
                 continue
             try:
@@ -275,7 +275,7 @@ class SystemBase(ABC, WorkerPoolBase):
         """
         for key in self._SIZE_KEYS:
             try:
-                return int(header.pop(key))
+                return int(header[key])
             except KeyError:
                 continue
         else:
@@ -813,13 +813,13 @@ class SystemBase(ABC, WorkerPoolBase):
             stat[st_time_ns] = int(time_value * 1000000000)
 
         if self.islink(path=path, header=header):
-            stat["st_mode"] = S_IFLNK
+            stat["st_mode"] += S_IFLNK
         elif (not path or path[-1] == "/" or self.is_locator(path)) and not stat[
             "st_size"
         ]:
-            stat["st_mode"] = S_IFDIR
+            stat["st_mode"] += S_IFDIR
         else:
-            stat["st_mode"] = S_IFREG
+            stat["st_mode"] += S_IFREG
 
         sub = self._CHAR_FILTER.sub
         for key, value in tuple(header.items()):
