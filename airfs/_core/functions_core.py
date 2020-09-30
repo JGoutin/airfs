@@ -3,28 +3,25 @@
 from functools import wraps
 from os import fsdecode, fsencode
 
-from airfs._core.exceptions import handle_os_exceptions
+from airfs._core.exceptions import handle_os_exceptions, ObjectNotImplementedError
 
 
-def is_storage(url, storage=None):
+def is_storage(file, storage=None):
     """
     Check if file is a local file or a storage file.
 
-    File is considered local if:
-        - URL is a local path.
-        - URL starts by "file://"
-        - a "storage" is provided.
-
     Args:
-        url (str): file path or URL
+        file (str or int): file path, URL or file descriptor.
         storage (str): Storage name.
 
     Returns:
-        bool: return True if file is local.
+        bool: return True if file is not local.
     """
     if storage:
         return True
-    split_url = url.split("://", 1)
+    elif isinstance(file, int):
+        return False
+    split_url = file.split("://", 1)
     if len(split_url) == 2 and split_url[0].lower() != "file":
         return True
     return False
@@ -55,7 +52,7 @@ def equivalent_to(std_function, keep_path_type=False):
     function if used on local files.
 
     Args:
-        std_function (function): standard function to use with local files.
+        std_function: standard function to use with local files.
         keep_path_type (bool): Convert returned result to bytes if path argument was
             bytes.
 
@@ -76,22 +73,36 @@ def equivalent_to(std_function, keep_path_type=False):
             Decorated function.
 
             Args:
-                path (path-like object): Path or URL.
+                path (path-like object or int): Path, URL or file descriptor.
             """
-            path_str = fsdecode(path).replace("\\", "/")
-
-            if is_storage(path_str):
-                with handle_os_exceptions():
-                    result = cos_function(path_str, *args, **kwargs)
-                if keep_path_type and isinstance(path, bytes):
-                    result = fsencode(result)
-                return result
+            if not isinstance(path, int):
+                path_str = fsdecode(path).replace("\\", "/")
+                if is_storage(path_str):
+                    with handle_os_exceptions():
+                        result = cos_function(path_str, *args, **kwargs)
+                    if keep_path_type and isinstance(path, bytes):
+                        result = fsencode(result)
+                    return result
 
             return std_function(path, *args, **kwargs)
 
         return decorated
 
     return decorate
+
+
+def raises_on_dir_fd(dir_fd):
+    """
+    Raise on use of dir_fd
+
+    Args:
+        dir_fd: Checks if None
+
+    Raises:
+        NotImplementedError: dir_fd is not None.
+    """
+    if dir_fd is not None:
+        raise ObjectNotImplementedError(feature="dir_fd")
 
 
 class SeatsCounter:

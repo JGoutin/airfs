@@ -1,6 +1,5 @@
 """Test airfs.storage"""
 from copy import deepcopy as _deepcopy
-from io import UnsupportedOperation as _UnsupportedOperation
 from os import urandom as _os_urandom
 from time import time as _time
 from uuid import uuid4 as _uuid
@@ -95,14 +94,17 @@ class StorageTester:
         return self
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
-        from airfs._core.exceptions import ObjectNotFoundError
+        from airfs._core.exceptions import (
+            ObjectNotFoundError,
+            ObjectUnsupportedOperation,
+        )
 
         # Remove objects, and once empty the locator
         for obj in reversed(sorted(self._objects, key=str.lower)):
             self._objects.discard(obj)
             try:
                 self._system.remove(obj, relative=True)
-            except (ObjectNotFoundError, _UnsupportedOperation):
+            except (ObjectNotFoundError, ObjectUnsupportedOperation):
                 continue
 
     def test_common(self):
@@ -146,6 +148,7 @@ class StorageTester:
         Tests raw IO.
         """
         from os import SEEK_END, SEEK_CUR
+        from io import UnsupportedOperation
 
         size = 100
         file_name = "raw_file0.dat"
@@ -193,17 +196,17 @@ class StorageTester:
 
                 else:
                     # Test not seekable raises Unsupported exception
-                    with _pytest.raises(_UnsupportedOperation):
+                    with _pytest.raises(UnsupportedOperation):
                         file.tell()
 
-                    with _pytest.raises(_UnsupportedOperation):
+                    with _pytest.raises(UnsupportedOperation):
                         file.seek(0)
 
                 # Test: read in write mode is not supported
-                with _pytest.raises(_UnsupportedOperation):
+                with _pytest.raises(UnsupportedOperation):
                     file.read()
 
-                with _pytest.raises(_UnsupportedOperation):
+                with _pytest.raises(UnsupportedOperation):
                     file.readinto(bytearray(100))
 
         else:
@@ -211,7 +214,7 @@ class StorageTester:
             max_flush_size = 0
 
             # Test: Unsupported
-            with _pytest.raises(_UnsupportedOperation):
+            with _pytest.raises(UnsupportedOperation):
                 self._raw_io(file_path, "wb", **self._system_parameters)
 
             # Create pre-existing file
@@ -247,7 +250,7 @@ class StorageTester:
                 file.seek(0, 10)
 
             # Test: Cannot write in read mode
-            with _pytest.raises(_UnsupportedOperation):
+            with _pytest.raises(UnsupportedOperation):
                 file.write(b"0")
 
             # Test: Flush has no effect in read mode
@@ -366,6 +369,7 @@ class StorageTester:
         Tests buffered IO.
         """
         from airfs.io import ObjectBufferedIOBase
+        from io import UnsupportedOperation
 
         # Set buffer size
         buffer_size = 16 * 1024
@@ -384,7 +388,7 @@ class StorageTester:
                 file.write(content)
         else:
             # Test: Unsupported
-            with _pytest.raises(_UnsupportedOperation):
+            with _pytest.raises(UnsupportedOperation):
                 self._buffered_io(
                     file_path, "wb", buffer_size=buffer_size, **self._system_parameters
                 )
@@ -418,27 +422,27 @@ class StorageTester:
                 file.flush()
 
                 # Test: read in write mode is not supported
-                with _pytest.raises(_UnsupportedOperation):
+                with _pytest.raises(UnsupportedOperation):
                     file.read()
 
-                with _pytest.raises(_UnsupportedOperation):
+                with _pytest.raises(UnsupportedOperation):
                     file.read1()
 
-                with _pytest.raises(_UnsupportedOperation):
+                with _pytest.raises(UnsupportedOperation):
                     file.readinto(bytearray(100))
 
-                with _pytest.raises(_UnsupportedOperation):
+                with _pytest.raises(UnsupportedOperation):
                     file.readinto1(bytearray(100))
 
-                with _pytest.raises(_UnsupportedOperation):
+                with _pytest.raises(UnsupportedOperation):
                     file.peek()
 
                 # Test: Unsupported if not seekable
                 if not file.seekable():
-                    with _pytest.raises(_UnsupportedOperation):
+                    with _pytest.raises(UnsupportedOperation):
                         file.tell()
 
-                    with _pytest.raises(_UnsupportedOperation):
+                    with _pytest.raises(UnsupportedOperation):
                         file.seek(0)
         else:
             # Create pre-existing file
@@ -466,7 +470,7 @@ class StorageTester:
             assert file.tell() == 10, "Buffered read, peek tell match"
 
             # Test: Cannot write in read mode
-            with _pytest.raises(_UnsupportedOperation):
+            with _pytest.raises(UnsupportedOperation):
                 file.write(b"0")
 
             # Test: Flush has no effect in read mode
@@ -526,6 +530,8 @@ class StorageTester:
         """
         Test system internals related to locators.
         """
+        from airfs._core.exceptions import ObjectUnsupportedOperation
+
         system = self._system
 
         # Test: Create locator
@@ -534,7 +540,7 @@ class StorageTester:
             self._to_clean(self.locator)
         else:
             # Test: Unsupported
-            with _pytest.raises(_UnsupportedOperation):
+            with _pytest.raises(ObjectUnsupportedOperation):
                 system.make_dir(self.locator_url)
 
             # Create a preexisting locator
@@ -555,7 +561,7 @@ class StorageTester:
             ), "List locators, header is mapping"
         else:
             # Test: Unsupported
-            with _pytest.raises(_UnsupportedOperation):
+            with _pytest.raises(ObjectUnsupportedOperation):
                 system._list_locators(None)
 
         # Test: remove locator
@@ -580,14 +586,17 @@ class StorageTester:
                 ], "Remove locator, locator not exists"
         else:
             # Test: Unsupported
-            with _pytest.raises(_UnsupportedOperation):
+            with _pytest.raises(ObjectUnsupportedOperation):
                 system.remove(tmp_locator)
 
     def _test_system_objects(self):
         """
         Test system internals related to objects.
         """
-        from airfs._core.exceptions import ObjectNotFoundError
+        from airfs._core.exceptions import (
+            ObjectNotFoundError,
+            ObjectUnsupportedOperation,
+        )
 
         system = self._system
 
@@ -658,7 +667,7 @@ class StorageTester:
         # Test: Check file size
         try:
             assert system.getsize(file_path) == size, "Head file, size match"
-        except _UnsupportedOperation:
+        except ObjectUnsupportedOperation:
             # May not be supported on all files, if supported
             if self._is_supported("getsize"):
                 raise
@@ -670,7 +679,7 @@ class StorageTester:
                 assert file_time == _pytest.approx(
                     create_time, 2
                 ), "Head file, modification time match"
-        except _UnsupportedOperation:
+        except ObjectUnsupportedOperation:
             # May not be supported on all files, if supported
             if self._is_supported("getmtime"):
                 raise
@@ -682,7 +691,7 @@ class StorageTester:
                 assert file_time == _pytest.approx(
                     create_time, 2
                 ), "Head file, creation time match"
-        except _UnsupportedOperation:
+        except ObjectUnsupportedOperation:
             # May not be supported on all files, if supported
             if self._is_supported("getctime"):
                 raise
@@ -747,7 +756,7 @@ class StorageTester:
 
         else:
             # Test: Unsupported
-            with _pytest.raises(_UnsupportedOperation):
+            with _pytest.raises(ObjectUnsupportedOperation):
                 list(system.list_objects(self.base_dir_path))
 
         # Test: copy
@@ -758,20 +767,25 @@ class StorageTester:
             assert system.getsize(copy_path) == size, "Copy file, size match"
         else:
             # Test: Unsupported
-            with _pytest.raises(_UnsupportedOperation):
+            with _pytest.raises(ObjectUnsupportedOperation):
                 system.copy(file_path, copy_path)
 
         # Test: Normal file is not symlink
         assert not system.islink(file_path), "Symlink, file is not symlink"
 
         # Test: Symlink
-        if self._is_supported("symlink"):
-            link_path = self.base_dir_path + "symlink"  # noqa: F841; TODO: Temporary
-            # TODO: Tests once create symlink implemented
+        if self._is_supported("symlink") and self._storage_mock:
+            link_path = self.base_dir_path + "symlink"
+            self._to_clean(link_path)
 
-            # Test: Is symlink
-            # assert system.islink(link_path)
-            # assert system.islink(header=system.head(link_path)
+            # TODO: Replace by real symlink creation and remove the
+            #       "and self._storage_mock" condition
+            self._storage_mock.put_symlink(
+                self.locator, link_path.split("/", 1)[1], file_path
+            )
+
+            assert system.islink(link_path)
+            assert system.read_link(link_path) == file_path
 
         # Test: Shared file
         if self._is_supported("shareable_url"):
@@ -785,7 +799,7 @@ class StorageTester:
                 assert response.content == content
         else:
             # Test: Unsupported
-            with _pytest.raises(_UnsupportedOperation):
+            with _pytest.raises(ObjectUnsupportedOperation):
                 system.shareable_url(file_path, 60)
 
         # Test: Remove file
@@ -801,7 +815,7 @@ class StorageTester:
                 ), "Remove file, file not exists"
         else:
             # Test: Unsupported
-            with _pytest.raises(_UnsupportedOperation):
+            with _pytest.raises(ObjectUnsupportedOperation):
                 system.remove(file_path)
 
     def _test_mock_only(self):
@@ -827,7 +841,7 @@ class StorageTester:
 
         # Test: Read not block other exceptions
         with self._storage_mock.raise_server_error():
-            with _pytest.raises(OSError):
+            with _pytest.raises(Exception):
                 self._raw_io(file_path, **self._system_parameters).read(10)
 
     def _list_objects_names(self):

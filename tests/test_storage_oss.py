@@ -108,9 +108,11 @@ def test_mocked_storage():
 
         def head_object(self, key=None, **_):
             """oss2.Bucket.head_object"""
-            return HeadObjectResult(
-                Response(headers=storage_mock.head_object(self._bucket_name, key))
-            )
+            headers = storage_mock.head_object(self._bucket_name, key)
+            if "_target" in headers:
+                headers["x-oss-object-type"] = "Symlink"
+                headers["type"] = "Symlink"
+            return HeadObjectResult(Response(headers=headers))
 
         def put_object(self, key=None, data=None, **_):
             """oss2.Bucket.put_object"""
@@ -123,6 +125,16 @@ def test_mocked_storage():
         def get_bucket_info(self, **_):
             """oss2.Bucket.get_bucket_info"""
             return Response(headers=storage_mock.head_locator(self._bucket_name))
+
+        def get_symlink(self, symlink_key, **_):
+            """oss2.Bucket.get_symlink"""
+            return Response(
+                target_key=storage_mock.get_symlink(self._bucket_name, symlink_key)
+            )
+
+        def put_symlink(self, target_key, symlink_key, **_):
+            """oss2.Bucket.put_symlink"""
+            storage_mock.put_symlink(self._bucket_name, symlink_key, target_key)
 
         def copy_object(
             self, source_bucket_name=None, source_key=None, target_key=None, **_

@@ -59,7 +59,7 @@ class Client:
 
     __slots__ = (
         "_request",
-        "_http_session",
+        "session",
         "_token",
         "_headers",
         "_wait_rate_limit",
@@ -75,8 +75,8 @@ class Client:
         self._wait_retry_delay = wait_retry_delay
         self._headers = None
         self._token = token
-        self._http_session = Session()
-        self._request = self._http_session.request
+        self.session = Session()
+        self._request = self.session.request
 
     def _api_headers(self, previous_headers=None):
         """

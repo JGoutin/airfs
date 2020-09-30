@@ -10,6 +10,7 @@ from airfs._core.io_base import memoizedmethod as _memoizedmethod
 from airfs._core.exceptions import (
     ObjectNotFoundError as _ObjectNotFoundError,
     ObjectPermissionError as _ObjectPermissionError,
+    ObjectNotASymlinkError as _ObjectNotASymlinkError,
 )
 from airfs.io import (
     ObjectRawIOBase as _ObjectRawIOBase,
@@ -49,6 +50,8 @@ class _OSSSystem(_SystemBase):
     """
 
     __slots__ = ("_unsecure", "_endpoint")
+
+    SUPPORTS_SYMLINKS = True
 
     _CTIME_KEYS = ("Creation-Date", "creation_date")
     _MTIME_KEYS = ("Last-Modified", "last_modified")
@@ -292,6 +295,30 @@ class _OSSSystem(_SystemBase):
                 client_kwargs["marker"] = response.next_marker
             else:
                 break
+
+    def read_link(self, path=None, client_kwargs=None, header=None):
+        """
+        Return the path linked by the symbolic link.
+
+        Args:
+            path (str): File path or URL.
+            client_kwargs (dict): Client arguments.
+            header (dict): Object header.
+
+        Returns:
+            str: Path.
+        """
+        if client_kwargs is None:
+            client_kwargs = self.get_client_kwargs(path)
+        try:
+            key = client_kwargs["key"]
+        except KeyError:
+            raise _ObjectNotASymlinkError(path=path)
+
+        with _handle_oss_error():
+            return (
+                self._get_bucket(client_kwargs).get_symlink(symlink_key=key).target_key
+            )
 
 
 class OSSRawIO(_ObjectRawIOBase):

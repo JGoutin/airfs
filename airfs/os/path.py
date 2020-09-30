@@ -12,6 +12,8 @@ from airfs._core.functions_os_path import (  # noqa
     isfile,
     islink,
     ismount,
+    lexists,
+    realpath,
     relpath,
     samefile,
     splitdrive,

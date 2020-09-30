@@ -3,7 +3,7 @@ from os.path import commonpath, dirname
 
 from requests import request
 
-from airfs._core.exceptions import AirfsException, ObjectNotFoundError
+from airfs._core.exceptions import ObjectNotASymlinkError, ObjectNotFoundError
 from airfs.storage.github._model_base import GithubObject
 from airfs.storage.http import _handle_http_errors
 
@@ -112,7 +112,7 @@ class Tree(GithubObject):
             str: Path.
         """
         if cls.head(client, spec)["mode"] != "120000":
-            raise AirfsException("Not a symbolic link")
+            raise ObjectNotASymlinkError(path=spec["full_path"])
         response = request("GET", cls.GET.format(**spec))
         _handle_http_errors(response)
         return response.text
@@ -155,6 +155,7 @@ class Tree(GithubObject):
 
         cwd = spec.get("path", "").rstrip("/")
         cwd_index = len(cwd)
+        cwd_seen = not cwd
         if cwd_index:
             # Include the ending "/"
             cwd_index += 1
@@ -188,17 +189,18 @@ class Tree(GithubObject):
                 cls._raise_if_not_dir(isdir, spec)
 
                 # Do not yield current working directory itself
+                cwd_seen = True
                 continue
 
             if truncated:
-                add_seen(abspath)
+                add_seen(abspath)  # noqa
                 if isdir:
                     last_tree = abspath
 
             yield relpath, abspath, spec, headers, False
 
         if truncated:
-            last_tree = last_tree.split("/")
+            last_tree = last_tree.split("/")  # noqa
             partial_trees = set(
                 "/".join(last_tree[:index]) for index in range((len(last_tree)))
             )
@@ -206,7 +208,7 @@ class Tree(GithubObject):
             for relpath, abspath, spec, headers, _ in cls._list_non_recursive(
                 client,
                 spec,
-                seen,
+                seen,  # noqa
                 partial_trees,
                 cwd,
                 cwd_index,
@@ -215,6 +217,9 @@ class Tree(GithubObject):
                 first_level,
             ):
                 yield relpath, abspath, spec, headers, False
+
+        if not cwd_seen:
+            raise ObjectNotFoundError(path=spec["full_path"])
 
     @classmethod
     def _list_non_recursive(
@@ -312,6 +317,7 @@ class Branch(GithubObject):
     """Git branch"""
 
     KEY = "branch"
+    REF = True
     LIST = "/repos/{owner}/{repo}/branches"
     HEAD = "/repos/{owner}/{repo}/branches/{branch}"
     HEAD_EXTRA = (
@@ -320,13 +326,14 @@ class Branch(GithubObject):
         ("tree_sha", ("commit", "commit", "tree", "sha")),
     )
     STRUCT = Tree
-    SYMLINK = "github://{owner}/{repo}/commits/{sha}"
+    SYMLINK = "https://github.com/{owner}/{repo}/commits/{sha}"
 
 
 class Commit(GithubObject):
     """Git commit"""
 
     KEY = "sha"
+    REF = True
     LIST = "/repos/{owner}/{repo}/commits"
     LIST_KEY = "sha"
     HEAD = "/repos/{owner}/{repo}/commits/{sha}"
@@ -358,6 +365,7 @@ class Tag(GithubObject):
     """Git tag"""
 
     KEY = "tag"
+    REF = True
     LIST = "/repos/{owner}/{repo}/tags"
     HEAD = "/repos/{owner}/{repo}/git/ref/tags/{tag}"
     HEAD_EXTRA = (
@@ -366,4 +374,4 @@ class Tag(GithubObject):
     )
     HEAD_FROM = {"pushed_at": Commit, "tree_sha": Commit}
     STRUCT = Tree
-    SYMLINK = "github://{owner}/{repo}/commits/{sha}"
+    SYMLINK = "https://github.com/{owner}/{repo}/commits/{sha}"

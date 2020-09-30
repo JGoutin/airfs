@@ -9,9 +9,12 @@ import pytest
 def test_system_base():
     """Tests airfs._core.io_system.SystemBase"""
     from airfs._core.io_base_system import SystemBase
-    from airfs._core.exceptions import ObjectNotFoundError, ObjectPermissionError
-    from os import getuid, getgid
-    from io import UnsupportedOperation
+    from airfs._core.exceptions import (
+        ObjectNotFoundError,
+        ObjectPermissionError,
+        ObjectUnsupportedOperation,
+    )
+    from airfs._core.compat import getuid, getgid
     from stat import S_ISDIR, S_ISREG, S_ISLNK
 
     # Mocks subclass
@@ -108,7 +111,7 @@ def test_system_base():
     assert system.getmtime("path") == pytest.approx(m_time, 1)
     assert system.getsize("path") == size
 
-    with pytest.raises(UnsupportedOperation):
+    with pytest.raises(ObjectUnsupportedOperation):
         system.getctime("path")
 
     object_header["Last-Modified"] = m_time
@@ -165,14 +168,14 @@ def test_system_base():
     # Test empty header
     header_old = object_header
     object_header = {}
-    with pytest.raises(UnsupportedOperation):
+    with pytest.raises(ObjectUnsupportedOperation):
         system.getmtime("path")
-    with pytest.raises(UnsupportedOperation):
+    with pytest.raises(ObjectUnsupportedOperation):
         system.getsize("path")
     object_header = header_old
 
     # Test default unsupported
-    with pytest.raises(UnsupportedOperation):
+    with pytest.raises(ObjectUnsupportedOperation):
         system.copy("path1", "path2")
 
     # Tests remove

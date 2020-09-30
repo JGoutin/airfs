@@ -1,10 +1,8 @@
-"""airfs internal exceptions.
-
-Allows to filter airfs generated exception and standard exceptions"""
-from contextlib import contextmanager
-from io import UnsupportedOperation
-from shutil import SameFileError
-from sys import exc_info
+"""airfs exceptions"""
+from contextlib import contextmanager as _contextmanager
+from io import UnsupportedOperation as _UnsupportedOperation
+from shutil import SameFileError as _SameFileError
+from sys import exc_info as _exc_info
 
 
 # Publicly raised exceptions
@@ -15,13 +13,6 @@ class AirfsException(Exception):
 
     .. versionadded:: 1.0.0
     """
-
-    _PATH_MSG = "Error"
-
-    def __init__(self, *args, path=None):
-        if path:
-            args = [f"{self._PATH_MSG}: '{path}'"]
-        Exception.__init__(self, *args)
 
 
 class AirfsWarning(UserWarning):
@@ -45,43 +36,72 @@ class ConfigurationException(AirfsException):
     """
 
 
-# Internal exceptions, should not be seen by users
+# Internal exceptions
 
 
-class ObjectNotFoundError(AirfsException):
+class AirfsInternalException(Exception):
+    """airfs internal base exception"""
+
+    _PATH_MSG = "Error"
+
+    def __init__(self, *args, path=None):
+        if path:
+            args = [f"{self._PATH_MSG}: '{path}'"]
+        Exception.__init__(self, *args)
+
+
+class ObjectNotFoundError(AirfsInternalException):
     """Reraised as "FileNotFoundError" by handle_os_exceptions"""
 
     _PATH_MSG = "No such file or directory"
 
 
-class ObjectPermissionError(AirfsException):
+class ObjectPermissionError(AirfsInternalException):
     """Reraised as "PermissionError" by handle_os_exceptions"""
 
     _PATH_MSG = "Permission denied"
 
 
-class ObjectExistsError(AirfsException):
+class ObjectExistsError(AirfsInternalException):
     """Reraised as "FileExistsError" by handle_os_exceptions"""
 
     _PATH_MSG = "File exists"
 
 
-class ObjectNotADirectoryError(AirfsException):
+class ObjectNotADirectoryError(AirfsInternalException):
     """Reraised as "NotADirectoryError" by handle_os_exceptions"""
 
     _PATH_MSG = "Not a directory"
 
 
-class ObjectNotASymlinkError(AirfsException):
+class ObjectNotASymlinkError(AirfsInternalException):
     """Reraised as "OSError" by handle_os_exceptions"""
 
     _PATH_MSG = "Not a symbolic link"
 
 
-class ObjectIsADirectoryError(AirfsException):
+class ObjectIsADirectoryError(AirfsInternalException):
     """Reraised as "IsADirectoryError" by handle_os_exceptions."""
 
     _PATH_MSG = "Is a directory"
+
+
+class ObjectNotImplementedError(AirfsInternalException):
+    """Reraised as "NotImplementedError" by handle_os_exceptions."""
+
+    def __init__(self, *, feature=None):
+        Exception.__init__(self, [f"'{feature}' unavailable on this storage"])
+
+
+class ObjectSameFileError(AirfsInternalException):
+    """Reraised as "shutil.SameFileError" by handle_os_exceptions."""
+
+    def __init__(self, *, path1=None, path2=None):
+        Exception.__init__(self, [f"'{path1}' and '{path2}' are the same file"])
+
+
+class ObjectUnsupportedOperation(AirfsInternalException):
+    """Reraised as "io.UnsupportedOperation" by handle_os_exceptions."""
 
 
 _OS_EXCEPTIONS = {
@@ -90,10 +110,13 @@ _OS_EXCEPTIONS = {
     ObjectExistsError: FileExistsError,
     ObjectNotADirectoryError: NotADirectoryError,
     ObjectIsADirectoryError: IsADirectoryError,
+    ObjectSameFileError: _SameFileError,
+    ObjectNotImplementedError: NotImplementedError,
+    ObjectUnsupportedOperation: _UnsupportedOperation,
 }
 
 
-@contextmanager
+@_contextmanager
 def handle_os_exceptions():
     """
     Handles airfs exceptions and raise standard OS exceptions.
@@ -101,15 +124,9 @@ def handle_os_exceptions():
     try:
         yield
 
-    except AirfsException:
-        exc_type, exc_value, _ = exc_info()
+    except AirfsInternalException:
+        exc_type, exc_value, _ = _exc_info()
         raise _OS_EXCEPTIONS.get(exc_type, OSError)(exc_value)
 
-    except (OSError, SameFileError, UnsupportedOperation):
-        # TODO: Handle all errors with Airfs errors only
-        raise
-
     except Exception:
-        # TODO: Simply reraise without conversion: Should not occur
-        exc_type, exc_value, _ = exc_info()
-        raise OSError(str(exc_type) + (f", {exc_value}" if exc_value else ""))
+        raise

@@ -8,7 +8,7 @@ def test_os():
     from airfs._core.functions_os import makedirs
 
     assert airfs.os.makedirs is makedirs
-    assert airfs.os.fork is os.fork
+    assert airfs.os.getenv is os.getenv
 
 
 def test_os_path():

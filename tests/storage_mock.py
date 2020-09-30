@@ -477,3 +477,31 @@ class ObjectStorageMock:
         except KeyError:
             if not not_exists_ok:
                 self._raise_404()
+
+    def get_symlink(self, locator, path):
+        """
+        Get symlink target.
+
+        Args:
+            locator (str): locator name
+            path (str): Object path.
+
+        Returns:
+            str: target.
+        """
+        link = self._get_object(locator, path)
+        try:
+            return link["_target"]
+        except KeyError:
+            self._raise_500()
+
+    def put_symlink(self, locator, path, target):
+        """
+        Put symlink.
+
+        Args:
+            locator (str): locator name
+            path (str): Link path.
+            target (str): Target path.
+        """
+        self.put_object(locator, path, headers={"_target": target})

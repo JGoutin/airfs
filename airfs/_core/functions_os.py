@@ -5,7 +5,7 @@ from os.path import dirname
 from stat import S_ISLNK, S_ISDIR
 
 from airfs._core.storage_manager import get_instance
-from airfs._core.functions_core import equivalent_to, is_storage
+from airfs._core.functions_core import equivalent_to, is_storage, raises_on_dir_fd
 from airfs._core.exceptions import (
     ObjectExistsError,
     ObjectNotFoundError,
@@ -20,6 +20,7 @@ from airfs._core.io_base import memoizedmethod
 def listdir(path="."):
     """
     Return a list containing the names of the entries in the directory given by path.
+    Follow symlinks if any.
 
     Equivalent to "os.listdir".
 
@@ -31,10 +32,9 @@ def listdir(path="."):
     Returns:
         list of str: Entries names.
     """
-    return [
-        name.rstrip("/")
-        for name, _ in get_instance(path).list_objects(path, first_level=True)
-    ]
+    system = get_instance(path)
+    path = system.resolve(path, follow_symlinks=True)[0]
+    return [name.rstrip("/") for name, _ in system.list_objects(path, first_level=True)]
 
 
 @equivalent_to(os.makedirs)
@@ -81,7 +81,7 @@ def mkdir(path, mode=0o777, *, dir_fd=None):
         mode (int): The mode parameter is passed to os.mkdir();
             see the os.mkdir() description for how it is interpreted.
             Not supported on storage objects.
-        dir_fd: directory descriptors;
+        dir_fd (int): directory descriptors;
             see the os.remove() description for how it is interpreted.
             Not supported on storage objects.
 
@@ -89,6 +89,7 @@ def mkdir(path, mode=0o777, *, dir_fd=None):
         FileExistsError : Directory already exists.
         FileNotFoundError: Parent directory not exists.
     """
+    raises_on_dir_fd(dir_fd)
     system = get_instance(path)
     relative = system.relpath(path)
 
@@ -123,11 +124,12 @@ def readlink(path, *, dir_fd=None):
 
     Args:
         path (path-like object): Path or URL.
-        dir_fd: directory descriptors;
+        dir_fd (int): directory descriptors;
             see the os.readlink() description for how it is interpreted.
             Not supported on storage objects.
     """
-    return get_instance(path).read_link(path, recursive=False)
+    raises_on_dir_fd(dir_fd)
+    return get_instance(path).read_link(path)
 
 
 @equivalent_to(os.remove)
@@ -141,10 +143,11 @@ def remove(path, *, dir_fd=None):
 
     Args:
         path (path-like object): Path or URL.
-        dir_fd: directory descriptors;
+        dir_fd (int): directory descriptors;
             see the os.remove() description for how it is interpreted.
             Not supported on storage objects.
     """
+    raises_on_dir_fd(dir_fd)
     system = get_instance(path)
 
     if system.is_locator(path) or path[-1] == "/":
@@ -167,10 +170,11 @@ def rmdir(path, *, dir_fd=None):
 
     Args:
         path (path-like object): Path or URL.
-        dir_fd: directory descriptors;
+        dir_fd (int): directory descriptors;
             see the os.rmdir() description for how it is interpreted.
             Not supported on storage objects.
     """
+    raises_on_dir_fd(dir_fd)
     system = get_instance(path)
     system.remove(system.ensure_dir_path(path))
 
@@ -189,13 +193,14 @@ def lstat(path, *, dir_fd=None):
 
     Args:
         path (path-like object): Path or URL.
-        dir_fd: directory descriptors;
+        dir_fd (int): directory descriptors;
             see the os.rmdir() description for how it is interpreted.
             Not supported on storage objects.
 
     Returns:
         os.stat_result: stat result.
     """
+    raises_on_dir_fd(dir_fd)
     return get_instance(path).stat(path)
 
 
@@ -213,16 +218,16 @@ def stat(path, *, dir_fd=None, follow_symlinks=True):
 
     Args:
         path (path-like object): Path or URL.
-        dir_fd: directory descriptors;
+        dir_fd (int): directory descriptors;
             see the os.rmdir() description for how it is interpreted.
             Not supported on storage objects.
         follow_symlinks (bool): Follow symlinks.
-            Not supported on storage objects.
 
     Returns:
         os.stat_result: stat result.
     """
-    return get_instance(path).stat(path)
+    raises_on_dir_fd(dir_fd)
+    return get_instance(path).stat(path, follow_symlinks=follow_symlinks)
 
 
 class DirEntry:
@@ -331,22 +336,25 @@ class DirEntry:
 
         Args:
             follow_symlinks (bool): Follow symlinks.
-                Not supported on storage objects.
 
         Returns:
             bool: True if directory exists.
         """
-        try:
-            return self._system.isdir(
-                path=self._path, client_kwargs=self._client_kwargs, virtual_dir=False
-            ) or bool(
-                # Some directories only exists virtually in object path and don't have
-                # headers.
-                S_ISDIR(self.stat().st_mode)
-            )
+        with handle_os_exceptions():
+            try:
+                return self._system.isdir(
+                    path=self._path,
+                    client_kwargs=self._client_kwargs,
+                    virtual_dir=False,
+                    follow_symlinks=follow_symlinks,
+                ) or bool(
+                    # Some directories only exists virtually in object path and don't
+                    # have headers.
+                    S_ISDIR(self.stat().st_mode)
+                )
 
-        except ObjectPermissionError:
-            return True
+            except ObjectPermissionError:
+                return True
 
     @memoizedmethod
     def is_file(self, *, follow_symlinks=True):
@@ -359,12 +367,16 @@ class DirEntry:
 
         Args:
             follow_symlinks (bool): Follow symlinks.
-                Not supported on storage objects.
 
         Returns:
             bool: True if directory exists.
         """
-        return self._system.isfile(path=self._path, client_kwargs=self._client_kwargs)
+        with handle_os_exceptions():
+            return self._system.isfile(
+                path=self._path,
+                client_kwargs=self._client_kwargs,
+                follow_symlinks=follow_symlinks,
+            )
 
     @memoizedmethod
     def is_symlink(self):
@@ -387,14 +399,17 @@ class DirEntry:
 
         Args:
             follow_symlinks (bool): Follow symlinks.
-                Not supported on storage objects.
 
         Returns:
             os.stat_result: Stat result object
         """
-        return self._system.stat(
-            path=self._path, client_kwargs=self._client_kwargs, header=self._header
-        )
+        with handle_os_exceptions():
+            return self._system.stat(
+                path=self._path,
+                client_kwargs=self._client_kwargs,
+                header=self._header,
+                follow_symlinks=follow_symlinks,
+            )
 
 
 DirEntry.__module__ = "airfs"
@@ -424,10 +439,11 @@ def scandir(path="."):
     if not is_storage(scandir_path):
         return os_scandir(scandir_path)
 
+    system = get_instance(scandir_path)
     return _scandir_generator(
         is_bytes=isinstance(fspath(path), (bytes, bytearray)),
-        scandir_path=scandir_path,
-        system=get_instance(scandir_path),
+        scandir_path=system.resolve(scandir_path, follow_symlinks=True)[0],
+        system=system,
     )
 
 

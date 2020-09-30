@@ -72,14 +72,16 @@ def _user_mount():
     """
     Mount user configured storages.
     """
-    for storage, system_parameters in read_config().items():
-        if "." in storage:
-            # User specific storage: mounted immediately
-            mount(storage.split(".", 0)[0], **system_parameters)
+    config = read_config()
+    if config is not None:
+        for storage, system_parameters in read_config().items():
+            if "." in storage:
+                # User specific storage: mounted immediately
+                mount(storage.split(".", 0)[0], **system_parameters)
 
-        else:
-            # Default storage: Mounted lazily
-            _DEFAULTS[storage] = system_parameters
+            else:
+                # Default storage: Mounted lazily
+                _DEFAULTS[storage] = system_parameters
 
 
 _user_mount()
@@ -251,10 +253,12 @@ def _find_storage_classes(module, storage_info):
         storage_info (dict): Storage information.
     """
     classes_items = tuple(_BASE_CLASSES.items())
+    found_default = {cls_name: False for cls_name in _BASE_CLASSES}
     for member_name in dir(module):
         member = getattr(module, member_name)
         for cls_name, cls in classes_items:
-
+            if found_default[cls_name]:
+                continue
             try:
                 if not issubclass(member, cls) or member is cls:
                     continue
@@ -265,12 +269,14 @@ def _find_storage_classes(module, storage_info):
             try:
                 is_default = getattr(member, default_flag)
             except AttributeError:
-                is_default = None
+                pass
+            else:
+                if is_default:
+                    found_default[cls_name] = True
+                elif is_default is False:
+                    continue
 
-            if is_default is False:
-                continue
-
-            elif is_default is not True and member.__abstractmethods__:
+            if member.__abstractmethods__:
                 continue
 
             storage_info[cls_name] = member

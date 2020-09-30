@@ -10,11 +10,29 @@ from airfs._core.exceptions import handle_os_exceptions
 @equivalent_to(os.path.exists)
 def exists(path):
     """
-    Return True if path refers to an existing path.
+    Return True if path refers to an existing path. Follow symlinks if any.
 
     Equivalent to "os.path.exists".
 
     .. versionadded:: 1.1.0
+
+    Args:
+        path (path-like object): Path or URL.
+
+    Returns:
+        bool: True if path exists.
+    """
+    return get_instance(path).exists(path, follow_symlinks=True)
+
+
+@equivalent_to(os.path.lexists)
+def lexists(path):
+    """
+    Return True if path refers to an existing path.
+
+    Equivalent to "os.path.lexists".
+
+    .. versionadded:: 1.5.0
 
     Args:
         path (path-like object): Path or URL.
@@ -44,7 +62,9 @@ def getsize(path):
          OSError: if the file does not exist or is inaccessible.
          io.UnsupportedOperation: Information not available for this path.
     """
-    return get_instance(path).getsize(path)
+    system = get_instance(path)
+    path = system.resolve(path, follow_symlinks=True)[0]
+    return system.getsize(path)
 
 
 @equivalent_to(os.path.getctime)
@@ -66,7 +86,9 @@ def getctime(path):
          OSError: if the file does not exist or is inaccessible.
          io.UnsupportedOperation: Information not available for this path.
     """
-    return get_instance(path).getctime(path)
+    system = get_instance(path)
+    path = system.resolve(path, follow_symlinks=True)[0]
+    return system.getctime(path)
 
 
 @equivalent_to(os.path.getmtime)
@@ -88,7 +110,9 @@ def getmtime(path):
          OSError: if the file does not exist or is inaccessible.
          io.UnsupportedOperation: Information not available for this path.
     """
-    return get_instance(path).getmtime(path)
+    system = get_instance(path)
+    path = system.resolve(path, follow_symlinks=True)[0]
+    return system.getmtime(path)
 
 
 @equivalent_to(os.path.isabs)
@@ -112,7 +136,7 @@ def isabs(path):
 @equivalent_to(os.path.isdir)
 def isdir(path):
     """
-    Return True if path is an existing directory.
+    Return True if path is an existing directory. Follow symlinks if any.
 
     Equivalent to "os.path.isdir".
 
@@ -125,14 +149,13 @@ def isdir(path):
         bool: True if directory exists.
     """
     system = get_instance(path)
-
-    return system.isdir(system.ensure_dir_path(path))
+    return system.isdir(system.ensure_dir_path(path), follow_symlinks=True)
 
 
 @equivalent_to(os.path.isfile)
 def isfile(path):
     """
-    Return True if path is an existing regular file.
+    Return True if path is an existing regular file. Follow symlinks if any.
 
     Equivalent to "os.path.isfile".
 
@@ -144,7 +167,7 @@ def isfile(path):
     Returns:
         bool: True if file exists.
     """
-    return get_instance(path).isfile(path)
+    return get_instance(path).isfile(path, follow_symlinks=True)
 
 
 @equivalent_to(os.path.islink)
@@ -181,6 +204,25 @@ def ismount(path):
         bool: True if path is a mount point.
     """
     return True if not get_instance(path).relpath(path) else False
+
+
+@equivalent_to(os.path.realpath)
+def realpath(path):
+    """
+    Return the canonical path of the specified filename, eliminating any symbolic links
+    encountered in the path (if they are supported by the operating system).
+
+    Equivalent to "os.path.realpath".
+
+    .. versionadded:: 1.5.0
+
+    Args:
+        path (path-like object): Path or URL.
+
+    Returns:
+        str: Absolute path.
+    """
+    return get_instance(path).resolve(path, follow_symlinks=True)[0]
 
 
 @equivalent_to(os.path.relpath)

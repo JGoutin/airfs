@@ -12,6 +12,7 @@ def test_hash_name():
 def test_cache(tmpdir):
     """Test cache functions"""
     import airfs._core.cache as cache
+    from time import sleep
 
     value_short = dict(key1=1, key2="1")
     value_long = dict(key3="", key4=True)
@@ -37,6 +38,7 @@ def test_cache(tmpdir):
 
         # Test short expired
         cache.CACHE_SHORT_EXPIRY = 1e-9
+        sleep(0.01)
         with pytest.raises(cache.NoCacheException):
             cache.get_cache(name_short)
         assert not tmpdir.join(hash_short).check()
@@ -46,6 +48,7 @@ def test_cache(tmpdir):
         cache.CACHE_SHORT_EXPIRY = 60
         cache.CACHE_LONG_EXPIRY = 1e-9
         cache.set_cache(name_short, value_short)
+        sleep(0.01)
         with pytest.raises(cache.NoCacheException):
             cache.get_cache(name_long)
         assert not tmpdir.join(hash_long).check()
@@ -53,6 +56,7 @@ def test_cache(tmpdir):
 
         # Test clean up
         cache.set_cache(name_long, value_long, long=True)
+        sleep(0.01)
         cache.clear_cache()
         assert not tmpdir.join(hash_long).check()
         assert tmpdir.join(hash_short).check(file=1)

@@ -1,22 +1,24 @@
 """Cloud object compatibles standard library 'shutil' equivalent functions"""
-from io import UnsupportedOperation
 from os.path import join, basename, dirname
 from shutil import (
     copy as shutil_copy,
     copyfileobj,
     copyfile as shutil_copyfile,
-    SameFileError,
 )
 
 from airfs._core.compat import COPY_BUFSIZE
 from airfs._core.functions_io import cos_open
 from airfs._core.functions_os_path import isdir
 from airfs._core.functions_core import format_and_is_storage
-from airfs._core.exceptions import AirfsException, handle_os_exceptions
+from airfs._core.exceptions import (
+    AirfsInternalException,
+    handle_os_exceptions,
+    ObjectSameFileError,
+)
 from airfs._core.storage_manager import get_instance
 
 
-def _copy(src, dst, src_is_storage, dst_is_storage):
+def _copy(src, dst, src_is_storage, dst_is_storage, follow_symlinks):
     """
     Copies file from source to destination
 
@@ -25,6 +27,7 @@ def _copy(src, dst, src_is_storage, dst_is_storage):
         dst (str or file-like object): Destination file.
         src_is_storage (bool): Source is storage.
         dst_is_storage (bool): Destination is storage.
+        follow_symlinks (bool): If True, follow symlinks.
     """
     with handle_os_exceptions():
         if src_is_storage and dst_is_storage:
@@ -34,11 +37,11 @@ def _copy(src, dst, src_is_storage, dst_is_storage):
             if system_src is system_dst:
 
                 if system_src.relpath(src) == system_dst.relpath(dst):
-                    raise SameFileError(f"'{src}' and '{dst}' are the same file")
+                    raise ObjectSameFileError(path1=src, path2=dst)
 
                 try:
                     return system_dst.copy(src, dst)
-                except (UnsupportedOperation, AirfsException):
+                except AirfsInternalException:
                     pass
 
             for caller, called, method in (
@@ -48,9 +51,9 @@ def _copy(src, dst, src_is_storage, dst_is_storage):
                 if hasattr(caller, method % called.storage):
                     try:
                         return getattr(caller, method % called.storage)(
-                            src, dst, called
+                            src, dst, called, follow_symlinks
                         )
-                    except (UnsupportedOperation, AirfsException):
+                    except AirfsInternalException:
                         continue
 
         _copy_stream(dst, src)
@@ -91,7 +94,6 @@ def copy(src, dst, *, follow_symlinks=True):
         src (path-like object or file-like object): Source file.
         dst (path-like object or file-like object): Destination file or directory.
         follow_symlinks (bool): If True, follow symlinks.
-            Not supported on storage objects.
 
     Raises:
          IOError: Destination directory not found.
@@ -115,7 +117,7 @@ def copy(src, dst, *, follow_symlinks=True):
             # raise to allow to write if possible
             pass
 
-    _copy(src, dst, src_is_storage, dst_is_storage)
+    _copy(src, dst, src_is_storage, dst_is_storage, follow_symlinks)
 
 
 def copyfile(src, dst, *, follow_symlinks=True):
@@ -132,7 +134,6 @@ def copyfile(src, dst, *, follow_symlinks=True):
         src (path-like object or file-like object): Source file.
         dst (path-like object or file-like object): Destination file.
         follow_symlinks (bool): Follow symlinks.
-            Not supported on storage objects.
 
     Raises:
          IOError: Destination directory not found.
@@ -152,4 +153,4 @@ def copyfile(src, dst, *, follow_symlinks=True):
         # to allow to write if possible
         pass
 
-    _copy(src, dst, src_is_storage, dst_is_storage)
+    _copy(src, dst, src_is_storage, dst_is_storage, follow_symlinks)

@@ -35,7 +35,6 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
 
     __slots__ = (
         "_system",
-        "_path",
         "_client_kwargs",
         "_is_raw_of_buffered",
         "_write_buffer",
@@ -70,7 +69,6 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
                 storage_parameters=storage_parameters, **kwargs
             )
 
-        self._path = self._system.relpath(name)
         self._client_kwargs = self._system.get_client_kwargs(name)
 
         self._is_raw_of_buffered = False
@@ -176,7 +174,7 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         Returns:
             int: Size in bytes.
         """
-        return self._system.getsize(header=self._head().copy())
+        return self._system.getsize(header=self._head())
 
     def _reset_head(self):
         """

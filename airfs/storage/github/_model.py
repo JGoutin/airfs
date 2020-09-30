@@ -1,6 +1,5 @@
 """Github as a filesystem model"""
-from io import UnsupportedOperation
-
+from airfs._core.exceptions import ObjectNotImplementedError
 from airfs.storage.github._model_archive import Archive
 from airfs.storage.github._model_base import GithubObject
 from airfs.storage.github._model_git import Branch, Commit, Tag
@@ -60,21 +59,38 @@ class Owner(GithubObject):
     }
 
     @classmethod
-    def list(cls, client, spec):
+    def list(cls, client, spec, first_level=False):
         """
         List objects of this GitHub class matching the spec.
 
         Args:
             client (airfs.storage.github._api.ApiV3): Client.
             spec (dict): Item spec.
+            first_level (bool): It True, returns only first level objects.
 
         Returns:
             generator of tuple: object name str, object header dict, has content bool
         """
-        raise UnsupportedOperation("Listing GitHub owners is not supported")
+        raise ObjectNotImplementedError(feature="Listing owners")
 
 
 class Root(GithubObject):
     """GitHub Root"""
 
     STRUCT = Owner
+
+    @classmethod
+    def head_obj(cls, client, spec):
+        """
+        Head the object of this GitHub class matching the spec.
+
+        Only return result directly from current object response as dict.
+
+        Args:
+            client (airfs.storage.github._api.ApiV3): Client.
+            spec (dict): Item spec.
+
+        Returns:
+            dict: Object headers.
+        """
+        return dict()

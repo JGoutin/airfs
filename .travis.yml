@@ -15,7 +15,7 @@ install:
 
 script:
     # Runs tests
-    - "pytest"
+    - "pytest --flake8 --black"
 
 after_success:
     # Sends coverage to codecov.io

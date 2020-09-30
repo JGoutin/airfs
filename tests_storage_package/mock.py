@@ -15,7 +15,11 @@ def _raise_404():
     raise _exc.ObjectNotFoundError("Object not found")
 
 
-class _Error416(_exc.AirfsException):
+class MockException(Exception):
+    """Mock storage exception"""
+
+
+class _Error416(MockException):
     """416 Error"""
 
 
@@ -26,7 +30,7 @@ def _raise_416():
 
 def _raise_500():
     """Raise 500 error"""
-    raise _exc.AirfsException("Server error")
+    raise MockException("Server error")
 
 
 class MockSystem(_SystemBase):
@@ -172,6 +176,38 @@ class MockSystem(_SystemBase):
             f"https://{client_kwargs['locator']}/"
             f"{client_kwargs['path']}#token=123456"
         )
+
+    def islink(self, path=None, client_kwargs=None, header=None):
+        """
+        Returns True if object is a symbolic link.
+
+        Args:
+            path (str): File path or URL.
+            client_kwargs (dict): Client arguments.
+            header (dict): Object header.
+
+        Returns:
+            bool: True if object is Symlink.
+        """
+        if client_kwargs is None:
+            client_kwargs = self.get_client_kwargs(path)
+        return "_target" in self.client.head_object(**client_kwargs)
+
+    def read_link(self, path=None, client_kwargs=None, header=None):
+        """
+        Return the path linked by the symbolic link.
+
+        Args:
+            path (str): File path or URL.
+            client_kwargs (dict): Client arguments.
+            header (dict): Object header.
+
+        Returns:
+            str: Path.
+        """
+        if client_kwargs is None:
+            client_kwargs = self.get_client_kwargs(path)
+        return self.client.head_object(**client_kwargs)["_target"]
 
 
 class MockRawIO(_ObjectRawIORandomWriteBase):

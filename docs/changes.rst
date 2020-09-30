@@ -1,63 +1,78 @@
 Changelog
 =========
 
-1.5.0 (2020/09)
+1.5.0 (2020/10)
 ---------------
 
 New storage support:
 
 * GitHub (Read only).
+* The S3 storage now support any supported S3 compatible storage and not only AWS.
 
 New standard library equivalent functions:
 
-* ``os.readlink``.
+* ``os.readlink``, ``os.path.lexists``, ``os.path.realpath``.
 
 New features:
 
 * ``airfs.shareable_url`` function to get a shareable URL of an existing object.
 * airfs now supports a user configuration that can be used to define storage to
-  mount with their parameters. The configuration can be managed using the `airfs.config`
-  module.
+  mount with their parameters. The configuration can be managed using the
+  ``airfs.config`` module.
 
 Improvements:
 
-* `airfs.stat` and `airfs.lstat` now returns proper GID and UID, with default to current
-  user values for storage that does not support it.
-* `airfs.stat` and `airfs.lstat` `st_mode` now include permission bits with default
-  value to `644` for storage that does not support it.
-* `airfs.stat` and `airfs.lstat` now returns extra storage specific values with their
-  original names instead of `st_` prefixed names. To allow use as stat result attributes
-  and ensure consistency, returned names are lower-cased, `-` are replaced with `_` and
-  other characters are limited to alphanumerical characters.
-* Add `airfs.os`, `airfs.os.path` and `airfs.shutil` namespaces that mimic standards
+* ``airfs.stat`` and ``airfs.lstat`` now returns proper GID and UID, with default to
+  current user values for storage that does not support it.
+* ``airfs.stat`` and ``airfs.lstat`` ``st_mode`` now include permission bits with
+  default value to ``644`` for storage that does not support it.
+* ``airfs.stat`` and ``airfs.lstat`` now returns extra storage specific values with
+  their original names instead of ``st_`` prefixed names. To allow use as stat result
+  attributes and ensure consistency, returned names are lower-cased, ``-`` are replaced
+  with ``_`` and other characters are limited to alphanumerical characters.
+* Add ``airfs.os``, ``airfs.os.path`` and ``airfs.shutil`` namespaces that mimic
+  standards
   library namespaces. Names that are not available in Airfs fall back to their standard
   library equivalent.
-* Add `st_atime_ns`, `st_mtime_ns` and `st_ctime_ns`, in the `os.stat_result` like named
-  tuple returned by `airfs.stat` and `airfs.lstat`.
-* Use `Black <https://github.com/psf/black>`_ for code formatting.
+* Add ``st_atime_ns``, ``st_mtime_ns`` and ``st_ctime_ns``, in the ``os.stat_result``
+  like named tuple returned by ``airfs.stat`` and ``airfs.lstat``.
+* airfs functions now properly supports the ``follow_symlinks`` argument when storage
+  support symlinks.
+* ``airfs.listdir`` now properly follows symlinks when storage support symlinks.
 * airfs can now lazily auto-import a storage from an URL using any root and not only a
   specific scheme. Only public storage that does not require user specified parameters
   can be lazily auto-mounted. airfs still try to use the `http` storage to mount
   unsupported storage like public internet links.
-* airfs now provides the public base exception `airfs.AirfsException` and the public
-  base warning `airfs.AirfsWarning`. Users can catch them to handle airfs exceptions.
-* airfs now raises `airfs.MountException` on mounting errors instead of `ValueError`.
-* airfs now raises `airfs.ConfigurationException` on configuration errors.
-* The S3 storage now support any supported S3 compatible storage and not only AWS.
+* airfs now provides the public base exception ``airfs.AirfsException`` and the public
+  base warning ``airfs.AirfsWarning``. Users can catch them to handle airfs exceptions.
+* airfs now raises ``airfs.MountException`` on mounting errors instead of
+  ``ValueError``.
+* airfs now raises ``airfs.ConfigurationException`` on configuration errors.
+* Refactor ``airfs.io.SystemBase.list_objects`` to improve to support more input file
+  listing and make the API simpler. Remove ``airfs.io.FileSystemBase`` which is now a
+  duplicate.
+* airfs exception conversion to OSError is now more strict and convert only excepted
+  exceptions.
 * Add `Flake8 <https://gitlab.com/pycqa/flake8>`_ and
   `Bandit <https://github.com/PyCQA/bandit>`_ to the Pytest sequence.
-* Refactor `airfs.io.SystemBase.list_objects` to improve to support more input file
-  listing and make the API simpler. Remove `airfs.io.FileSystemBase` which is now a
-  duplicate.
+* Use `Black <https://github.com/psf/black>`_ for code formatting.
 
 Fixes:
 
-* airfs now let correctly `ImportError` from dependencies be raised instead of hidding
+* airfs now let correctly ``ImportError`` from dependencies be raised instead of hidding
   it by raising an exception saying that the storage is not available.
+* ``airfs.io.ObjectBufferedIOBase`` ``read`` and ``readinto`` methods now properly
+  fallback to ``read1`` and ``readinto1`` if the object is not seekable.
 * airfs now open S3 presigned URLs as standard HTTP URLs instead of trying to use S3
   API.
-* Fix the missing `follow_symlinks` argument in `airfs.copy`.
+* Fix the missing ``follow_symlinks`` argument in ``airfs.copy``.
+* Fix ``follow_symlinks=False`` argument not raising exception on storage that does not
+  support symlinks.
+* Fix the missing ``closefd`` and ``opener`` arguments in ``airfs.open``.
 * Fix the missing keyword-only argument mark in various functions.
+* airfs now properly raise ``NotImplementedError`` when using ``dir_fd`` on non local
+  paths.
+* Fix the use of functions that should support file descriptors.
 
 Deprecations:
 
@@ -69,8 +84,8 @@ Deprecations:
 Fork from "pycosio" unmaintained project:
 
 * Namespace to import changed from `pycosio` to `airfs`. It is possible to upgrade by
-  replacing all `pycosio` code occurrences by `airfs` or doing
-  `import airfs as pycosio`.
+  replacing all ``pycosio`` code occurrences by ``airfs`` or doing
+  ``import airfs as pycosio``.
 
 Improvements:
 
@@ -85,8 +100,8 @@ Deprecations:
 
 Fixes:
 
-* Fix package including `tests/storage_package` subdirectory due to packaging toolchain
-  issue.
+* Fix package including ``tests/storage_package`` subdirectory due to packaging
+  toolchain issue.
 
 1.3.2 (2019/05)
 ---------------
@@ -243,3 +258,9 @@ Known issues
 ------------
 
 * Append mode doesn't work with ``ObjectBufferedIOBase``.
+* Following functions does not follow symlinks yet:
+
+  * For path target and parents directories: ``airfs.rmdir``, ``airfs.samefile``,
+    ``airfs.copy``, ``airfs.copypath``.
+  * For parent directories: ``airfs.makedirs``, ``airfs.mkdir``, ``airfs.remove``,
+    ``airfs.lstat``, ``airfs.lexists``, ``airfs.islink``

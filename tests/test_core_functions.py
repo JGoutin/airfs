@@ -166,7 +166,7 @@ def test_equivalent_functions(tmpdir):
         # Only checks that function call system method correctly
         # Method itself tested with system tests
 
-        def basic_function(path):
+        def basic_function(path, **_):
             """"Checks arguments and returns fake result"""
             assert path == excepted_path
             return result
@@ -374,7 +374,8 @@ def test_cos_open(tmpdir):
     from airfs._core.functions_io import cos_open
     from airfs._core.storage_manager import MOUNTED
     from airfs._core.io_base_system import SystemBase
-    from io import TextIOWrapper, UnsupportedOperation
+    from airfs._core.exceptions import ObjectUnsupportedOperation
+    from io import TextIOWrapper
     from os.path import isdir
     from shutil import SameFileError
     import airfs._core.functions_shutil as rfs_shutil
@@ -398,19 +399,19 @@ def test_cos_open(tmpdir):
         def copy(self, *_, **__):
             """Checks called"""
             if self.raise_on_copy:
-                raise UnsupportedOperation
+                raise ObjectUnsupportedOperation
             self.copied = True
 
         def copy_to_storage3(self, *_, **__):
             """Checks called"""
             if self.raise_on_copy:
-                raise UnsupportedOperation
+                raise ObjectUnsupportedOperation
             self.copied = True
 
         def copy_from_storage3(self, *_, **__):
             """Checks called"""
             if self.raise_on_copy:
-                raise UnsupportedOperation
+                raise ObjectUnsupportedOperation
             self.copied = True
 
         def relpath(self, path):

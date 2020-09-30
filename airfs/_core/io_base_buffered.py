@@ -109,6 +109,7 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
         else:
             self._size = self._raw._size
             self._read_range = self.raw._read_range
+            self._seekable = self.raw._seekable
             if max_buffers:
                 self._max_buffers = max_buffers
             else:
@@ -252,6 +253,8 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
         """
         if not self._readable:
             raise UnsupportedOperation("read")
+        elif not self._seekable:
+            return self._raw.read(size)
 
         if self._seek == self._size:
             return b""
@@ -312,6 +315,8 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
         """
         if not self._readable:
             raise UnsupportedOperation("read")
+        elif not self._seekable:
+            return self._raw.readinto(b)
 
         with self._seek_lock:
             seek = self._seek

@@ -106,7 +106,7 @@ def test_model_to_dict():
 def test_get_time():
     """Test airfs.storage.azure._AzureBaseSystem._get_time"""
     from airfs.storage.azure import _AzureBaseSystem
-    from io import UnsupportedOperation
+    from airfs._core.exceptions import ObjectUnsupportedOperation
 
     m_time = time()
     last_modified = datetime.fromtimestamp(m_time)
@@ -115,7 +115,7 @@ def test_get_time():
         {"last_modified": last_modified}, ("last_modified",), "gettime"
     ) == pytest.approx(m_time, 1)
 
-    with pytest.raises(UnsupportedOperation):
+    with pytest.raises(ObjectUnsupportedOperation):
         _AzureBaseSystem._get_time({}, ("last_modified",), "gettime")
 
 

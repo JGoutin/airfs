@@ -2,7 +2,7 @@
 from io import IOBase
 
 from airfs._core.io_base import memoizedmethod
-from airfs._core.exceptions import AirfsException
+from airfs._core.exceptions import AirfsInternalException
 from airfs.io import ObjectBufferedIOBase
 from airfs.storage.azure_blob._system import _AzureBlobSystem
 from airfs.storage.azure import _AzureStorageRawIOBase
@@ -37,7 +37,7 @@ def _new_blob(cls, name, kwargs):
 
     try:
         storage_parameters["airfs.raw_io._head"] = head = system.head(name)
-    except AirfsException:
+    except AirfsInternalException:
         # Unable to access to the file (May not exists, or may not have read access
         # permission), try to use arguments as blob type source.
         head = kwargs

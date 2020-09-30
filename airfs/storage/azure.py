@@ -3,7 +3,7 @@ from abc import abstractmethod as _abstractmethod
 from contextlib import contextmanager as _contextmanager
 from concurrent.futures import as_completed as _as_completed
 from datetime import datetime as _datetime, timedelta as _timedelta
-from io import UnsupportedOperation as _UnsupportedOperation, BytesIO as _BytesIO
+from io import BytesIO as _BytesIO
 from threading import Lock as _Lock
 
 from azure.common import AzureHttpError as _AzureHttpError  # type: ignore
@@ -12,6 +12,7 @@ from airfs._core.io_base import WorkerPoolBase as _WorkerPoolBase
 from airfs._core.exceptions import (
     ObjectNotFoundError as _ObjectNotFoundError,
     ObjectPermissionError as _ObjectPermissionError,
+    ObjectUnsupportedOperation as _ObjectUnsupportedOperation,
 )
 from airfs.io import (
     SystemBase as _SystemBase,
@@ -129,7 +130,7 @@ class _AzureBaseSystem(_SystemBase):
             except KeyError:
                 continue
 
-        raise _UnsupportedOperation(name)
+        raise _ObjectUnsupportedOperation(name)
 
     def _get_endpoint(self, sub_domain):
         """

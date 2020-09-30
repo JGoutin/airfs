@@ -82,10 +82,11 @@ def github_storage_scenario():
     """
     Test scenario. Called from both mocked and non-mocked tests.
     """
-    listdir_scenario()
     exists_scenario()
+    listdir_scenario()
     stat_scenario()
     symlink_scenario()
+    get_scenario()
 
 
 def listdir_scenario():
@@ -136,9 +137,8 @@ def listdir_scenario():
     with pytest.raises(NotADirectoryError):
         airfs.listdir("https://github.com/jgoutin/airfs/HEAD/LICENSE")
 
-    # TODO: Fix (Do not raise)
-    # with pytest.raises(FileNotFoundError):
-    #    airfs.listdir("https://github.com/jgoutin/airfs/HEAD/not_exists")
+    with pytest.raises(FileNotFoundError):
+        airfs.listdir("https://github.com/jgoutin/airfs/HEAD/not_exists")
 
     assert "_core" in airfs.listdir(
         "https://github.com/jgoutin/airfs/HEAD/airfs"
@@ -224,7 +224,7 @@ def listdir_scenario():
 
     assert sorted(
         airfs.listdir("https://github.com/jgoutin/airfs/releases/tag/1.4.0/archive")
-    ) == ["1.4.0.tar.gz", "1.4.0.zip"], "List release archive"
+    ) == ["source_code.tar.gz", "source_code.zip"], "List release archive"
 
     with pytest.raises(FileNotFoundError):
         airfs.listdir(
@@ -233,16 +233,18 @@ def listdir_scenario():
 
     with pytest.raises(NotADirectoryError):
         airfs.listdir(
-            "https://github.com/jgoutin/airfs/releases/tag/1.4.0/archive/1.4.0.tar.gz"
+            "https://github.com/jgoutin/airfs/releases/tag/1.4.0/archive/"
+            "source_code.tar.gz"
         )
 
     assert sorted(
         airfs.listdir("https://github.com/jgoutin/airfs/releases/latest/archive")
-    ) == ["latest.tar.gz", "latest.zip"], "List latest release archive"
+    ) == ["source_code.tar.gz", "source_code.zip"], "List latest release archive"
 
     with pytest.raises(NotADirectoryError):
         airfs.listdir(
-            "https://github.com/jgoutin/airfs/releases/latest/archive/latest.tar.gz"
+            "https://github.com/jgoutin/airfs/releases/latest/archive/"
+            "source_code.tar.gz"
         )
 
     assert sorted(
@@ -270,36 +272,80 @@ def symlink_scenario():
     # Git tree
     assert airfs.islink("https://github.com/jgoutin/airfs/HEAD/tests/resources/symlink")
     assert airfs.exists("https://github.com/jgoutin/airfs/HEAD/tests/resources/symlink")
-    # TODO: Fix, seen as dict
-    # assert not airfs.isdir(
-    #     "https://github.com/jgoutin/airfs/HEAD/tests/resources/symlink"
-    # )
-    # TODO: Fix, "ref" not in spec
-    # assert airfs.isfile("https://github.com/jgoutin/airfs/HEAD/tests/resources/symlink")
+    assert not airfs.isdir(
+        "https://github.com/jgoutin/airfs/HEAD/tests/resources/symlink"
+    )
+    assert airfs.isfile("https://github.com/jgoutin/airfs/HEAD/tests/resources/symlink")
 
     assert not airfs.islink("https://github.com/jgoutin/airfs/HEAD/LICENSE")
     assert not airfs.islink("https://github.com/jgoutin/airfs/HEAD/tests")
 
-    # TODO: Fix, "ref" not in spec
-    # assert (
-    #     airfs.readlink("https://github.com/jgoutin/airfs/HEAD/tests/resources/symlink")
-    #     == "../../airfs/_core/exceptions.py"
-    # )
+    assert (
+        airfs.readlink("https://github.com/jgoutin/airfs/HEAD/tests/resources/symlink")
+        == "../../airfs/_core/exceptions.py"
+    )
+    assert (
+        airfs.realpath("https://github.com/jgoutin/airfs/HEAD/tests/resources/symlink")
+        == "https://github.com/jgoutin/airfs/HEAD/airfs/_core/exceptions.py"
+    )
+    assert (
+        airfs.realpath(
+            "https://github.com/jgoutin/airfs/HEAD/tests/resources/symlink_to_symlink"
+        )
+        == "https://github.com/jgoutin/airfs/HEAD/airfs/_core/exceptions.py"
+    )
 
     with pytest.raises(OSError):
         airfs.readlink("https://github.com/jgoutin/airfs/HEAD/LICENSE")
 
-    # TODO: Test following when reading
-
-    # Virtual tree
-    # TODO: Check all
-
+    # HEAD
     assert airfs.islink("https://github.com/jgoutin/airfs/HEAD")
-
     assert (
         airfs.readlink("https://github.com/jgoutin/airfs/HEAD")
-        == "github://jgoutin/airfs/branches/master"
+        == "https://github.com/jgoutin/airfs/branches/master"
     )
+    assert airfs.realpath("https://github.com/jgoutin/airfs/HEAD").startswith(
+        "https://github.com/jgoutin/airfs/commits/"
+    )
+
+    # Branches
+    assert airfs.readlink(
+        "https://github.com/jgoutin/airfs/branches/master"
+    ).startswith("https://github.com/jgoutin/airfs/commits/")
+    assert airfs.realpath(
+        "https://github.com/jgoutin/airfs/branches/master"
+    ).startswith("https://github.com/jgoutin/airfs/commits/")
+    assert airfs.readlink(
+        "https://github.com/jgoutin/airfs/refs/heads/master"
+    ).startswith("https://github.com/jgoutin/airfs/commits/")
+    assert airfs.readlink("https://github.com/jgoutin/airfs/blob/master").startswith(
+        "https://github.com/jgoutin/airfs/commits/"
+    )
+    assert airfs.readlink("https://github.com/jgoutin/airfs/tree/master").startswith(
+        "https://github.com/jgoutin/airfs/commits/"
+    )
+
+    # Tags
+    assert airfs.readlink("https://github.com/jgoutin/airfs/tags/1.4.0").startswith(
+        "https://github.com/jgoutin/airfs/commits/"
+    )
+    assert airfs.realpath("https://github.com/jgoutin/airfs/tags/1.4.0").startswith(
+        "https://github.com/jgoutin/airfs/commits/"
+    )
+    assert airfs.readlink(
+        "https://github.com/jgoutin/airfs/refs/tags/1.4.0"
+    ).startswith("https://github.com/jgoutin/airfs/commits/")
+    assert airfs.readlink("https://github.com/jgoutin/airfs/blob/1.4.0").startswith(
+        "https://github.com/jgoutin/airfs/commits/"
+    )
+    assert airfs.readlink("https://github.com/jgoutin/airfs/tree/1.4.0").startswith(
+        "https://github.com/jgoutin/airfs/commits/"
+    )
+
+    # Releases
+    assert airfs.readlink(
+        "https://github.com/jgoutin/airfs/releases/latest"
+    ).startswith("https://github.com/jgoutin/airfs/releases/tag/")
 
 
 def exists_scenario():
@@ -307,6 +353,11 @@ def exists_scenario():
     Tests exists, isdir, isfile
     """
     import airfs
+
+    # Root
+    assert airfs.exists("https://github.com")
+    assert airfs.isdir("https://github.com")
+    assert not airfs.isfile("https://github.com")
 
     # User
     assert airfs.exists("https://github.com/jgoutin")
@@ -322,14 +373,30 @@ def exists_scenario():
     assert not airfs.isdir("https://github.com/jgoutin/not_exists")
     assert not airfs.isfile("https://github.com/jgoutin/not_exists")
 
-    assert not airfs.exists("https://github.com/jgoutin/refs/not_exists")
-    assert not airfs.isdir("https://github.com/jgoutin/refs/not_exists")
-    assert not airfs.isfile("https://github.com/jgoutin/refs/not_exists")
+    assert not airfs.exists("https://github.com/jgoutin/airfs/refs/not_exists")
+    assert not airfs.isdir("https://github.com/jgoutin/airfs/refs/not_exists")
+    assert not airfs.isfile("https://github.com/jgoutin/airfs/refs/not_exists")
+
+    assert airfs.exists("https://raw.githubusercontent.com/jgoutin/airfs")
+    assert airfs.isdir("https://raw.githubusercontent.com/jgoutin/airfs")
+    assert not airfs.isfile("https://raw.githubusercontent.com/jgoutin/airfs")
 
     # HEAD
     assert airfs.exists("https://github.com/jgoutin/airfs/HEAD")
     assert airfs.isdir("https://github.com/jgoutin/airfs/HEAD")
     assert not airfs.isfile("https://github.com/jgoutin/airfs/HEAD")
+
+    assert airfs.exists("https://github.com/jgoutin/airfs/tree/HEAD")
+    assert airfs.isdir("https://github.com/jgoutin/airfs/tree/HEAD")
+    assert not airfs.isfile("https://github.com/jgoutin/tree/HEAD")
+
+    assert airfs.exists("https://github.com/jgoutin/airfs/blob/HEAD")
+    assert airfs.isdir("https://github.com/jgoutin/airfs/blob/HEAD")
+    assert not airfs.isfile("https://github.com/jgoutin/blob/HEAD")
+
+    assert airfs.exists("https://raw.githubusercontent.com/jgoutin/airfs/HEAD")
+    assert airfs.isdir("https://raw.githubusercontent.com/jgoutin/airfs/HEAD")
+    assert not airfs.isfile("https://raw.githubusercontent.com/jgoutin/airfs/HEAD")
 
     # Branches
     assert airfs.exists("https://github.com/jgoutin/airfs/branches")
@@ -343,6 +410,18 @@ def exists_scenario():
     assert airfs.exists("https://github.com/jgoutin/airfs/refs/heads/master")
     assert airfs.isdir("https://github.com/jgoutin/airfs/refs/heads/master")
     assert not airfs.isfile("https://github.com/jgoutin/airfs/refs/heads/master")
+
+    assert airfs.exists("https://github.com/jgoutin/airfs/tree/master")
+    assert airfs.isdir("https://github.com/jgoutin/airfs/tree/master")
+    assert not airfs.isfile("https://github.com/jgoutin/tree/master")
+
+    assert airfs.exists("https://github.com/jgoutin/airfs/blob/master")
+    assert airfs.isdir("https://github.com/jgoutin/airfs/blob/master")
+    assert not airfs.isfile("https://github.com/jgoutin/blob/master")
+
+    assert airfs.exists("https://raw.githubusercontent.com/jgoutin/airfs/master")
+    assert airfs.isdir("https://raw.githubusercontent.com/jgoutin/airfs/master")
+    assert not airfs.isfile("https://raw.githubusercontent.com/jgoutin/airfs/master")
 
     assert not airfs.exists("https://github.com/jgoutin/airfs/branches/not_exists")
     assert not airfs.isdir("https://github.com/jgoutin/airfs/branches/not_exists")
@@ -361,6 +440,18 @@ def exists_scenario():
     assert airfs.isdir("https://github.com/jgoutin/airfs/refs/tags/1.4.0")
     assert not airfs.isfile("https://github.com/jgoutin/airfs/refs/tags/1.4.0")
 
+    assert airfs.exists("https://github.com/jgoutin/airfs/tree/1.4.0")
+    assert airfs.isdir("https://github.com/jgoutin/airfs/tree/1.4.0")
+    assert not airfs.isfile("https://github.com/jgoutin/tree/1.4.0")
+
+    assert airfs.exists("https://github.com/jgoutin/airfs/blob/1.4.0")
+    assert airfs.isdir("https://github.com/jgoutin/airfs/blob/1.4.0")
+    assert not airfs.isfile("https://github.com/jgoutin/blob/1.4.0")
+
+    assert airfs.exists("https://raw.githubusercontent.com/jgoutin/airfs/1.4.0")
+    assert airfs.isdir("https://raw.githubusercontent.com/jgoutin/airfs/1.4.0")
+    assert not airfs.isfile("https://raw.githubusercontent.com/jgoutin/airfs/1.4.0")
+
     assert not airfs.exists("https://github.com/jgoutin/airfs/tags/not_exists")
     assert not airfs.isdir("https://github.com/jgoutin/airfs/tags/not_exists")
     assert not airfs.isfile("https://github.com/jgoutin/airfs/tags/not_exists")
@@ -375,6 +466,20 @@ def exists_scenario():
     assert airfs.isdir(f"https://github.com/jgoutin/airfs/commits/{commit_id}")
     assert not airfs.isfile(f"https://github.com/jgoutin/airfs/commits/{commit_id}")
 
+    assert airfs.exists(f"https://github.com/jgoutin/airfs/tree/{commit_id}")
+    assert airfs.isdir(f"https://github.com/jgoutin/airfs/tree/{commit_id}")
+    assert not airfs.isfile(f"https://github.com/jgoutin/tree/{commit_id}")
+
+    assert airfs.exists(f"https://github.com/jgoutin/airfs/blob/{commit_id}")
+    assert airfs.isdir(f"https://github.com/jgoutin/airfs/blob/{commit_id}")
+    assert not airfs.isfile(f"https://github.com/jgoutin/blob/{commit_id}")
+
+    assert airfs.exists(f"https://raw.githubusercontent.com/jgoutin/airfs/{commit_id}")
+    assert airfs.isdir(f"https://raw.githubusercontent.com/jgoutin/airfs/{commit_id}")
+    assert not airfs.isfile(
+        f"https://raw.githubusercontent.com/jgoutin/airfs/{commit_id}"
+    )
+
     assert not airfs.exists("https://github.com/jgoutin/airfs/commits/not_exists")
     assert not airfs.isdir("https://github.com/jgoutin/airfs/commits/not_exists")
     assert not airfs.isfile("https://github.com/jgoutin/airfs/commits/not_exists")
@@ -387,6 +492,12 @@ def exists_scenario():
     assert airfs.exists("https://github.com/jgoutin/airfs/HEAD/LICENSE")
     assert not airfs.isdir("https://github.com/jgoutin/airfs/HEAD/LICENSE")
     assert airfs.isfile("https://github.com/jgoutin/airfs/HEAD/LICENSE")
+
+    assert airfs.exists("https://raw.githubusercontent.com/jgoutin/airfs/HEAD/LICENSE")
+    assert not airfs.isdir(
+        "https://raw.githubusercontent.com/jgoutin/airfs/HEAD/LICENSE"
+    )
+    assert airfs.isfile("https://raw.githubusercontent.com/jgoutin/airfs/HEAD/LICENSE")
 
     assert not airfs.exists("https://github.com/jgoutin/airfs/HEAD/not_exists")
     assert not airfs.isdir("https://github.com/jgoutin/airfs/HEAD/not_exists")
@@ -406,10 +517,9 @@ def exists_scenario():
     assert not airfs.isfile("https://github.com/jgoutin/airfs/archive/not_exists")
 
     # Releases
-    # TODO: fix
-    # assert airfs.exists("https://github.com/jgoutin/airfs/releases")
-    # assert airfs.isdir("https://github.com/jgoutin/airfs/releases")
-    # assert not airfs.isfile("https://github.com/jgoutin/airfs/releases")
+    assert airfs.exists("https://github.com/jgoutin/airfs/releases")
+    assert airfs.isdir("https://github.com/jgoutin/airfs/releases")
+    assert not airfs.isfile("https://github.com/jgoutin/airfs/releases")
 
     assert airfs.exists("https://github.com/jgoutin/airfs/releases/tag")
     assert airfs.isdir("https://github.com/jgoutin/airfs/releases/tag")
@@ -457,23 +567,23 @@ def exists_scenario():
     )
 
     assert airfs.exists(
-        "https://github.com/jgoutin/airfs/releases/latest/archive/latest.tar.gz"
+        "https://github.com/jgoutin/airfs/releases/latest/archive/source_code.tar.gz"
     )
     assert not airfs.isdir(
-        "https://github.com/jgoutin/airfs/releases/latest/archive/latest.tar.gz"
+        "https://github.com/jgoutin/airfs/releases/latest/archive/source_code.tar.gz"
     )
     assert airfs.isfile(
-        "https://github.com/jgoutin/airfs/releases/latest/archive/latest.tar.gz"
+        "https://github.com/jgoutin/airfs/releases/latest/archive/source_code.tar.gz"
     )
 
     assert airfs.exists(
-        "https://github.com/jgoutin/airfs/releases/tag/1.4.0/archive/1.4.0.tar.gz"
+        "https://github.com/jgoutin/airfs/releases/tag/1.4.0/archive/source_code.tar.gz"
     )
     assert not airfs.isdir(
-        "https://github.com/jgoutin/airfs/releases/tag/1.4.0/archive/1.4.0.tar.gz"
+        "https://github.com/jgoutin/airfs/releases/tag/1.4.0/archive/source_code.tar.gz"
     )
     assert airfs.isfile(
-        "https://github.com/jgoutin/airfs/releases/tag/1.4.0/archive/1.4.0.tar.gz"
+        "https://github.com/jgoutin/airfs/releases/tag/1.4.0/archive/source_code.tar.gz"
     )
 
 
@@ -489,8 +599,6 @@ def stat_scenario():
     directory = S_IFDIR + 0o644
     link = S_IFLNK + 0o644
 
-    # TODO: Add not existing paths + Virtual dirs
-
     # User
     stat = airfs.stat("https://github.com/jgoutin")
     assert stat.st_mode == directory
@@ -499,66 +607,92 @@ def stat_scenario():
 
     # Repos
     stat = airfs.stat("https://github.com/jgoutin/airfs")
-    # TODO: Fix, seen as file
-    # assert stat.st_mode == directory
+    assert stat.st_mode == directory
     assert stat.st_mtime > 0
     assert stat.st_ctime > 0
 
+    stat = airfs.stat("https://github.com/jgoutin/airfs/refs")
+    assert stat.st_mode == directory
+
+    stat = airfs.stat("https://github.com/jgoutin/airfs/refs/heads")
+    assert stat.st_mode == directory
+
+    stat = airfs.stat("https://github.com/jgoutin/airfs/refs/tags")
+    assert stat.st_mode == directory
+
+    with pytest.raises(FileNotFoundError):
+        airfs.stat("https://github.com/jgoutin/not_exists")
+
+    with pytest.raises(FileNotFoundError):
+        airfs.stat("https://github.com/jgoutin/airfs/refs/not_exists")
+
     # HEAD
-    stat = airfs.stat("https://github.com/jgoutin/airfs/HEAD")
+    stat = airfs.lstat("https://github.com/jgoutin/airfs/HEAD")
     assert stat.st_mode == link
     assert stat.st_mtime > 0
-    assert stat.sha
+    assert stat.sha  # noqa
 
     # Branches
-    stat = airfs.stat("https://github.com/jgoutin/airfs/branches/master")
-    assert stat.st_mode == link
-    assert stat.st_mtime > 0
-    assert stat.sha
+    stat = airfs.stat("https://github.com/jgoutin/airfs/branches")
+    assert stat.st_mode == directory
 
-    stat = airfs.stat("https://github.com/jgoutin/airfs/refs/heads/master")
+    stat = airfs.lstat("https://github.com/jgoutin/airfs/branches/master")
     assert stat.st_mode == link
     assert stat.st_mtime > 0
-    assert stat.sha
+    assert stat.sha  # noqa
+
+    stat = airfs.stat("https://github.com/jgoutin/airfs/branches/master")
+    assert stat.st_mode == directory
+    assert stat.st_mtime > 0
+    assert stat.sha  # noqa
+
+    stat = airfs.lstat("https://github.com/jgoutin/airfs/refs/heads/master")
+    assert stat.st_mode == link
+    assert stat.st_mtime > 0
+    assert stat.sha  # noqa
 
     # Tags
-    stat = airfs.stat("https://github.com/jgoutin/airfs/tags/1.4.0")
-    assert stat.st_mode == link
-    assert stat.st_mtime > 0
-    assert stat.sha
+    stat = airfs.stat("https://github.com/jgoutin/airfs/tags")
+    assert stat.st_mode == directory
 
-    stat = airfs.stat("https://github.com/jgoutin/airfs/refs/tags/1.4.0")
+    stat = airfs.lstat("https://github.com/jgoutin/airfs/tags/1.4.0")
     assert stat.st_mode == link
     assert stat.st_mtime > 0
-    assert stat.sha
+    assert stat.sha  # noqa
+
+    stat = airfs.lstat("https://github.com/jgoutin/airfs/refs/tags/1.4.0")
+    assert stat.st_mode == link
+    assert stat.st_mtime > 0
+    assert stat.sha  # noqa
 
     # Commits
+    stat = airfs.stat("https://github.com/jgoutin/airfs/commits")
+    assert stat.st_mode == directory
+
     commit_id = airfs.listdir("https://github.com/jgoutin/airfs/commits")[0]
     stat = airfs.stat(f"https://github.com/jgoutin/airfs/commits/{commit_id}")
-    # TODO: Fix, seen as file
-    # assert stat.st_mode == directory
+    assert stat.st_mode == directory
     assert stat.st_mtime > 0
-    assert stat.sha
+    assert stat.sha  # noqa
 
     # Git Tree
     stat = airfs.stat("https://github.com/jgoutin/airfs/HEAD/tests")
-    # TODO: Seen as S_IFREG if no trailing "/"
-    # assert stat.st_mode == directory
+    assert stat.st_mode == directory
     assert stat.st_mtime > 0
     assert stat.st_size == 0
-    assert stat.sha
+    assert stat.sha  # noqa
 
     stat = airfs.stat("https://github.com/jgoutin/airfs/HEAD/LICENSE")
     assert stat.st_mode == file
     assert stat.st_mtime > 0
     assert stat.st_size > 0
-    assert stat.sha
+    assert stat.sha  # noqa
 
     stat = airfs.stat("https://github.com/jgoutin/airfs/HEAD/setup.py")
     assert stat.st_mode == file_exec
     assert stat.st_mtime > 0
     assert stat.st_size > 0
-    assert stat.sha
+    assert stat.sha  # noqa
 
     symlink_stat = airfs.lstat(
         "https://github.com/jgoutin/airfs/HEAD/tests/resources/symlink"
@@ -566,46 +700,87 @@ def stat_scenario():
     assert symlink_stat.st_mode == link
     assert symlink_stat.st_mtime > 0
     assert symlink_stat.st_size > 0
-    assert symlink_stat.sha
+    assert symlink_stat.sha  # noqa
 
-    # TODO: Fix os functions to follow links
-    # stat = airfs.stat("https://github.com/jgoutin/airfs/HEAD/tests/resources/symlink")
-    # assert stat.st_mode == file
-    # assert stat.st_mtime > 0
-    # assert stat.st_size > 0
-    # assert stat.st_size > symlink_stat.st_size
-    # assert stat.sha
+    stat = airfs.stat("https://github.com/jgoutin/airfs/HEAD/tests/resources/symlink")
+    assert stat.st_mode == file
+    assert stat.st_mtime > 0
+    assert stat.st_size > 0
+    assert stat.st_size > symlink_stat.st_size
+    assert stat.sha  # noqa
+
+    with pytest.raises(FileNotFoundError):
+        airfs.stat("https://github.com/jgoutin/airfs/HEAD/not_exists")
 
     # Releases
     stat = airfs.stat(
-        "https://github.com/jgoutin/airfs/releases/tag/1.4.0/archive/1.4.0.tar.gz"
+        "https://github.com/jgoutin/airfs/releases/tag/1.4.0/archive/source_code.tar.gz"
     )
     assert stat.st_mode == file
     assert stat.st_size > 0
     assert stat.st_mtime > 0
-    assert stat.sha
+    assert stat.sha  # noqa
 
     stat = airfs.stat(
-        "https://github.com/jgoutin/airfs/releases/latest/archive/latest.tar.gz"
+        "https://github.com/jgoutin/airfs/releases/latest/archive/source_code.tar.gz"
     )
     assert stat.st_mode == file
     assert stat.st_size > 0
     assert stat.st_mtime > 0
-    assert stat.sha
+    assert stat.sha  # noqa
 
-    # TODO: Upload file
-    # stat = airfs.stat(
-    #     "https://github.com/jgoutin/airfs/releases/tag/1.4.0/assets/"
-    #     "airfs-1.4.0-py3-none-any.whl"
-    # )
+    stat = airfs.stat(
+        "https://github.com/jgoutin/airfs/releases/tag/1.4.0/assets/"
+        "airfs-1.4.0-py3-none-any.whl"
+    )
     assert stat.st_mode == file
     assert stat.st_size > 0
     assert stat.st_mtime > 0
-    assert stat.sha
+    assert stat.sha  # noqa
 
 
 def get_scenario():
     """
     Test get files.
     """
-    # TODO:
+    import airfs
+    from airfs.storage.github import GithubBufferedIO, GithubRawIO
+
+    with airfs.open(
+        "https://github.com/jgoutin/airfs/releases/latest/archive/source_code.tar.gz",
+        buffering=0,
+    ) as file:
+        assert isinstance(file, GithubRawIO)
+        assert file.read()
+
+    with airfs.open(
+        "https://github.com/jgoutin/airfs/releases/latest/archive/source_code.tar.gz"
+    ) as file:
+        assert isinstance(file, GithubBufferedIO)
+        assert file.read()
+
+    with airfs.open(
+        "https://github.com/jgoutin/airfs/releases/tag/1.4.0/archive/"
+        "source_code.tar.gz",
+        buffering=0,
+    ) as file:
+        assert file.read()
+
+    with airfs.open(
+        "https://github.com/jgoutin/airfs/releases/tag/1.4.0/assets/"
+        "airfs-1.4.0-py3-none-any.whl",
+        buffering=0,
+    ) as file:
+        assert file.read()
+
+    with airfs.open(
+        "https://github.com/jgoutin/airfs/HEAD/LICENSE",
+        buffering=0,
+    ) as file:
+        assert file.read()
+
+    with airfs.open(
+        "https://raw.githubusercontent.com/jgoutin/airfs/HEAD/LICENSE",
+        buffering=0,
+    ) as file:
+        assert file.read()

@@ -15,6 +15,8 @@ def cos_open(
     encoding=None,
     errors=None,
     newline=None,
+    closefd=True,
+    opener=None,
     storage=None,
     storage_parameters=None,
     unsecure=None,
@@ -30,8 +32,8 @@ def cos_open(
     .. versionadded:: 1.0.0
 
     Args:
-        file (path-like object or file-like object): File path, object URL or
-            opened file-like object.
+        file (path-like object or file-like object or int): File path, object URL,
+            opened file-like object, or file descriptor.
         mode (str): mode in which the file is opened (default to 'rb').
             see "io.open" for all possible modes. Note that all modes may
             not be supported by all kind of file and storage.
@@ -52,6 +54,13 @@ def cos_open(
         newline (str): Controls how universal newlines mode works.
             This should only be used in text mode.
             See "io.open" for more information.
+        closefd (bool): If closefd is False and a file descriptor rather than a filename
+            was given, the underlying file descriptor will be kept open when the file
+            is closed. Must be True elsewhere (the default) otherwise an error will be
+            raised.
+        opener: A callable used as custom opener.
+            see the standard library "open()" documentation for more information.
+            Not supported on storage objects.
         storage (str): Storage name.
         storage_parameters (dict): Storage configuration parameters.
             Generally, client configuration and credentials.
@@ -74,9 +83,12 @@ def cos_open(
             yield wrapped
         return
 
-    file = fsdecode(file).replace("\\", "/")
+    if not isinstance(file, int):
+        file = fsdecode(file).replace("\\", "/")
 
     if is_storage(file, storage):
+        if not closefd:
+            raise ValueError("Cannot use closefd=False with a storage")
         with get_instance(
             name=file,
             cls="raw" if buffering == 0 else "buffered",
@@ -93,7 +105,7 @@ def cos_open(
 
     else:
         with io_open(
-            file, mode, buffering, encoding, errors, newline, **kwargs
+            file, mode, buffering, encoding, errors, newline, closefd, opener
         ) as stream:
             yield stream
 

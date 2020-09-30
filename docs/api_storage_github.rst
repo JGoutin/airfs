@@ -149,8 +149,8 @@ The structure is the following:
 
         * **`:tag`**
 
-          * **`:tag`.zip** [5]_
-          * **`:tag`.tar.gz** [5]_
+          * **source_code.zip** [5]_
+          * **source_code.tar.gz** [5]_
           * **assets** [6]_
 
             * **`:asset_name`**
@@ -161,8 +161,8 @@ The structure is the following:
 
     * **latest** [3]_
 
-      * **latest.zip** [5]_
-      * **latest.tar.gz** [5]_
+      * **source_code.zip** [5]_
+      * **source_code.tar.gz** [5]_
       * **assets** [6]_
 
         * **`:asset_name`**

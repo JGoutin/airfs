@@ -1,15 +1,19 @@
 """Cloud storage abstract System"""
 from abc import abstractmethod, ABC
 from collections import OrderedDict, namedtuple
-from io import UnsupportedOperation
 from re import compile
 from stat import S_IFDIR, S_IFREG, S_IFLNK
-
+from posixpath import join, normpath, dirname
 from dateutil.parser import parse
 
 from airfs._core.io_base import WorkerPoolBase
 from airfs._core.compat import Pattern, getgid, getuid
-from airfs._core.exceptions import ObjectNotFoundError, ObjectPermissionError
+from airfs._core.exceptions import (
+    ObjectNotFoundError,
+    ObjectPermissionError,
+    ObjectNotImplementedError,
+    ObjectUnsupportedOperation,
+)
 from airfs._core.functions_core import SeatsCounter
 
 
@@ -38,6 +42,9 @@ class SystemBase(ABC, WorkerPoolBase):
         "_cache",
         "_roots",
     )
+
+    #: If True, storage support symlinks
+    SUPPORTS_SYMLINKS = False
 
     # By default, assumes that information are in a standard HTTP header
     _SIZE_KEYS = ("Content-Length",)
@@ -116,9 +123,16 @@ class SystemBase(ABC, WorkerPoolBase):
 
         # Note that if no "copy_from"/'copy_to" methods are defined, copy are performed
         # over the current machine with "shutil.copyfileobj".
-        raise UnsupportedOperation
+        raise ObjectUnsupportedOperation
 
-    def exists(self, path=None, client_kwargs=None, assume_exists=None):
+    def exists(
+        self,
+        path=None,
+        client_kwargs=None,
+        assume_exists=None,
+        header=None,
+        follow_symlinks=None,
+    ):
         """
         Return True if path refers to an existing path.
 
@@ -129,12 +143,17 @@ class SystemBase(ABC, WorkerPoolBase):
                 case there is no enough permission to determinate the existing status of
                 the file. If set to None, the permission exception is reraised
                 (Default behavior). if set to True or False, return this value.
+            header (dict): Object header.
+            follow_symlinks (bool): Follow symlinks.
 
         Returns:
             bool: True if exists.
         """
         try:
-            self.head(path, client_kwargs)
+            path, client_kwargs, header = self.resolve(
+                path, client_kwargs, header, follow_symlinks
+            )
+            self.head(path, client_kwargs, header)
         except ObjectNotFoundError:
             return False
         except ObjectPermissionError:
@@ -238,7 +257,7 @@ class SystemBase(ABC, WorkerPoolBase):
                 return parse(date_value).timestamp()
             except TypeError:
                 return float(date_value)
-        raise UnsupportedOperation(name)
+        raise ObjectUnsupportedOperation(name)
 
     @abstractmethod
     def _get_roots(self):
@@ -279,10 +298,16 @@ class SystemBase(ABC, WorkerPoolBase):
             except KeyError:
                 continue
         else:
-            raise UnsupportedOperation("getsize")
+            raise ObjectUnsupportedOperation("getsize")
 
     def isdir(
-        self, path=None, client_kwargs=None, virtual_dir=True, assume_exists=None
+        self,
+        path=None,
+        client_kwargs=None,
+        virtual_dir=True,
+        assume_exists=None,
+        header=None,
+        follow_symlinks=None,
     ):
         """
         Return True if path is an existing directory.
@@ -296,6 +321,8 @@ class SystemBase(ABC, WorkerPoolBase):
                 case there is no enough permission to determinate the existing status of
                 the file. If set to None, the permission exception is reraised
                 (Default behavior). if set to True or False, return this value.
+            header (dict): Object header.
+            follow_symlinks (bool): Follow symlinks.
 
         Returns:
             bool: True if directory exists.
@@ -307,7 +334,7 @@ class SystemBase(ABC, WorkerPoolBase):
 
         if path[-1] == "/" or self.is_locator(relative, relative=True):
             exists = self.exists(
-                path=path, client_kwargs=client_kwargs, assume_exists=assume_exists
+                path, client_kwargs, assume_exists, header, follow_symlinks
             )
             if exists:
                 return True
@@ -316,11 +343,18 @@ class SystemBase(ABC, WorkerPoolBase):
                 try:
                     next(self.list_objects(relative, relative=True, max_results=1))
                     return True
-                except (StopIteration, ObjectNotFoundError, UnsupportedOperation):
+                except (StopIteration, ObjectNotFoundError, ObjectUnsupportedOperation):
                     return False
         return False
 
-    def isfile(self, path=None, client_kwargs=None, assume_exists=None):
+    def isfile(
+        self,
+        path=None,
+        client_kwargs=None,
+        assume_exists=None,
+        header=None,
+        follow_symlinks=None,
+    ):
         """
         Return True if path is an existing regular file.
 
@@ -331,6 +365,8 @@ class SystemBase(ABC, WorkerPoolBase):
                 case there is no enough permission to determinate the existing status of
                 the file. If set to None, the permission exception is reraised
                 (Default behavior). if set to True or False, return this value.
+            header (dict): Object header.
+            follow_symlinks (bool): Follow symlinks.
 
         Returns:
             bool: True if file exists.
@@ -342,7 +378,7 @@ class SystemBase(ABC, WorkerPoolBase):
 
         if path[-1] != "/" and not self.is_locator(path, relative=True):
             return self.exists(
-                path=path, client_kwargs=client_kwargs, assume_exists=assume_exists
+                path, client_kwargs, assume_exists, header, follow_symlinks
             )
         return False
 
@@ -431,6 +467,24 @@ class SystemBase(ABC, WorkerPoolBase):
 
         return path
 
+    def is_abs(self, path):
+        """
+        Return True if path is absolute in this storage.
+
+        args:
+            path (str): Path or URL.
+
+        Returns:
+            bool: True if absolute path.
+        """
+        for root in self.roots:
+            if isinstance(root, Pattern):
+                if root.match(path):
+                    return True
+            elif path.startswith(root):
+                return True
+        return False
+
     def is_locator(self, path, relative=False):
         """
         Returns True if path refer to a locator.
@@ -487,7 +541,7 @@ class SystemBase(ABC, WorkerPoolBase):
         args:
             client_kwargs (dict): Client arguments.
         """
-        raise UnsupportedOperation("mkdir")
+        raise ObjectUnsupportedOperation("mkdir")
 
     def remove(self, path, relative=False):
         """
@@ -508,7 +562,7 @@ class SystemBase(ABC, WorkerPoolBase):
         args:
             client_kwargs (dict): Client arguments.
         """
-        raise UnsupportedOperation("remove")
+        raise ObjectUnsupportedOperation("remove")
 
     def ensure_dir_path(self, path, relative=False):
         """
@@ -673,7 +727,7 @@ class SystemBase(ABC, WorkerPoolBase):
             tuple: locator name str, locator header dict, has content bool
         """
         # Implementation note: See "_list_objects" method.
-        raise UnsupportedOperation("listdir")
+        raise ObjectUnsupportedOperation("listdir")
 
     def _list_objects(self, client_kwargs, path, max_results, first_level):
         """
@@ -703,7 +757,7 @@ class SystemBase(ABC, WorkerPoolBase):
         # entries with "max_results" are optional, these parameters are mainly
         # intended to help to reduce result size from requests against the storage and
         # improve the performance.
-        raise UnsupportedOperation("listdir")
+        raise ObjectUnsupportedOperation("listdir")
 
     def islink(self, path=None, client_kwargs=None, header=None):
         """
@@ -764,7 +818,7 @@ class SystemBase(ABC, WorkerPoolBase):
         # Default to an arbitrary common value
         return 0o644
 
-    def stat(self, path=None, client_kwargs=None, header=None):
+    def stat(self, path=None, client_kwargs=None, header=None, follow_symlinks=None):
         """
         Get the status of an object.
 
@@ -772,11 +826,15 @@ class SystemBase(ABC, WorkerPoolBase):
             path (str): File path or URL.
             client_kwargs (dict): Client arguments.
             header (dict): Object header.
+            follow_symlinks (bool): Follow symlinks.
 
         Returns:
             namedtuple: Stat result object. Follow the "os.stat_result" specification
                 and may contain storage dependent extra entries.
         """
+        path, client_kwargs, header = self.resolve(
+            path, client_kwargs, header, follow_symlinks
+        )
         stat = OrderedDict(
             (
                 ("st_mode", self._getmode(path, client_kwargs, header)),
@@ -798,7 +856,7 @@ class SystemBase(ABC, WorkerPoolBase):
         header = self.head(path, client_kwargs, header)
         try:
             stat["st_size"] = int(self._getsize_from_header(header))
-        except UnsupportedOperation:
+        except ObjectUnsupportedOperation:
             pass
 
         for st_time, st_time_ns, method in (
@@ -807,16 +865,14 @@ class SystemBase(ABC, WorkerPoolBase):
         ):
             try:
                 time_value = method(header)
-            except UnsupportedOperation:
+            except ObjectUnsupportedOperation:
                 continue
             stat[st_time] = int(time_value)
             stat[st_time_ns] = int(time_value * 1000000000)
 
         if self.islink(path=path, header=header):
             stat["st_mode"] += S_IFLNK
-        elif (not path or path[-1] == "/" or self.is_locator(path)) and not stat[
-            "st_size"
-        ]:
+        elif self.isdir(path=path, client_kwargs=client_kwargs, header=header):
             stat["st_mode"] += S_IFDIR
         else:
             stat["st_mode"] += S_IFREG
@@ -830,7 +886,7 @@ class SystemBase(ABC, WorkerPoolBase):
         stat_result.__module__ = "airfs"
         return stat_result(**stat)
 
-    def read_link(self, path=None, client_kwargs=None, header=None, recursive=True):
+    def read_link(self, path=None, client_kwargs=None, header=None):
         """
         Return the path linked by the symbolic link.
 
@@ -838,12 +894,72 @@ class SystemBase(ABC, WorkerPoolBase):
             path (str): File path or URL.
             client_kwargs (dict): Client arguments.
             header (dict): Object header.
-            recursive (bool): Follow links chains until end.
 
         Returns:
             str: Path.
         """
-        raise UnsupportedOperation("symlink")
+        raise ObjectUnsupportedOperation("symlink")
+
+    def resolve(self, path=None, client_kwargs=None, header=None, follow_symlinks=None):
+        """
+        Follow symlinks and return input arguments updated for target.
+
+        Args:
+            path (str): File path or URL.
+            client_kwargs (dict): Client arguments.
+            header (dict): Object header.
+            follow_symlinks (bool): If True, follow symlink if any.
+                If False, return input directly if symlink are supported by storage,
+                else raise NotImplementedError. If None, same as False but returns
+                input instead of raising exception.
+
+        Returns:
+            tuple: path, client_kwargs, headers of the target.
+
+        Raises:
+            ObjectNotImplementedError: follow_symlink is False on storage that do not
+                support symlink.
+        """
+        if not self.SUPPORTS_SYMLINKS and follow_symlinks is False:
+            raise ObjectNotImplementedError(feature="follow_symlink=False")
+        elif not follow_symlinks or not self.SUPPORTS_SYMLINKS:
+            return path, client_kwargs, header
+        return self._resolve(path, client_kwargs, header)
+
+    def _resolve(self, path=None, client_kwargs=None, header=None):
+        """
+        Resolve core function.
+
+        Args:
+            path (str): File path or URL.
+            client_kwargs (dict): Client arguments.
+            header (dict): Object header.
+
+        Returns:
+            tuple: path, client_kwargs, headers of the target.
+        """
+        is_link = self.islink(path, client_kwargs, header)
+
+        if is_link:
+            target = self.read_link(path, client_kwargs, header)
+            if not self.is_abs(target):
+                rel_path = self.relpath(path)
+                target = path[: -len(rel_path)] + normpath(
+                    join(dirname(rel_path), target)
+                )
+            return self._resolve(target)
+
+        if not is_link and self.exists(path, client_kwargs, header=header):
+            return path, client_kwargs, header
+
+        try:
+            parent, name = path.rstrip("/").rsplit("/", 1)
+        except ValueError:
+            return path, client_kwargs, header
+
+        parent_target = self._resolve(parent + "/")[0]
+        path = "/".join((parent_target, name)) + ("/" if path.endswith("/") else "")
+        return path, None, None
 
     def shareable_url(self, path, expires_in):
         """
@@ -871,4 +987,4 @@ class SystemBase(ABC, WorkerPoolBase):
         Returns:
             str: Shareable URL.
         """
-        raise UnsupportedOperation("shareable_url")
+        raise ObjectUnsupportedOperation("shareable_url")

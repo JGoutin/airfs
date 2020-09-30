@@ -65,7 +65,7 @@ class ReleaseAsset(GithubObject):
         """
         if "tag" not in spec:
             spec["tag"] = cls._parent_release(client, spec)["tag_name"]
-        return cls.GET.format(spec)
+        return cls.GET.format(**spec)
 
     @classmethod
     def _parent_release(cls, client, spec):
@@ -90,7 +90,8 @@ class ReleaseArchive(Archive):
     @classmethod
     def list(cls, client, spec, first_level=False):
         """
-        List archives for all branches and tags.
+        List archives for all releases. Uses generic unversioned archive name to avoid
+        have to know the "latest" tag to get its archive.
 
         Args:
             client (airfs.storage.github._api.ApiV3): Client.
@@ -102,9 +103,8 @@ class ReleaseArchive(Archive):
         """
         cls._raise_if_not_dir(not spec.get("archive"), spec, client)
 
-        tag = spec.get("tag", "latest")
         for ext in (".tar.gz", ".zip"):
-            name = tag + ext
+            name = f"source_code{ext}"
             yield name, cls(client, spec, name=name), False
 
     @classmethod
@@ -119,8 +119,8 @@ class ReleaseArchive(Archive):
         Returns:
             dict: Object headers.
         """
-        cls._latest_release(client, spec)
-        return Archive(client, spec)
+        cls._set_archive_tag(client, spec)
+        return Archive.head_obj(client, spec)
 
     def _update_spec_parent_ref(self, parent_key):
         """
@@ -129,12 +129,12 @@ class ReleaseArchive(Archive):
         Args:
             parent_key (str): The parent key (parent_class.KEY).
         """
-        self._latest_release(self._client, self._spec)
+        self._set_archive_tag(self._client, self._spec)
 
     @staticmethod
-    def _latest_release(client, spec):
+    def _set_archive_tag(client, spec):
         """
-        Get the tag and archive name of the latest release.
+        Get the tag and archive exact name.
 
         Args:
             client (airfs.storage.github._api.ApiV3): Client.
@@ -142,7 +142,8 @@ class ReleaseArchive(Archive):
         """
         if "tag" not in spec:
             spec["tag"] = LatestRelease.get_tag(client, spec)
-            spec["archive"] = spec["archive"].replace("latest", spec["tag"])
+        if spec["archive"].startswith("source_code"):
+            spec["archive"] = spec["archive"].replace("source_code", spec["tag"])
 
 
 class Release(GithubObject):
@@ -155,6 +156,7 @@ class Release(GithubObject):
     HEAD = "/repos/{owner}/{repo}/releases/tags/{tag}"
     HEAD_KEYS = {"prerelease", "created_at", "published_at", "name"}
     HEAD_FROM = {"sha": Tag, "tree_sha": Commit}
+    HEAD_EXTRA = (("tag", ("tag_name",)),)
     STRUCT = {
         "assets": ReleaseAsset,
         "tree": Tree,
@@ -167,7 +169,7 @@ class LatestRelease(Release):
 
     KEY = None  # type: ignore
     HEAD = "/repos/{owner}/{repo}/releases/latest"
-    SYMLINK = "github://{owner}/{repo}/releases/{tag}"
+    SYMLINK = "https://github.com/{owner}/{repo}/releases/tag/{tag}"
 
     @classmethod
     def get_tag(cls, client, spec):

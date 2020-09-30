@@ -8,7 +8,6 @@ def test_get_client_kwargs():
     from airfs.storage.github._model_reference import DefaultBranch
     from airfs.storage.github._model_archive import Archive
     from airfs.storage.github._model_git import Tag, Tree, Commit, Branch
-    from airfs.storage.github._model_reference import Reference
     from airfs.storage.github._model_release import (
         Release,
         ReleaseArchive,
@@ -55,8 +54,6 @@ def test_get_client_kwargs():
         ("commits", Commit),
         ("tags", Tag),
         ("refs/tags", Tag),
-        ("tree", Reference),
-        ("blob", Reference),
     ):
         spec = get_client_kwargs(f"my_owner/my_repo/{path}")
         assert spec["object"] == Repo
@@ -95,7 +92,7 @@ def test_get_client_kwargs():
     assert spec["owner"] == "my_owner"
     assert spec["repo"] == "my_repo"
     assert spec["path"] == "my_dir/my_file"
-    assert "ref" not in spec
+    assert "ref" in spec
 
     # Release
     spec = get_client_kwargs("my_owner/my_repo/releases/tag")
@@ -223,10 +220,10 @@ def test_get_client_kwargs():
     assert "tag" not in spec
     assert "archive" not in spec
 
-    spec = get_client_kwargs("my_owner/my_repo/releases/latest/archive/latest.zip")
+    spec = get_client_kwargs("my_owner/my_repo/releases/latest/archive/source.zip")
     assert spec["object"] == ReleaseArchive
     assert spec["content"] == ReleaseArchive
     assert spec["owner"] == "my_owner"
     assert spec["repo"] == "my_repo"
     assert "tag" not in spec
-    assert spec["archive"] == "latest.zip"
+    assert spec["archive"] == "source.zip"

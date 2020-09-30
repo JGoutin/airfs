@@ -36,6 +36,10 @@ class GithubObject(Mapping):
     #: The specification "key" that represent this object
     KEY = None
 
+    #: If specified, is a Git reference. True to use KEY value, str value to use a
+    #: specific hardcoded value.
+    REF = None
+
     #: API path to get objects of this GitHub class
     GET = None
 
@@ -177,26 +181,27 @@ class GithubObject(Mapping):
                 headers[key] = parent_headers[key]
 
     @classmethod
-    def next_model(cls, spec):
+    def next_model(cls, client, spec):
         """
         Get next model in the structure.
 
         Args:
-            spec (dict): Object spec.
+            client (airfs.storage.github._api.ApiV3): Client.
+            spec (dict): Partial object spec.
 
         Returns:
-            _Model subclass instance: model.
+            _Model subclass: model.
         """
+        cls = cls._get_cls(client, spec)  # noqa
+
         if cls.STRUCT is None:
-            spec[cls.KEY] = "/".join(spec["keys"])
+            cls._set_key(spec, "/".join(spec["keys"]))
             spec["keys"].clear()
             spec["object"] = cls
             spec["content"] = cls
             return cls
 
-        elif cls.KEY is not None:
-            spec[cls.KEY] = spec["keys"].popleft()
-
+        cls._update_key(spec)
         try:
             key = spec["keys"].popleft()
         except IndexError:
@@ -206,27 +211,96 @@ class GithubObject(Mapping):
 
         model = cls.STRUCT
         while isinstance(model, dict):
-            try:
-                model = model[key]
-            except KeyError:
-                raise ObjectNotFoundError(path=spec["full_path"])
+            model = cls._get_dict_model(key, model, spec)
             try:
                 key = spec["keys"].popleft()
             except IndexError:
-                if hasattr(model, "KEY") and model.KEY is not None:
-                    spec["content"] = model
-                    model = cls
-                elif hasattr(model, "STRUCT"):
-                    spec["content"] = model.STRUCT
-                else:
-                    # Is a dict
-                    spec["content"] = model
-                spec["object"] = model
-                return model
+                return cls._get_latest_model(model, spec)
 
         spec["keys"].appendleft(key)
         spec["parent"] = cls
-        return model.next_model(spec)
+        return model.next_model(client, spec)
+
+    @classmethod
+    def _get_dict_model(cls, key, model, spec):
+        """
+        Get submodel of a dict.
+
+        Args:
+            key (str): Model key.
+            model (dict): Current model.
+            spec (dict): Partial object spec.
+
+        Returns:
+            _Model subclass or dict: Next model.
+        """
+        try:
+            return model[key]
+        except KeyError:
+            raise ObjectNotFoundError(path=spec["full_path"])
+
+    @classmethod
+    def _update_key(cls, spec):
+        """
+        Update key in spec with current model.
+
+        Args:
+            spec (dict): Partial object spec.
+        """
+        if cls.KEY is not None:
+            cls._set_key(spec, spec["keys"].popleft())
+        elif cls.REF is not None:
+            spec["ref"] = cls.REF
+
+    @classmethod
+    def _get_latest_model(cls, model, spec):
+        """
+        Get latest model when no more keys to evaluate.
+
+        Args:
+            model (_Model subclass): Current model
+            spec (dict): Partial object spec.
+
+        Returns:
+            _Model subclass: Latest model.
+        """
+        if hasattr(model, "KEY") and model.KEY is not None:
+            spec["content"] = model
+            model = cls
+        elif hasattr(model, "STRUCT"):
+            spec["content"] = model.STRUCT
+        else:
+            # Is a dict
+            spec["content"] = model
+        spec["object"] = model
+        return model
+
+    @classmethod
+    def _get_cls(cls, client, spec):
+        """
+        Get object class.
+
+        Args:
+            client (airfs.storage.github._api.ApiV3): Client.
+            spec (dict): Partial object spec.
+
+        Returns:
+            _Model subclass: model.
+        """
+        return cls
+
+    @classmethod
+    def _set_key(cls, spec, value):
+        """
+        Set "KEY" value, and eventually "ref" value.
+
+        Args:
+            spec (dict): Partial object spec.
+            value (str): Key value
+        """
+        spec[cls.KEY] = value
+        if cls.REF:
+            spec["ref"] = value
 
     @classmethod
     def list(cls, client, spec, first_level=False):
@@ -299,7 +373,7 @@ class GithubObject(Mapping):
         """
         if cls.GET is None:
             raise ObjectIsADirectoryError(spec["full_path"])
-        return cls.GET.format(spec)
+        return cls.GET.format(**spec)
 
     @classmethod
     def set_header(cls, response):
@@ -340,7 +414,13 @@ class GithubObject(Mapping):
         if cls.SYMLINK is None:
             raise ObjectNotASymlinkError(path=spec["full_path"])
 
-        return cls.SYMLINK.format(**ChainMap(spec, cls.head(client, spec)))
+        target = cls.SYMLINK.format(**ChainMap(spec, cls.head(client, spec)))
+        content = spec.get("content")
+        if isinstance(cls.STRUCT, dict) and not isinstance(content, dict):
+            for key, obj_cls in cls.STRUCT.items():
+                if content == obj_cls:
+                    return f"{target}/{key}"
+        return target
 
     @classmethod
     def _raise_if_not_dir(cls, isdir, spec, client=None):
