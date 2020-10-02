@@ -1,5 +1,4 @@
-[![Linux Build Status](https://travis-ci.org/JGoutin/airfs.svg?branch=master)](https://travis-ci.org/JGoutin/airfs)
-[![Windows Build status](https://ci.appveyor.com/api/projects/status/7rs8s16srj459o15?svg=true)](https://ci.appveyor.com/project/JGoutin-application/airfs)
+![Tests](https://github.com/JGoutin/airfs/workflows/tests/badge.svg)
 [![codecov](https://codecov.io/gh/JGoutin/airfs/branch/master/graph/badge.svg)](https://codecov.io/gh/JGoutin/airfs)
 [![Documentation Status](https://readthedocs.org/projects/airfs/badge/?version=latest)](https://airfs.readthedocs.io/en/latest/?badge=latest)
 [![PyPI](https://img.shields.io/pypi/v/airfs.svg)](https://pypi.org/project/airfs)

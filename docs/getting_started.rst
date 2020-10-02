@@ -4,8 +4,6 @@ Getting Started
 Installation
 ------------
 
-Supported Python versions: 3.6, 3.7, 3.8
-
 Installation is performed using PIP:
 
 .. code-block:: bash
