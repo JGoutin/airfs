@@ -13,5 +13,6 @@ from airfs._core.functions_os import (  # noqa
     rmdir,
     scandir,
     stat,
+    symlink,
     unlink,
 )

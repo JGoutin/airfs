@@ -5,13 +5,20 @@ from os.path import dirname
 from stat import S_ISLNK, S_ISDIR
 
 from airfs._core.storage_manager import get_instance
-from airfs._core.functions_core import equivalent_to, is_storage, raises_on_dir_fd
+from airfs._core.functions_core import (
+    equivalent_to,
+    is_storage,
+    raises_on_dir_fd,
+    format_and_is_storage,
+)
 from airfs._core.exceptions import (
     ObjectExistsError,
     ObjectNotFoundError,
     handle_os_exceptions,
     ObjectPermissionError,
     ObjectIsADirectoryError,
+    ObjectSameFileError,
+    ObjectNotImplementedError,
 )
 from airfs._core.io_base import memoizedmethod
 
@@ -468,3 +475,46 @@ def _scandir_generator(is_bytes, scandir_path, system):
                 header=header,
                 bytes_path=is_bytes,
             )
+
+
+def symlink(src, dst, target_is_directory=False, *, dir_fd=None):
+    """
+    Create a symbolic link pointing to src named dst.
+
+    Equivalent to "os.symlink".
+
+    .. versionadded:: 1.5.0
+
+    Args:
+        src (path-like object): Path or URL to the symbolic link.
+        dst (path-like object): Path or URL to the target.
+        target_is_directory (bool): On Windows, define if symlink represents either a
+            file or a directory.
+            Not supported on storage objects and non-Windows platforms.
+        dir_fd (int): directory descriptors;
+            see the os.symlink() description for how it is interpreted.
+            Not supported on storage objects.
+    """
+    src, src_is_storage = format_and_is_storage(src)
+    dst, dst_is_storage = format_and_is_storage(dst)
+
+    if not src_is_storage and not dst_is_storage:
+        return os.symlink(
+            src, dst, target_is_directory=target_is_directory, dir_fd=dir_fd
+        )
+
+    with handle_os_exceptions():
+        if not src_is_storage or not dst_is_storage:
+            ObjectNotImplementedError("Cross storage symlinks are not supported")
+
+        raises_on_dir_fd(dir_fd)
+        system_src = get_instance(src)
+        system_dst = get_instance(dst)
+
+        if system_src is not system_dst:
+            ObjectNotImplementedError("Cross storage symlinks are not supported")
+
+        elif system_src.relpath(src) == system_dst.relpath(dst):
+            raise ObjectSameFileError(path1=src, path2=dst)
+
+        return get_instance(src).symlink(src, dst)

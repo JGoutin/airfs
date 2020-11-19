@@ -14,7 +14,7 @@ def pytest_addoption(parser):
     parser.addoption(
         "--filter_id",
         action="store",
-        help='ALlow to run only a subset of tests specified with "--mount". '
+        help='Allow to run only a subset of tests specified with "--mount". '
         "Comma separated list of tests ID to run (ID: <storage>_<id_prefix>).",
     )
 

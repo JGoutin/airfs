@@ -900,6 +900,17 @@ class SystemBase(ABC, WorkerPoolBase):
         """
         raise ObjectUnsupportedOperation("symlink")
 
+    def symlink(self, target, path=None, client_kwargs=None):
+        """
+        Creates a symbolic link to target.
+
+        Args:
+            target (str): Target path or URL.
+            path (str): File path or URL.
+            client_kwargs (dict): Client arguments.
+        """
+        raise ObjectUnsupportedOperation("symlink")
+
     def resolve(self, path=None, client_kwargs=None, header=None, follow_symlinks=None):
         """
         Follow symlinks and return input arguments updated for target.

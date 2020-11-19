@@ -1,7 +1,7 @@
 Changelog
 =========
 
-1.5.0 (2020/10)
+1.5.0 (2020/11)
 ---------------
 
 New storage support:
@@ -11,7 +11,7 @@ New storage support:
 
 New standard library equivalent functions:
 
-* ``os.readlink``, ``os.path.lexists``, ``os.path.realpath``.
+* ``os.readlink``, ``os.symlink``, ``os.path.lexists``, ``os.path.realpath``.
 
 New features:
 

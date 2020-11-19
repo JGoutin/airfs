@@ -89,8 +89,10 @@ class ObjectIsADirectoryError(AirfsInternalException):
 class ObjectNotImplementedError(AirfsInternalException):
     """Reraised as "NotImplementedError" by handle_os_exceptions."""
 
-    def __init__(self, *, feature=None):
-        Exception.__init__(self, [f"'{feature}' unavailable on this storage"])
+    def __init__(self, *args, feature=None):
+        if feature:
+            args = [f"'{feature}' unavailable on this storage"]
+        Exception.__init__(self, *args)
 
 
 class ObjectSameFileError(AirfsInternalException):

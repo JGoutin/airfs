@@ -11,6 +11,7 @@ from airfs._core.exceptions import (
     ObjectNotFoundError as _ObjectNotFoundError,
     ObjectPermissionError as _ObjectPermissionError,
     ObjectNotASymlinkError as _ObjectNotASymlinkError,
+    ObjectNotImplementedError as _ObjectNotImplementedError,
 )
 from airfs.io import (
     ObjectRawIOBase as _ObjectRawIOBase,
@@ -18,7 +19,11 @@ from airfs.io import (
     SystemBase as _SystemBase,
 )
 
-_ERROR_CODES = {403: _ObjectPermissionError, 404: _ObjectNotFoundError}
+_ERROR_CODES = {
+    403: _ObjectPermissionError,
+    404: _ObjectNotFoundError,
+    409: _ObjectPermissionError,
+}
 
 
 @_contextmanager
@@ -316,9 +321,36 @@ class _OSSSystem(_SystemBase):
             raise _ObjectNotASymlinkError(path=path)
 
         with _handle_oss_error():
-            return (
+            return path.rsplit(key, 1)[0] + (
                 self._get_bucket(client_kwargs).get_symlink(symlink_key=key).target_key
             )
+
+    def symlink(self, target, path=None, client_kwargs=None):
+        """
+        Creates a symbolic link to target.
+
+        Args:
+            target (str): Target path or URL.
+            path (str): File path or URL.
+            client_kwargs (dict): Client arguments.
+        """
+        if client_kwargs is None:
+            client_kwargs = self.get_client_kwargs(path)
+        target_client_kwargs = self.get_client_kwargs(target)
+
+        if client_kwargs["bucket_name"] != target_client_kwargs["bucket_name"]:
+            raise _ObjectNotImplementedError("Cross bucket symlinks are not supported")
+
+        try:
+            symlink_key = client_kwargs["key"]
+            target_key = target_client_kwargs["key"]
+        except KeyError:
+            raise _ObjectNotImplementedError(
+                "Symlinks to or from bucket root are not supported"
+            )
+
+        with _handle_oss_error():
+            return self._get_bucket(client_kwargs).put_symlink(target_key, symlink_key)
 
 
 class OSSRawIO(_ObjectRawIOBase):

@@ -775,14 +775,18 @@ class StorageTester:
 
         # Test: Symlink
         if self._is_supported("symlink") and self._storage_mock:
+            print(0)
             link_path = self.base_dir_path + "symlink"
             self._to_clean(link_path)
 
-            # TODO: Replace by real symlink creation and remove the
-            #       "and self._storage_mock" condition
-            self._storage_mock.put_symlink(
-                self.locator, link_path.split("/", 1)[1], file_path
-            )
+            try:
+                system.symlink(file_path, link_path)
+            except ObjectUnsupportedOperation:
+                # Some systems only support symlinks for reading
+                # Put a symlink directly on the mock in this case
+                self._storage_mock.put_symlink(
+                    self.locator, link_path.split("/", 1)[1], file_path
+                )
 
             assert system.islink(link_path)
             assert system.read_link(link_path) == file_path

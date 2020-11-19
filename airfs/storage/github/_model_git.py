@@ -1,8 +1,6 @@
 """Git objects"""
 from os.path import commonpath, dirname
 
-from requests import request
-
 from airfs._core.exceptions import ObjectNotASymlinkError, ObjectNotFoundError
 from airfs.storage.github._model_base import GithubObject
 from airfs.storage.http import _handle_http_errors
@@ -113,7 +111,7 @@ class Tree(GithubObject):
         """
         if cls.head(client, spec)["mode"] != "120000":
             raise ObjectNotASymlinkError(path=spec["full_path"])
-        response = request("GET", cls.GET.format(**spec))
+        response = client.session.request("GET", cls.GET.format(**spec))
         _handle_http_errors(response)
         return response.text
 

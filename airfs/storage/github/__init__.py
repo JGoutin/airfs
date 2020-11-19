@@ -96,7 +96,7 @@ class _GithubSystem(_SystemBase):
         spec = dict(keys=keys, full_path=path, object=_Root)
         model = _Root
         while keys:
-            model = model.next_model(self._get_client(), spec)
+            model = model.next_model(self.client, spec)
         del spec["keys"]
         return spec
 
@@ -346,7 +346,7 @@ class _GithubSystem(_SystemBase):
         """
         if client_kwargs is None:
             client_kwargs = self.get_client_kwargs(path)
-        return client_kwargs["object"].read_link(self._get_client(), client_kwargs)
+        return client_kwargs["object"].read_link(self.client, client_kwargs)
 
 
 class GithubRawIO(_HTTPRawIO):
@@ -370,7 +370,7 @@ class GithubRawIO(_HTTPRawIO):
             str: Name
         """
         return self._client_kwargs["object"].get_url(
-            self._system._get_client(), self._client_kwargs
+            self._system.client, self._client_kwargs
         )
 
     @property

@@ -31,6 +31,7 @@ from airfs._core.functions_os import (  # noqa: F401
     rmdir,
     scandir,
     stat,
+    symlink,
     unlink,
 )
 from airfs._core.functions_os_path import (  # noqa: F401
@@ -73,6 +74,7 @@ __all__ = list(
             "rmdir",
             "scandir",
             "stat",
+            "symlink",
             "unlink",
             # Standard library "os.path"
             "exists",

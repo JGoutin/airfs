@@ -112,7 +112,8 @@ def test_client_rate_limit():
     RateLimit.remaining = 0
     client = Client(wait_retry_delay=0.001)
     assert not client._RATE_LIMIT_WARNED
-    response = client.request("/path")
+    with pytest.warns(_client.GithubRateLimitWarning):
+        response = client.request("/path")
     assert client._RATE_LIMIT_WARNED
     assert response.status_code == 200
 

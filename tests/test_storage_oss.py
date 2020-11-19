@@ -39,6 +39,7 @@ def test_mocked_storage():
     """Tests airfs.oss with a mock"""
     from io import BytesIO
 
+    from airfs._core.exceptions import ObjectNotImplementedError
     from airfs.storage.oss import OSSRawIO, _OSSSystem, OSSBufferedIO
 
     from oss2.exceptions import OssError  # type: ignore
@@ -255,13 +256,13 @@ def test_mocked_storage():
                 unsecure=True, **system_parameters
             )._endpoint == endpoint.replace("https", "http")
 
-            # Test: Symlink
-            # TODO: Remove and replace per proper function once implemented
-            storage_mock.put_object(
-                tester.locator, "symlink", b"", headers={"type": "Symlink"}
-            )
-            assert system.islink(tester.locator + "/symlink")
-            assert system.islink(header={"type": "Symlink"})
+            # Test: Symlink limitations
+            symlink_path = tester.locator + "/symlink"
+            with pytest.raises(ObjectNotImplementedError):
+                system.symlink(tester.locator + "another_bucket/symlink", symlink_path)
+
+            with pytest.raises(ObjectNotImplementedError):
+                system.symlink(tester.locator, symlink_path)
 
     # Restore mocked functions
     finally:

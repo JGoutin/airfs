@@ -1,4 +1,9 @@
 """Test airfs.storage.github"""
+import json
+import pickle
+from os.path import realpath, join
+
+import requests
 import pytest
 
 UNSUPPORTED_OPERATIONS = (
@@ -10,16 +15,50 @@ UNSUPPORTED_OPERATIONS = (
     "list_locator",
 )
 
+#: Set to True and run tests to update mock test responses with real test responses
+UPDATE_MOCK = False
+
+#: Directory where are saved cached responses from GitHub API to use with mock
+MOCK_DIR = realpath(join(__file__, "../resources/github_mock_responses"))
+
+
+class MockResponse:
+    """Mocked request.Response"""
+
+    def __init__(self, url, headers, status_code, content, reason):
+        self.headers = headers
+        self.status_code = status_code
+        self.content = content
+        self.url = url
+        self.reason = reason
+
+    def json(self):
+        """Mocked Json result"""
+        return json.loads(self.content)
+
+    @property
+    def text(self):
+        """Mocked Text result"""
+        return self.content.decode()
+
+    def raise_for_status(self):
+        """Mocked exception"""
+        if self.status_code >= 400:
+            raise requests.HTTPError(
+                f"{self.status_code} Error: {self.reason} for: {self.url}",
+                response=self,
+            )
+
 
 def test_mocked_storage():
     """Tests airfs.github with a mock"""
-    pytest.xfail(
+    pytest.skip(
         "Unable to test using the generic test scenario due to "
         "fixed virtual filesystem tree."
     )
 
 
-def test_github_storage():
+def test_github_storage(tmpdir):
     """Tests airfs.github specificities"""
     from airfs._core.storage_manager import _DEFAULTS
 
@@ -28,54 +67,92 @@ def test_github_storage():
     except (KeyError, AssertionError):
         pytest.skip("GitHub test with real API require a configured API token.")
 
-    github_storage_scenario()
+    if UPDATE_MOCK:
+        # Save all requests response to use them with mock
+        from os import remove, listdir
+        from airfs._core import cache
+        from airfs._core.storage_manager import get_instance
+
+        for file in listdir(MOCK_DIR):
+            remove(join(MOCK_DIR, file))
+
+        system = get_instance("https://github.com")
+        request = system.client._request
+
+        def request_save(method, url, *args, params=None, **kwargs):
+            """Performs requests and save result"""
+            resp = request(method, url, *args, params=params, **kwargs)
+            resp_dict = dict(
+                url=resp.url,
+                headers=resp.headers,
+                status_code=resp.status_code,
+                content=resp.content,
+                reason=resp.reason,
+            )
+            with open(
+                join(MOCK_DIR, cache._hash_name(url + json.dumps(params or dict()))),
+                "wb",
+            ) as resp_cache:
+                pickle.dump(resp_dict, resp_cache)
+            return MockResponse(**resp_dict)
+
+        cache_dir = cache.CACHE_DIR
+        cache.CACHE_DIR = str(tmpdir.ensure_dir("cache"))
+
+        system.client._request = request_save
+        system.client.session.request = request_save
+
+    try:
+        github_storage_scenario()
+
+    finally:
+        if UPDATE_MOCK:
+            system.client.session.request = request
+            system.client._request = request
+            cache.CACHE_DIR = cache_dir
 
 
-def test_github_mocked_storage():
+def test_github_mocked_storage(tmpdir):
     """Tests airfs.github specificities with a mock"""
-    # TODO: Save responses from the real test to use them as responses for the mocked
-    #       test (Simulate cached responses)
-    pytest.skip()
+    if UPDATE_MOCK:
+        pytest.skip("Mock is updating...")
 
     from collections import OrderedDict
-    from datetime import datetime
-    from requests import HTTPError
+
     import airfs._core.storage_manager as storage_manager
+    from airfs._core import cache
 
-    # Mock API responses
-
-    class Response:
-        """Mocked Response"""
-
-        def __init__(self, url, **_):
-            self.headers = dict(Date=datetime.now().isoformat())
-            self.status_code = 200
-            self.content = None
-            self.url = url
-
-        def json(self):
-            """Mocked Json result"""
-            return self.content
-
-        def raise_for_status(self):
-            """Mocked exception"""
-            if self.status_code >= 400:
-                raise HTTPError(
-                    f"Error {self.status_code} on {self.url}", response=self
-                )
-
-    def request(_, url, **kwargs):
-        """Mocked requests.request"""
-        return Response(url, **kwargs)
+    cache_dir = cache.CACHE_DIR
+    cache.CACHE_DIR = str(tmpdir.ensure_dir("cache"))
 
     mounted = storage_manager.MOUNTED
     storage_manager.MOUNTED = OrderedDict()
+
+    def request_load(_, url, *__, params=None, **___):
+        """Loads request result"""
+        try:
+            with open(
+                join(MOCK_DIR, cache._hash_name(url + json.dumps(params or dict()))),
+                "rb",
+            ) as resp_cache:
+                return MockResponse(**pickle.load(resp_cache))
+        except FileNotFoundError:
+            pytest.fail("Please, update mock responses (see UPDATE_MOCK)")
+
     try:
+        # Loads requests responses from previously cached responses
         storage = storage_manager.mount(storage="github", name="github_test")
-        storage["github"]["system_cached"].client._request = request
+        client = storage["github"]["system_cached"].client
+
+        client._request = request_load
+        client.session.request = request_load
+
+        # Tests
         github_storage_scenario()
+
     finally:
         storage_manager.MOUNTED = mounted
+        cache.CACHE_DIR = cache_dir
 
 
 def github_storage_scenario():
