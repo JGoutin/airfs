@@ -1,5 +1,5 @@
 """Git objects"""
-from os.path import commonpath, dirname
+from posixpath import commonpath, dirname
 
 from airfs._core.exceptions import ObjectNotASymlinkError, ObjectNotFoundError
 from airfs.storage.github._model_base import GithubObject
