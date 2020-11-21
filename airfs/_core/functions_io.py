@@ -2,9 +2,8 @@
 from contextlib import contextmanager
 from io import open as io_open, TextIOWrapper
 
-from os import fsdecode
 from airfs._core.storage_manager import get_instance
-from airfs._core.functions_core import is_storage
+from airfs._core.functions_core import format_and_is_storage
 
 
 @contextmanager
@@ -83,12 +82,10 @@ def cos_open(
             yield wrapped
         return
 
-    if not isinstance(file, int):
-        file = fsdecode(file).replace("\\", "/")
-
-    if is_storage(file, storage):
+    file, file_is_storage = format_and_is_storage(file, storage=storage)
+    if file_is_storage:
         if not closefd:
-            raise ValueError("Cannot use closefd=False with a storage")
+            raise NotImplementedError("Cannot use closefd=False with a storage")
         with get_instance(
             name=file,
             cls="raw" if buffering == 0 else "buffered",

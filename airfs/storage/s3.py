@@ -9,6 +9,7 @@ from botocore.exceptions import ClientError as _ClientError  # type: ignore
 from airfs._core.exceptions import (
     ObjectNotFoundError as _ObjectNotFoundError,
     ObjectPermissionError as _ObjectPermissionError,
+    ObjectNotImplementedError as _ObjectNotImplementedError,
 )
 from airfs.io import (
     ObjectRawIOBase as _ObjectRawIOBase,
@@ -344,7 +345,7 @@ class _S3System(_SystemBase):
             str: Shareable URL.
         """
         if "Key" not in client_kwargs:
-            raise _UnsupportedOperation(
+            raise _ObjectNotImplementedError(
                 "Shared URLs to buckets are not supported on S3"
             )
         return self.client.generate_presigned_url(

@@ -596,6 +596,8 @@ class StorageTester:
         from airfs._core.exceptions import (
             ObjectNotFoundError,
             ObjectUnsupportedOperation,
+            ObjectNotImplementedError,
+            ObjectNotASymlinkError,
         )
 
         system = self._system
@@ -791,6 +793,9 @@ class StorageTester:
             assert system.islink(link_path)
             assert system.read_link(link_path) == file_path
 
+            with _pytest.raises(ObjectNotASymlinkError):
+                system.read_link(self.locator)
+
         # Test: Shared file
         if self._is_supported("shareable_url"):
             shareable_url = system.shareable_url(file_path, 60)
@@ -801,9 +806,26 @@ class StorageTester:
                 response = _requests.get(shareable_url)
                 response.raise_for_status()
                 assert response.content == content
+
+            # Test share locator (If supported)
+            try:
+                assert system.shareable_url(self.locator, 60).startswith(
+                    "http"
+                ), "Shareable locator URL"
+            except ObjectNotImplementedError:
+                pass
+
+            # Test share directory (If supported)
+            try:
+                assert system.shareable_url(dir_path0, 60).startswith(
+                    "http"
+                ), "Shareable directory URL"
+            except ObjectNotImplementedError:
+                pass
+
         else:
             # Test: Unsupported
-            with _pytest.raises(ObjectUnsupportedOperation):
+            with _pytest.raises(ObjectNotImplementedError):
                 system.shareable_url(file_path, 60)
 
         # Test: Remove file

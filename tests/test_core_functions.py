@@ -9,7 +9,7 @@ import pytest
 
 def test_equivalent_to():
     """Tests airfs._core.functions_core.equivalent_to"""
-    from airfs._core.functions_core import equivalent_to
+    from airfs._core.functions_core import equivalent_to, raises_on_dir_fd
     from airfs._core.exceptions import ObjectNotFoundError
     from os import fsdecode
     from sys import version_info
@@ -26,14 +26,16 @@ def test_equivalent_to():
 
     def std_function(path, *args, **kwargs):
         """Checks arguments and returns fake result"""
-        assert fsdecode(path) == local_path, "std_function, path"
+        if not isinstance(path, int):
+            assert fsdecode(path) == local_path, "std_function, path"
         assert args == dummy_args, "std_function, args"
         assert kwargs == dummy_kwargs, "std_function, kwargs"
         return std
 
     @equivalent_to(std_function)
-    def cos_function(path, *args, **kwargs):
+    def cos_function(path, *args, dir_fd=None, **kwargs):
         """Checks arguments and returns fake result"""
+        raises_on_dir_fd(dir_fd)
         assert path == storage_path, "cos_function, path"
         assert args == dummy_args, "cos_function, args"
         assert kwargs == dummy_kwargs, "cos_function, kwargs"
@@ -46,6 +48,7 @@ def test_equivalent_to():
 
     # Tests fall back to standard function
     assert cos_function(local_path, *dummy_args, **dummy_kwargs) == std
+    assert cos_function(1, *dummy_args, **dummy_kwargs) == std
 
     # Tests path-like object compatibility
     if version_info[0] == 3 and version_info[1] >= 6:
@@ -54,6 +57,10 @@ def test_equivalent_to():
         assert (
             cos_function(pathlib.Path(local_path), *dummy_args, **dummy_kwargs) == std
         )
+
+    # Tests error on dir_fd
+    with pytest.raises(NotImplementedError):
+        cos_function(storage_path, *dummy_args, dir_fd=1, **dummy_kwargs)
 
     # Test "keep_path_type"
     assert cos_function(storage_path.encode(), *dummy_args, **dummy_kwargs) == cos
@@ -523,6 +530,11 @@ def test_cos_open(tmpdir):
         with cos_open(str(local_file), "rb") as file:
             assert file.read() == content
 
+        # open: closefd argument
+        with pytest.raises(NotImplementedError):
+            with cos_open(cos_path, "rb", closefd=False) as file:
+                pass
+
         # copy: Local file to local file
         local_dst = tmpdir.join("file_dst.txt")
         assert not local_dst.check()
@@ -637,3 +649,6 @@ def test_is_storage():
     # Local paths
     assert not is_storage("path")
     assert not is_storage("file://path")
+
+    # Local file descriptor
+    assert not is_storage(1)

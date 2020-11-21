@@ -1,5 +1,6 @@
 """Base utilities to define storage functions"""
 
+from contextlib import contextmanager
 from functools import wraps
 from os import fsdecode, fsencode
 
@@ -27,23 +28,28 @@ def is_storage(file, storage=None):
     return False
 
 
-def format_and_is_storage(path):
+def format_and_is_storage(path, file_obj_as_storage=False, storage=None):
     """
     Checks if path is storage and format it.
 
     If path is an opened file-like object, returns is storage as True.
 
     Args:
-        path (path-like object or file-like object):
+        path (path-like object or file-like object or int):
+            Path, opened file or file descriptor.
+        file_obj_as_storage (bool): If True, count file-like objects as storages.
+            Useful if standard functions are not intended to support them.
+        storage (str): Storage name.
 
     Returns:
-        tuple: str or file-like object (Updated path),
+        tuple: str or file-like object or int (Updated path),
             bool (True if is storage).
     """
-    if not hasattr(path, "read"):
-        path = fsdecode(path).replace("\\", "/")
-        return path, is_storage(path)
-    return path, True
+    readable = hasattr(path, "read")
+    if isinstance(path, int) or readable:
+        return path, readable and file_obj_as_storage
+    path = fsdecode(path).replace("\\", "/")
+    return path, is_storage(path, storage)
 
 
 def equivalent_to(std_function, keep_path_type=False):
@@ -145,3 +151,14 @@ class SeatsCounter:
             bool: True if no more seat available.
         """
         return self._seats == 0
+
+
+@contextmanager
+def ignore_exception(exception):
+    """
+    Convenient shorter method to ignore exception.
+    """
+    try:
+        yield
+    except exception:
+        return

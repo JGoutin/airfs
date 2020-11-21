@@ -344,11 +344,15 @@ def symlink_scenario():
     """
     Tests symbolic links
     """
+    from io import UnsupportedOperation
     import airfs
 
     # Git tree
     assert airfs.islink("https://github.com/jgoutin/airfs/HEAD/tests/resources/symlink")
     assert airfs.exists("https://github.com/jgoutin/airfs/HEAD/tests/resources/symlink")
+    assert airfs.lexists(
+        "https://github.com/jgoutin/airfs/HEAD/tests/resources/symlink"
+    )
     assert not airfs.isdir(
         "https://github.com/jgoutin/airfs/HEAD/tests/resources/symlink"
     )
@@ -371,6 +375,11 @@ def symlink_scenario():
         )
         == "https://github.com/jgoutin/airfs/HEAD/airfs/_core/exceptions.py"
     )
+    with pytest.raises(UnsupportedOperation):
+        airfs.symlink(
+            "https://github.com/jgoutin/airfs/HEAD/airfs/_core/exceptions.py",
+            "https://github.com/jgoutin/airfs/HEAD/tests/resources/symlink_2",
+        )
 
     with pytest.raises(OSError):
         airfs.readlink("https://github.com/jgoutin/airfs/HEAD/LICENSE")

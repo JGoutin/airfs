@@ -13,11 +13,11 @@ __all__ = [
     "Pattern",
 ]
 
-if _py[0] < 3 or (_py[0] == 3 and _py[1] < 6):
+if _py[0] < 3 or (_py[0] == 3 and _py[1] < 6):  # pragma: no cover
     raise ImportError("airfs require Python 3.6 or more.")
 
 
-def _deprecation_warning():
+def _deprecation_warning():  # pragma: no cover
     """
     Warn user about deprecation of this Python version in next airfs version.
     """

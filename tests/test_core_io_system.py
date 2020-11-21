@@ -122,6 +122,11 @@ def test_system_base():
     assert system.relpath("scheme://path") == "path"
     assert system.relpath("path") == "path"
 
+    # Tests "is_abs"
+    assert system.is_abs("root://path")
+    assert system.is_abs("root2://path")
+    assert not system.is_abs("path")
+
     # Tests locator
     assert system.is_locator("scheme://locator")
     assert not system.is_locator("scheme://locator/path")

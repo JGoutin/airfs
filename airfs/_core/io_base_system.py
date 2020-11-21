@@ -998,4 +998,4 @@ class SystemBase(ABC, WorkerPoolBase):
         Returns:
             str: Shareable URL.
         """
-        raise ObjectUnsupportedOperation("shareable_url")
+        raise ObjectNotImplementedError("shareable_url")

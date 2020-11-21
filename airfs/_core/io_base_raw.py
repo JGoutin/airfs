@@ -87,7 +87,7 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
 
                 else:
                     raise PermissionError(
-                        "Insufficient permission to check if file already " "exists."
+                        "Insufficient permission to check if file already exists."
                     )
 
             elif "x" in mode and self._exists() == 1:
@@ -95,7 +95,7 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
 
             elif "x" in mode and self._exists() == -1:
                 raise PermissionError(
-                    "Insufficient permission to check if file already " "exists."
+                    "Insufficient permission to check if file already exists."
                 )
 
             else:

@@ -1,6 +1,5 @@
 """OpenStack Swift"""
 from contextlib import contextmanager as _contextmanager
-from io import UnsupportedOperation as _UnsupportedOperation
 from json import dumps as _dumps
 
 import swiftclient as _swift  # type: ignore
@@ -12,6 +11,7 @@ from airfs._core.exceptions import (
     ObjectNotFoundError as _ObjectNotFoundError,
     ObjectPermissionError as _ObjectPermissionError,
     ConfigurationException as _ConfigurationException,
+    ObjectNotImplementedError as _ObjectNotImplementedError,
 )
 from airfs.io import (
     ObjectRawIOBase as _ObjectRawIOBase,
@@ -224,7 +224,7 @@ class _SwiftSystem(_SystemBase):
             str: Shareable URL.
         """
         if "obj" not in client_kwargs:
-            raise _UnsupportedOperation(
+            raise _ObjectNotImplementedError(
                 "Shared URLs to containers are not supported on Openstack Swift"
             )
 

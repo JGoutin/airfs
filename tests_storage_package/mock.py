@@ -172,10 +172,13 @@ class MockSystem(_SystemBase):
         Returns:
             str: Shareable URL.
         """
-        return (
-            f"https://{client_kwargs['locator']}/"
-            f"{client_kwargs['path']}#token=123456"
-        )
+        try:
+            return (
+                f"https://{client_kwargs['locator']}/"
+                f"{client_kwargs['path']}#token=123456"
+            )
+        except KeyError:
+            raise _exc.ObjectNotImplementedError()
 
     def islink(self, path=None, client_kwargs=None, header=None):
         """
@@ -207,6 +210,8 @@ class MockSystem(_SystemBase):
         """
         if client_kwargs is None:
             client_kwargs = self.get_client_kwargs(path)
+        if "path" not in client_kwargs:
+            raise _exc.ObjectNotASymlinkError(path=path)
         return self.client.head_object(**client_kwargs)["_target"]
 
 

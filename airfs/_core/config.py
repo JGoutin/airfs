@@ -14,7 +14,7 @@ def _init_paths():
     """
     if os.name == "nt":
         config_dir = join(expandvars("%APPDATA%"), "airfs")
-        cache_dir = join(expandvars("%LOCALAPPDATA%"), "airfs/cache")
+        cache_dir = join(expandvars("%LOCALAPPDATA%"), r"airfs\cache")
 
     elif os.getuid() != 0:
         config_dir = join(getenv("XDG_CONFIG_HOME", expanduser("~/.config")), "airfs")

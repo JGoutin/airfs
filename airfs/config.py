@@ -22,7 +22,7 @@ def get_mount(storage, config_name=None):
         storage = f"{storage}.{config_name}"
     try:
         return _read_config()[storage]
-    except KeyError:
+    except (KeyError, TypeError):
         return None
 
 
@@ -53,14 +53,14 @@ def set_mount(
     if config_name:
         storage = f"{storage}.{config_name}"
 
-    config = _read_config()
+    config = _read_config() or dict()
     config[storage] = {
         key: value
         for key, value in dict(
             unsecure=unsecure,
             extra_root=extra_root,
             storage_parameters=storage_parameters,
-        )
+        ).items()
         if value
     }
 

@@ -28,7 +28,7 @@ def exists(path):
 @equivalent_to(os.path.lexists)
 def lexists(path):
     """
-    Return True if path refers to an existing path.
+    Return True if path refers to an existing path. Does not follow symlinks.
 
     Equivalent to "os.path.lexists".
 

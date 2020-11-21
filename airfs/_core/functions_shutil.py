@@ -9,7 +9,7 @@ from shutil import (
 from airfs._core.compat import COPY_BUFSIZE
 from airfs._core.functions_io import cos_open
 from airfs._core.functions_os_path import isdir
-from airfs._core.functions_core import format_and_is_storage
+from airfs._core.functions_core import format_and_is_storage, ignore_exception
 from airfs._core.exceptions import (
     AirfsInternalException,
     handle_os_exceptions,
@@ -96,26 +96,23 @@ def copy(src, dst, *, follow_symlinks=True):
         follow_symlinks (bool): If True, follow symlinks.
 
     Raises:
-         IOError: Destination directory not found.
+         FileNotFoundError: Destination directory not found.
     """
-    src, src_is_storage = format_and_is_storage(src)
-    dst, dst_is_storage = format_and_is_storage(dst)
+    src, src_is_storage = format_and_is_storage(src, True)
+    dst, dst_is_storage = format_and_is_storage(dst, True)
 
     if not src_is_storage and not dst_is_storage:
         return shutil_copy(src, dst, follow_symlinks=follow_symlinks)
 
     if not hasattr(dst, "read"):
-        try:
+        with ignore_exception(PermissionError):
+            # Tries to write if not enough permission to check if destination exists
+
             if isdir(dst):
                 dst = join(dst, basename(src))
 
             elif not isdir(dirname(dst)):
                 raise FileNotFoundError(f"No such file or directory: '{dst}'")
-
-        except PermissionError:
-            # Unable to check target directory due to missing read access, but do not
-            # raise to allow to write if possible
-            pass
 
     _copy(src, dst, src_is_storage, dst_is_storage, follow_symlinks)
 
@@ -136,21 +133,18 @@ def copyfile(src, dst, *, follow_symlinks=True):
         follow_symlinks (bool): Follow symlinks.
 
     Raises:
-         IOError: Destination directory not found.
+         FileNotFoundError: Destination directory not found.
     """
-    src, src_is_storage = format_and_is_storage(src)
-    dst, dst_is_storage = format_and_is_storage(dst)
+    src, src_is_storage = format_and_is_storage(src, True)
+    dst, dst_is_storage = format_and_is_storage(dst, True)
 
     if not src_is_storage and not dst_is_storage:
         return shutil_copyfile(src, dst, follow_symlinks=follow_symlinks)
 
-    try:
+    with ignore_exception(PermissionError):
+        # Tries to write if not enough permission to check if destination exists
+
         if not hasattr(dst, "read") and not isdir(dirname(dst)):
             raise FileNotFoundError(f"No such file or directory: '{dst}'")
-
-    except PermissionError:
-        # Unable to check target directory due to missing read access, but do not raise
-        # to allow to write if possible
-        pass
 
     _copy(src, dst, src_is_storage, dst_is_storage, follow_symlinks)

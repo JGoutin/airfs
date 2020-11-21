@@ -1,5 +1,4 @@
 """Microsoft Azure Files Storage"""
-from io import UnsupportedOperation as _UnsupportedOperation
 import re as _re
 
 from azure.storage.file import (  # type: ignore
@@ -9,6 +8,9 @@ from azure.storage.file import (  # type: ignore
 from azure.storage.file.models import Directory as _Directory  # type: ignore
 
 from airfs._core.io_base import memoizedmethod as _memoizedmethod
+from airfs._core.exceptions import (
+    ObjectNotImplementedError as _ObjectNotImplementedError,
+)
 from airfs.storage.azure import (
     _handle_azure_exception,
     _AzureBaseSystem,
@@ -219,7 +221,7 @@ class _AzureFileSystem(_AzureBaseSystem, _SystemBase):
             str: Shareable URL.
         """
         if "file_name" not in client_kwargs:
-            raise _UnsupportedOperation(
+            raise _ObjectNotImplementedError(
                 "Shared URLs to shares or directories are not supported on "
                 "Azure Files Storage"
             )

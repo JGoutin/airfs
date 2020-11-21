@@ -143,3 +143,47 @@ def test_mount():
     # Restore mocked functions
     finally:
         airfs.storage.http._Session = requests_session
+
+
+def test_find_storage():
+    """Test storage name inferance from url"""
+    from re import compile
+    from uuid import uuid4
+    from airfs._core.storage_manager import _find_storage as find_storage
+    import airfs._core.storage_manager as storage_manager
+
+    storage_manager_automount = storage_manager.AUTOMOUNT
+    domain = uuid4()
+    storage_manager.AUTOMOUNT = dict(to_mount=(compile(r"https?://%s\.com" % domain),))
+
+    try:
+        # Storage as scheme
+        assert find_storage("storage://dir/file") == "storage"
+
+        # Not yet mounted known storage root starting by the HTTP scheme
+        assert find_storage(f"http://{domain}.com/dir/file") == "to_mount"
+        assert find_storage(f"https://{domain}.com/dir/file") == "to_mount"
+
+        # Fall back on HTTP on any unknown URL storage
+        assert find_storage(f"http://{uuid4()}.com/dir/file") == "http"
+        assert find_storage(f"https://{uuid4()}.com/dir/file") == "http"
+
+    finally:
+        storage_manager.AUTOMOUNT = storage_manager_automount
+
+
+def test_import_storage_errors():
+    """Test errors on storage import"""
+    from airfs import MountException
+    from airfs._core.storage_manager import _import_storage_module
+    from tests_storage_package import init_test_storage
+
+    init_test_storage()
+
+    # Not existing storage
+    with pytest.raises(MountException):
+        _import_storage_module("not_exists")
+
+    # Missing dependency
+    with pytest.raises(ImportError):
+        _import_storage_module("storage_with_error")

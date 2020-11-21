@@ -77,7 +77,7 @@ def _user_mount():
         for storage, system_parameters in read_config().items():
             if "." in storage:
                 # User specific storage: mounted immediately
-                mount(storage.split(".", 0)[0], **system_parameters)
+                mount(storage.split(".", 1)[0], **system_parameters)
 
             else:
                 # Default storage: Mounted lazily
