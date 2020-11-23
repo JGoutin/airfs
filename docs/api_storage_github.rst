@@ -28,13 +28,70 @@ does not require to select a scope.
     )
 
     # Call of airfs on an GitHub object.
-    with airfs.open('github://my_organization/my_repo/my_object', 'rt') as file:
+    with airfs.open('github://my_organization/my_repo/HEAD/my_object', 'rt') as file:
         text = file.read()
 
 Limitation
 ~~~~~~~~~~
 
 Only one GitHub configuration can be mounted simultaneously.
+
+Usage
+-----
+
+With the GitHub storage, it is possible to navigate in any repository like any local
+git repository. It is possible to navigate in any branch, tag or commit but also in the
+current branch, source codes archives, releases and releases assets.
+
+The storage supports common GitHub URLs, and some specific shortcuts.
+
+For instance with the current project GitHub repository:
+
+.. code-block:: python
+
+    # Listing the main branch files
+    airfs.listdir("https://github.com/JGoutin/airfs/HEAD")
+
+    # Listing a specific branch files
+    airfs.listdir("https://github.com/JGoutin/airfs/branches/master")
+
+    # Listing a specific tag files
+    airfs.listdir("https://github.com/JGoutin/airfs/tags/1.4.0")
+
+    # Listing download published with the latest
+    airfs.listdir("https://github.com/JGoutin/airfs/releases/latest/assets")
+
+    # Listing download published with a specific release
+    airfs.listdir("https://github.com/JGoutin/airfs/releases/tag/1.4.0/assets")
+
+    # Listing all source code archives for tags and branches
+    airfs.listdir("https://github.com/JGoutin/airfs/archive")
+
+    # Getting the size of the latest release source code archive
+    airfs.getsize(
+        "https://github.com/JGoutin/airfs/releases/latest/archive/source_code.tar.gz")
+
+Many references are handled like symlinks to more precises reference. This feature help
+in the repositories navigation, but can also be used to get extra information:
+
+.. code-block:: python
+
+    from os.path import basename
+
+    # Getting the name of the current branch
+    basename(airfs.readlink("https://github.com/JGoutin/airfs/HEAD"))
+
+    # Getting the commit of the a specific branch
+    basename(airfs.readlink("https://github.com/JGoutin/airfs/branches/master"))
+
+    # Getting the commit of the a specific tag
+    basename(airfs.readlink("https://github.com/JGoutin/airfs/tags/1.4.0"))
+
+    # Getting the tag of the latest release
+    basename(airfs.readlink("https://github.com/JGoutin/airfs/releases/latest"))
+
+This is just a subset of what is possible, read next sections for a detailed description
+of the files and directories structure.
 
 GitHub API Rate limit
 ---------------------

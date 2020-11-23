@@ -164,12 +164,6 @@ class Tree(GithubObject):
             params=dict(recursive=cwd or not first_level),
         )[0]
 
-        truncated = response["truncated"]
-        if truncated:
-            seen = set()
-            add_seen = seen.add
-            last_tree = ""
-
         for headers in response["tree"]:
             abspath = headers["path"]
 
@@ -181,125 +175,17 @@ class Tree(GithubObject):
             else:
                 relpath = abspath
 
-            isdir = headers["type"] == "tree"
-
             if not relpath:
-                cls._raise_if_not_dir(isdir, spec)
+                cls._raise_if_not_dir(headers["type"] == "tree", spec)
 
                 # Do not yield current working directory itself
                 cwd_seen = True
                 continue
 
-            if truncated:
-                add_seen(abspath)  # noqa
-                if isdir:
-                    last_tree = abspath
-
             yield relpath, abspath, spec, headers, False
-
-        if truncated:
-            last_tree = last_tree.split("/")  # noqa
-            partial_trees = set(
-                "/".join(last_tree[:index]) for index in range((len(last_tree)))
-            )
-
-            for relpath, abspath, spec, headers, _ in cls._list_non_recursive(
-                client,
-                spec,
-                seen,  # noqa
-                partial_trees,
-                cwd,
-                cwd_index,
-                spec["tree_sha"],
-                "",
-                first_level,
-            ):
-                yield relpath, abspath, spec, headers, False
 
         if not cwd_seen:
             raise ObjectNotFoundError(path=spec["full_path"])
-
-    @classmethod
-    def _list_non_recursive(
-        cls,
-        client,
-        spec,
-        seen,
-        partial_trees,
-        cwd,
-        cwd_index,
-        tree_sha,
-        tree_path,
-        first_level,
-    ):
-        """
-        List tree recursively using the non recursive API method.
-        Yields raw results.
-
-        Args:
-            client (airfs.storage.github._api.ApiV3): Client.
-            spec (dict): Item spec.
-            seen (set): Absolute paths already seen to skip.
-            partial_trees (set): Absolute paths of trees that may not be completely
-                processed.
-            cwd (str): Current working directory.
-            cwd_index (int): Index used to get relative path.
-            tree_sha (str): Tree SHA.
-            tree_path (str): Tree path.
-            first_level (bool): It True, returns only first level objects. Else, returns
-                the full tree.
-
-        Yields:
-            tuple: Relative path, Absolute path, spec, headers, has content bool
-        """
-        tree_spec = spec.copy()
-        tree_spec["tree_sha"] = tree_sha
-
-        for headers in client.get(cls.LIST.format(**tree_spec), never_expire=True)[0][
-            "tree"
-        ]:
-            if tree_path:
-                abspath = "/".join((tree_path, headers["path"]))
-            else:
-                abspath = headers["path"]
-
-            if cwd:
-                cwd_common = commonpath((abspath, cwd))
-                if not cwd_common:
-                    continue
-
-                in_cwd = cwd_common == cwd
-                relpath = abspath[cwd_index:]
-
-            else:
-                in_cwd = True
-                relpath = abspath
-
-            isdir = headers["type"] == "tree"
-
-            cls._raise_if_not_dir(not relpath and not isdir, spec)
-
-            not_seen = abspath not in seen
-            if in_cwd and relpath and not_seen:
-                yield relpath, abspath, spec, headers, isdir
-
-            if (
-                isdir
-                and (not in_cwd or not first_level)
-                and (not_seen or abspath in partial_trees)
-            ):
-                for entry in cls._list_non_recursive(
-                    client,
-                    spec,
-                    seen,
-                    partial_trees,
-                    cwd,
-                    cwd_index,
-                    headers["sha"],
-                    abspath,
-                    first_level,
-                ):
-                    yield entry
 
     def _is_dir(self):
         """
