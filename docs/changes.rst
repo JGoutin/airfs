@@ -51,6 +51,9 @@ Improvements:
 * Refactor ``airfs.io.SystemBase.list_objects`` to improve to support more input file
   listing and make the API simpler. Remove ``airfs.io.FileSystemBase`` which is now a
   duplicate.
+* ``airfs.copy`` and ``airfs.copyfile`` does not raise ``FileNotFoundError`` if the
+  parent directory do not exists and the storage allows to write on a non exiting
+  directory (For instance on blob storages).
 * airfs exception conversion to OSError is now more strict and convert only excepted
   exceptions.
 * Add `Flake8 <https://gitlab.com/pycqa/flake8>`_ and

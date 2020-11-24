@@ -1,5 +1,5 @@
 """Cloud object compatibles standard library 'shutil' equivalent functions"""
-from os.path import join, basename, dirname
+from os.path import join, basename
 from shutil import (
     copy as shutil_copy,
     copyfileobj,
@@ -106,13 +106,10 @@ def copy(src, dst, *, follow_symlinks=True):
 
     if not hasattr(dst, "read"):
         with ignore_exception(PermissionError):
-            # Tries to write if not enough permission to check if destination exists
-
+            # Tries to write if not enough permission to check if destination is a
+            # directory
             if isdir(dst):
                 dst = join(dst, basename(src))
-
-            elif not isdir(dirname(dst)):
-                raise FileNotFoundError(f"No such file or directory: '{dst}'")
 
     _copy(src, dst, src_is_storage, dst_is_storage, follow_symlinks)
 
@@ -140,11 +137,4 @@ def copyfile(src, dst, *, follow_symlinks=True):
 
     if not src_is_storage and not dst_is_storage:
         return shutil_copyfile(src, dst, follow_symlinks=follow_symlinks)
-
-    with ignore_exception(PermissionError):
-        # Tries to write if not enough permission to check if destination exists
-
-        if not hasattr(dst, "read") and not isdir(dirname(dst)):
-            raise FileNotFoundError(f"No such file or directory: '{dst}'")
-
     _copy(src, dst, src_is_storage, dst_is_storage, follow_symlinks)
