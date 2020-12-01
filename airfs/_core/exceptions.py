@@ -1,6 +1,7 @@
 """airfs exceptions"""
 from contextlib import contextmanager as _contextmanager
 from io import UnsupportedOperation as _UnsupportedOperation
+from os import getenv as _getenv
 from shutil import SameFileError as _SameFileError
 from sys import exc_info as _exc_info
 
@@ -116,6 +117,7 @@ _OS_EXCEPTIONS = {
     ObjectNotImplementedError: NotImplementedError,
     ObjectUnsupportedOperation: _UnsupportedOperation,
 }
+_FULLTRACEBACK = True if _getenv("AIRFS_FULLTRACEBACK") else False
 
 
 @_contextmanager
@@ -126,9 +128,11 @@ def handle_os_exceptions():
     try:
         yield
 
-    except AirfsInternalException:
+    except AirfsInternalException as exception:
         exc_type, exc_value, _ = _exc_info()
-        raise _OS_EXCEPTIONS.get(exc_type, OSError)(exc_value)
+        raise _OS_EXCEPTIONS.get(exc_type, OSError)(exc_value) from (
+            exception if _FULLTRACEBACK else None
+        )
 
     except Exception:
         raise

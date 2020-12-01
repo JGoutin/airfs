@@ -1,4 +1,7 @@
 """Pytest configuration"""
+from os import environ as _environ
+
+_environ["AIRFS_FULLTRACEBACK"] = "1"
 
 
 def pytest_addoption(parser):

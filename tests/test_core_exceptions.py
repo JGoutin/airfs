@@ -32,3 +32,10 @@ def test_handle_os_exceptions():
     with pytest.raises(FileExistsError):
         with handle_os_exceptions():
             raise FileExistsError()
+
+
+def test_full_traceback():
+    """Ensure full traceback mode is enabled in tests"""
+    from airfs._core.exceptions import _FULLTRACEBACK
+
+    assert _FULLTRACEBACK

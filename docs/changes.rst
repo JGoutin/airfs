@@ -1,6 +1,16 @@
 Changelog
 =========
 
+1.6.0 (Work in progress)
+------------------------
+
+Improvements:
+
+* To improve exceptions readability, airfs now hides its internal exception traceback
+  when converting exception to ``OSError``. Full traceback can be enabled by setting the
+  ``AIRFS_FULLTRACEBACK`` environment variable.
+
+
 1.5.0 (2020/11)
 ---------------
 
