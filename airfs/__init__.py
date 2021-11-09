@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = "1.5.0"
+__version__ = "1.5.1"
 __copyright__ = "Copyright 2020 J.Goutin"
 __licence__ = "Apache 2.0"
 

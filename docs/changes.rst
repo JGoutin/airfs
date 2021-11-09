@@ -1,8 +1,8 @@
 Changelog
 =========
 
-1.6.0 (Work in progress)
-------------------------
+1.5.1 (2021/11)
+---------------
 
 Improvements:
 
@@ -10,6 +10,13 @@ Improvements:
   when converting exception to ``OSError``. Full traceback can be enabled by setting the
   ``AIRFS_FULLTRACEBACK`` environment variable.
 
+Fixes:
+
+* Fix ``os.path.realpath`` missing Python 3.10 `strict` argument for local paths.
+
+Deprecations:
+
+* Warn about Python 3.6 deprecation in next version.
 
 1.5.0 (2020/11)
 ---------------

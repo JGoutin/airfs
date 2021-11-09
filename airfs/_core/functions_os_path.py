@@ -5,6 +5,7 @@ from os.path import relpath as os_path_relpath, samefile as os_path_samefile
 from airfs._core.storage_manager import get_instance
 from airfs._core.functions_core import equivalent_to, format_and_is_storage
 from airfs._core.exceptions import handle_os_exceptions
+from airfs._core.compat import realpath as os_path_realpath
 
 
 @equivalent_to(os.path.exists)
@@ -206,8 +207,8 @@ def ismount(path):
     return True if not get_instance(path).relpath(path) else False
 
 
-@equivalent_to(os.path.realpath)
-def realpath(path):
+@equivalent_to(os_path_realpath)
+def realpath(path, *, strict=False):
     """
     Return the canonical path of the specified filename, eliminating any symbolic links
     encountered in the path (if they are supported by the operating system).
@@ -218,6 +219,11 @@ def realpath(path):
 
     Args:
         path (path-like object): Path or URL.
+        strict (bool): If a path doesn’t exist or a symlink loop is encountered,
+            and strict is True, OSError is raised. If strict is False,
+            the path is resolved as far as possible and any remainder is appended
+            without checking whether it exists.
+            Not supported on storage objects.
 
     Returns:
         str: Absolute path.

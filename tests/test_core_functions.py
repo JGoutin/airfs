@@ -174,7 +174,7 @@ def test_equivalent_functions(tmpdir):
         # Method itself tested with system tests
 
         def basic_function(path, **_):
-            """"Checks arguments and returns fake result"""
+            """Checks arguments and returns fake result"""
             assert path == excepted_path
             return result
 

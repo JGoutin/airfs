@@ -30,8 +30,13 @@ def _deprecation_warning():  # pragma: no cover
     )
 
 
+# Python 3.6 deprecation warning
+if _py[0] == 3 and _py[1] == 6:  # pragma: no cover
+    _deprecation_warning()
+
+
 # Python < 3.7 compatibility
-if _py[0] < 3 or (_py[0] == 3 and _py[1] < 7):
+if _py[0] == 3 and _py[1] < 7:
 
     # Missing "re.Pattern"
     Pattern = type(_re.compile(""))
@@ -44,7 +49,7 @@ else:
     from importlib.resources import contents
 
 # Python < 3.8 compatibility
-if _py[0] < 3 or (_py[0] == 3 and _py[1] < 8):
+if _py[0] == 3 and _py[1] < 8:
 
     # "shutil.COPY_BUFSIZE" backport
     COPY_BUFSIZE = 1024 * 1024 if _os.name == "nt" else 64 * 1024
@@ -73,7 +78,7 @@ if _py[0] < 3 or (_py[0] == 3 and _py[1] < 8):
             dirs_exist_ok (bool): Ignored.
         """
         if dirs_exist_ok is not False:
-            raise TypeError('"dirs_exist_ok" not supported on Python < 3.8')
+            raise NotImplementedError('"dirs_exist_ok" not supported on Python < 3.8')
         return _shutil.copytree(
             src,
             dst,
@@ -88,6 +93,33 @@ else:
     COPY_BUFSIZE = _shutil.COPY_BUFSIZE  # type: ignore
     copytree = _shutil.copytree
 
+
+# Python < 3.10 compatibility
+if _py[0] == 3 and _py[1] < 10:
+
+    # Missing "strict" in "os.path.realpath" function
+    def realpath(path, *, strict=False):
+        """
+        Return the canonical path of the specified filename, eliminating any symbolic
+        links encountered in the path.
+
+        Args:
+            path (path-like object): Path.
+            strict (bool): If a path doesn’t exist or a symlink loop is encountered,
+                and strict is True, OSError is raised. If strict is False,
+                the path is resolved as far as possible and any remainder is appended
+                without checking whether it exists.
+
+        Returns:
+            str: Absolute path.
+        """
+        if strict is not False:
+            raise NotImplementedError('"strict" not supported on Python < 3.10')
+        return _os.path.realpath(path)
+
+
+else:
+    realpath = _os.path.realpath
 
 # Windows compatibility
 
