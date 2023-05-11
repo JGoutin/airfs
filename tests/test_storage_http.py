@@ -1,4 +1,4 @@
-"""Test airfs.storage.http"""
+"""Test airfs.storage.http."""
 import pytest
 
 UNSUPPORTED_OPERATIONS = (
@@ -16,20 +16,20 @@ UNSUPPORTED_OPERATIONS = (
 
 
 def test_handle_http_errors():
-    """Test airfs.http._handle_http_errors"""
+    """Test airfs.http._handle_http_errors."""
     from airfs.storage.http import _handle_http_errors
     from airfs._core.exceptions import ObjectNotFoundError, ObjectPermissionError
 
     # Mocks response
     class Response:
-        """Dummy response"""
+        """Dummy response."""
 
         status_code = 200
         reason = "reason"
         raised = False
 
         def raise_for_status(self):
-            """Do nothing"""
+            """Do nothing."""
             self.raised = True
 
     response = Response()
@@ -55,7 +55,7 @@ def test_handle_http_errors():
 
 
 def test_mocked_storage():
-    """Tests airfs.http with a mock"""
+    """Tests airfs.http with a mock."""
     import requests
     from requests.exceptions import HTTPError
 
@@ -67,7 +67,7 @@ def test_mocked_storage():
 
     # Mocks client
     class HTTPException(Exception):
-        """HTTP Exception
+        """HTTP Exception.
 
         Args:
             status_code (int): HTTP status
@@ -77,21 +77,21 @@ def test_mocked_storage():
             self.status_code = status_code
 
     def raise_404():
-        """Raise 404 error"""
+        """Raise 404 error."""
         raise HTTPException(404)
 
     def raise_416():
-        """Raise 416 error"""
+        """Raise 416 error."""
         raise HTTPException(416)
 
     def raise_500():
-        """Raise 500 error"""
+        """Raise 500 error."""
         raise HTTPException(500)
 
     storage_mock = ObjectStorageMock(raise_404, raise_416, raise_500)
 
     class Response:
-        """HTTP request response"""
+        """HTTP request response."""
 
         status_code = 200
         reason = "reason"
@@ -101,19 +101,19 @@ def test_mocked_storage():
                 setattr(self, name, value)
 
         def raise_for_status(self):
-            """Raise for status"""
+            """Raise for status."""
             if self.status_code >= 300:
                 raise HTTPError(self.reason, response=self)
 
     class Session:
-        """Fake Session"""
+        """Fake Session."""
 
         def __init__(self, *_, **__):
-            """Do nothing"""
+            """Do nothing."""
 
         @staticmethod
         def request(method, url, headers=None, **_):
-            """Check arguments and returns fake result"""
+            """Check arguments and returns fake result."""
             # Remove scheme
             try:
                 url = url.split("//")[1]
@@ -155,7 +155,6 @@ def test_mocked_storage():
             storage_mock,
             unsupported_operations=UNSUPPORTED_OPERATIONS,
         ) as tester:
-
             # Common tests
             tester.test_common()
 

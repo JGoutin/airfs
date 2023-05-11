@@ -1,4 +1,4 @@
-"""GitHub releases related objects"""
+"""GitHub releases related objects."""
 from airfs._core.exceptions import ObjectNotFoundError
 from airfs.storage.github._model_archive import Archive
 from airfs.storage.github._model_git import Commit, Tag, Tree
@@ -6,7 +6,7 @@ from airfs.storage.github._model_base import GithubObject
 
 
 class ReleaseAsset(GithubObject):
-    """GitHub release asset"""
+    """GitHub release asset."""
 
     KEY = "asset"
     GET = "https://github.com/{owner}/{repo}/releases/download/{tag}/{asset}"
@@ -15,13 +15,12 @@ class ReleaseAsset(GithubObject):
 
     @classmethod
     def list(cls, client, spec, first_level=False):
-        """
-        List assets of a release.
+        """List assets of a release.
 
         Args:
             client (airfs.storage.github._api.ApiV3): Client.
             spec (dict): Item spec.
-            first_level (bool): It True, returns only first level objects.
+            first_level (bool): If True, returns only first level objects.
 
         Returns:
             generator of tuple: object name str, object header dict, has content bool
@@ -34,8 +33,7 @@ class ReleaseAsset(GithubObject):
 
     @classmethod
     def head_obj(cls, client, spec):
-        """
-        Get asset headers.
+        """Get asset headers.
 
         Args:
             client (airfs.storage.github._api.ApiV3): Client.
@@ -53,8 +51,7 @@ class ReleaseAsset(GithubObject):
 
     @classmethod
     def get_url(cls, client, spec):
-        """
-        Get asset URL.
+        """Get asset URL.
 
         Args:
             client (airfs.storage.github._api.ApiV3): Client.
@@ -69,8 +66,7 @@ class ReleaseAsset(GithubObject):
 
     @classmethod
     def _parent_release(cls, client, spec):
-        """
-        Get the parent release
+        """Get the parent release.
 
         Args:
             client (airfs.storage.github._api.ApiV3): Client.
@@ -83,20 +79,21 @@ class ReleaseAsset(GithubObject):
 
 
 class ReleaseArchive(Archive):
-    """GitHub release archive"""
+    """GitHub release archive."""
 
     HEAD_FROM = {"pushed_at": Tag, "sha": Tag}  # type: ignore
 
     @classmethod
     def list(cls, client, spec, first_level=False):
-        """
-        List archives for all releases. Uses generic unversioned archive name to avoid
-        have to know the "latest" tag to get its archive.
+        """List archives for all releases.
+
+        Uses generic un-versioned archive name to avoid having to know the "latest" tag
+        to get its archive.
 
         Args:
             client (airfs.storage.github._api.ApiV3): Client.
             spec (dict): Item spec.
-            first_level (bool): It True, returns only first level objects.
+            first_level (bool): If True, returns only first level objects.
 
         Returns:
             generator of tuple: object name str, object header dict, has content bool
@@ -109,8 +106,7 @@ class ReleaseArchive(Archive):
 
     @classmethod
     def head_obj(cls, client, spec):
-        """
-        Get archive headers.
+        """Get archive headers.
 
         Args:
             client (airfs.storage.github._api.ApiV3): Client.
@@ -123,8 +119,7 @@ class ReleaseArchive(Archive):
         return Archive.head_obj(client, spec)
 
     def _update_spec_parent_ref(self, parent_key):
-        """
-        Update the spec with the parent reference.
+        """Update the spec with the parent reference.
 
         Args:
             parent_key (str): The parent key (parent_class.KEY).
@@ -133,8 +128,7 @@ class ReleaseArchive(Archive):
 
     @staticmethod
     def _set_archive_tag(client, spec):
-        """
-        Get the tag and archive exact name.
+        """Get the tag and archive exact name.
 
         Args:
             client (airfs.storage.github._api.ApiV3): Client.
@@ -147,7 +141,7 @@ class ReleaseArchive(Archive):
 
 
 class Release(GithubObject):
-    """GitHub release"""
+    """GitHub release."""
 
     KEY = "tag"
     CTIME = "created_at"
@@ -165,7 +159,7 @@ class Release(GithubObject):
 
 
 class LatestRelease(Release):
-    """Latest GitHub release, with fallback to HEAD"""
+    """Latest GitHub release, with fallback to HEAD."""
 
     KEY = None  # type: ignore
     HEAD = "/repos/{owner}/{repo}/releases/latest"
@@ -173,8 +167,7 @@ class LatestRelease(Release):
 
     @classmethod
     def get_tag(cls, client, spec):
-        """
-        Get the tag matching the latest release.
+        """Get the tag matching the latest release.
 
         Args:
             client (airfs.storage.github._api.ApiV3): Client.
@@ -187,8 +180,7 @@ class LatestRelease(Release):
 
 
 class ReleaseDownload(GithubObject):
-    """
-    GitHub release downloads only
+    """GitHub release downloads only.
 
     To handle "https://github.com/:owner/:repo/releases/download/:tag/:asset_name"
     """

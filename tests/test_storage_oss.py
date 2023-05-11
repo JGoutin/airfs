@@ -1,4 +1,4 @@
-"""Test airfs.storage.oss"""
+"""Test airfs.storage.oss."""
 import pytest
 
 pytest.importorskip("oss2")
@@ -12,7 +12,7 @@ UNSUPPORTED_OPERATIONS = (
 
 
 def test_handle_oss_error():
-    """Test airfs.oss._handle_oss_error"""
+    """Test airfs.oss._handle_oss_error."""
     from airfs.storage.oss import _handle_oss_error
     from oss2.exceptions import OssError  # type: ignore
     from airfs._core.exceptions import ObjectNotFoundError, ObjectPermissionError
@@ -36,7 +36,7 @@ def test_handle_oss_error():
 
 
 def test_mocked_storage():
-    """Tests airfs.oss with a mock"""
+    """Tests airfs.oss with a mock."""
     from io import BytesIO
 
     from airfs._core.exceptions import ObjectNotImplementedError
@@ -52,31 +52,31 @@ def test_mocked_storage():
     # Mocks client
 
     def raise_404():
-        """Raise 404 error"""
+        """Raise 404 error."""
         raise OssError(404, headers={}, body=None, details={"Message": ""})
 
     def raise_416():
-        """Raise 416 error"""
+        """Raise 416 error."""
         raise OssError(416, headers={}, body=None, details={"Message": ""})
 
     def raise_500():
-        """Raise 500 error"""
+        """Raise 500 error."""
         raise OssError(500, headers={}, body=None, details={"Message": ""})
 
     storage_mock = ObjectStorageMock(raise_404, raise_416, raise_500)
 
     class Auth:
-        """oss2.Auth/oss2.StsAuth/oss2.AnonymousAuth"""
+        """oss2.Auth/oss2.StsAuth/oss2.AnonymousAuth."""
 
         def __init__(self, **_):
-            """oss2.Auth.__init__"""
+            """oss2.Auth.__init__."""
 
         @staticmethod
         def _sign_request(*_, **__):
-            """oss2.Auth._sign_request"""
+            """oss2.Auth._sign_request."""
 
     class Response:
-        """HTTP request response"""
+        """HTTP request response."""
 
         status = 200
         request_id = 0
@@ -86,29 +86,26 @@ def test_mocked_storage():
                 setattr(self, name, value)
 
     class ListResult(Response):
-        """
-        oss2.models.ListBucketsResult
-        oss2.models.ListObjectsResult
-        """
+        """oss2.models.ListBucketsResult and oss2.models.ListObjectsResult."""
 
         is_truncated = False
         next_marker = ""
 
     class Bucket:
-        """oss2.Bucket"""
+        """oss2.Bucket."""
 
         def __init__(self, auth, endpoint, bucket_name=None, *_, **__):
-            """oss2.Bucket.__init__"""
+            """oss2.Bucket.__init__."""
             self._bucket_name = bucket_name
 
         def get_object(self, key=None, headers=None, **_):
-            """oss2.Bucket.get_object"""
+            """oss2.Bucket.get_object."""
             return BytesIO(
                 storage_mock.get_object(self._bucket_name, key, header=headers)
             )
 
         def head_object(self, key=None, **_):
-            """oss2.Bucket.head_object"""
+            """oss2.Bucket.head_object."""
             headers = storage_mock.head_object(self._bucket_name, key)
             if "_target" in headers:
                 headers["x-oss-object-type"] = "Symlink"
@@ -116,31 +113,31 @@ def test_mocked_storage():
             return HeadObjectResult(Response(headers=headers))
 
         def put_object(self, key=None, data=None, **_):
-            """oss2.Bucket.put_object"""
+            """oss2.Bucket.put_object."""
             storage_mock.put_object(self._bucket_name, key, data, new_file=True)
 
         def delete_object(self, key=None, **_):
-            """oss2.Bucket.delete_object"""
+            """oss2.Bucket.delete_object."""
             storage_mock.delete_object(self._bucket_name, key)
 
         def get_bucket_info(self, **_):
-            """oss2.Bucket.get_bucket_info"""
+            """oss2.Bucket.get_bucket_info."""
             return Response(headers=storage_mock.head_locator(self._bucket_name))
 
         def get_symlink(self, symlink_key, **_):
-            """oss2.Bucket.get_symlink"""
+            """oss2.Bucket.get_symlink."""
             return Response(
                 target_key=storage_mock.get_symlink(self._bucket_name, symlink_key)
             )
 
         def put_symlink(self, target_key, symlink_key, **_):
-            """oss2.Bucket.put_symlink"""
+            """oss2.Bucket.put_symlink."""
             storage_mock.put_symlink(self._bucket_name, symlink_key, target_key)
 
         def copy_object(
             self, source_bucket_name=None, source_key=None, target_key=None, **_
         ):
-            """oss2.Bucket.copy_object"""
+            """oss2.Bucket.copy_object."""
             storage_mock.copy_object(
                 src_path=source_key,
                 src_locator=source_bucket_name,
@@ -149,15 +146,15 @@ def test_mocked_storage():
             )
 
         def create_bucket(self, **_):
-            """oss2.Bucket.create_bucket"""
+            """oss2.Bucket.create_bucket."""
             storage_mock.put_locator(self._bucket_name)
 
         def delete_bucket(self, **_):
-            """oss2.Bucket.delete_bucket"""
+            """oss2.Bucket.delete_bucket."""
             storage_mock.delete_locator(self._bucket_name)
 
         def list_objects(self, prefix=None, max_keys=None, **_):
-            """oss2.Bucket.list_objects"""
+            """oss2.Bucket.list_objects."""
             response = storage_mock.get_locator(
                 self._bucket_name,
                 prefix=prefix,
@@ -174,11 +171,11 @@ def test_mocked_storage():
 
         @staticmethod
         def init_multipart_upload(*_, **__):
-            """oss2.Bucket.init_multipart_upload"""
+            """oss2.Bucket.init_multipart_upload."""
             return Response(upload_id="123")
 
         def complete_multipart_upload(self, key=None, upload_id=None, parts=None, **_):
-            """oss2.Bucket.complete_multipart_upload"""
+            """oss2.Bucket.complete_multipart_upload."""
             assert upload_id == "123"
             storage_mock.concat_objects(
                 self._bucket_name, key, [key + str(part.part_number) for part in parts]
@@ -187,7 +184,7 @@ def test_mocked_storage():
         def upload_part(
             self, key=None, upload_id=None, part_number=None, data=None, **_
         ):
-            """oss2.Bucket.upload_part"""
+            """oss2.Bucket.upload_part."""
             assert upload_id == "123"
             return HeadObjectResult(
                 Response(
@@ -198,14 +195,14 @@ def test_mocked_storage():
             )
 
     class Service:
-        """oss2.Service"""
+        """oss2.Service."""
 
         def __init__(self, *_, **__):
-            """oss2.Service.__init__"""
+            """oss2.Service.__init__."""
 
         @staticmethod
         def list_buckets(**_):
-            """oss2.Service.list_buckets"""
+            """oss2.Service.list_buckets."""
             response = storage_mock.get_locators()
             buckets = []
             for name, headers in response.items():
@@ -242,7 +239,6 @@ def test_mocked_storage():
             unsupported_operations=UNSUPPORTED_OPERATIONS,
             system_parameters=system_parameters,
         ) as tester:
-
             # Common tests
             tester.test_common()
 

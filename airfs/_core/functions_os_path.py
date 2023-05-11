@@ -1,4 +1,4 @@
-"""Cloud object compatibles standard library 'os.path' equivalent functions"""
+"""Cloud object compatibles standard library 'os.path' equivalent functions."""
 import os
 from os.path import relpath as os_path_relpath, samefile as os_path_samefile
 
@@ -10,8 +10,7 @@ from airfs._core.compat import realpath as os_path_realpath
 
 @equivalent_to(os.path.exists)
 def exists(path):
-    """
-    Return True if path refers to an existing path. Follow symlinks if any.
+    """Return True if the path refers to an existing path. Follow symlinks if any.
 
     Equivalent to "os.path.exists".
 
@@ -21,15 +20,14 @@ def exists(path):
         path (path-like object): Path or URL.
 
     Returns:
-        bool: True if path exists.
+        bool: True if the path exists.
     """
     return get_instance(path).exists(path, follow_symlinks=True)
 
 
 @equivalent_to(os.path.lexists)
 def lexists(path):
-    """
-    Return True if path refers to an existing path. Does not follow symlinks.
+    """Return True if the path refers to an existing path. Does not follow symlinks.
 
     Equivalent to "os.path.lexists".
 
@@ -39,15 +37,14 @@ def lexists(path):
         path (path-like object): Path or URL.
 
     Returns:
-        bool: True if path exists.
+        bool: True if the path exists.
     """
     return get_instance(path).exists(path)
 
 
 @equivalent_to(os.path.getsize)
 def getsize(path):
-    """
-    Return the size, in bytes, of path.
+    """Return the size, in bytes, of the path object.
 
     Equivalent to "os.path.getsize".
 
@@ -70,8 +67,7 @@ def getsize(path):
 
 @equivalent_to(os.path.getctime)
 def getctime(path):
-    """
-    Return the creation time of path.
+    """Return the creation time of the path object.
 
     Equivalent to "os.path.getctime".
 
@@ -94,8 +90,7 @@ def getctime(path):
 
 @equivalent_to(os.path.getmtime)
 def getmtime(path):
-    """
-    Return the time of last access of path.
+    """Return the time of last access of path object.
 
     Equivalent to "os.path.getmtime".
 
@@ -118,8 +113,7 @@ def getmtime(path):
 
 @equivalent_to(os.path.isabs)
 def isabs(path):
-    """
-    Return True if path is an absolute pathname.
+    """Return True if the path is an absolute pathname.
 
     Equivalent to "os.path.isabs".
 
@@ -129,15 +123,16 @@ def isabs(path):
         path (path-like object): Path or URL.
 
     Returns:
-        bool: True if path is absolute.
+        bool: True if the path is absolute.
     """
     return True
 
 
 @equivalent_to(os.path.isdir)
 def isdir(path):
-    """
-    Return True if path is an existing directory. Follow symlinks if any.
+    """Return True if the path is an existing directory.
+
+    Follow symlinks if any.
 
     Equivalent to "os.path.isdir".
 
@@ -155,8 +150,9 @@ def isdir(path):
 
 @equivalent_to(os.path.isfile)
 def isfile(path):
-    """
-    Return True if path is an existing regular file. Follow symlinks if any.
+    """Return True if the path is an existing regular file.
+
+    Follow symlinks if any.
 
     Equivalent to "os.path.isfile".
 
@@ -173,8 +169,7 @@ def isfile(path):
 
 @equivalent_to(os.path.islink)
 def islink(path):
-    """
-    Return True if path is an existing symlink.
+    """Return True if the path is an existing symlink.
 
     Equivalent to "os.path.islink".
 
@@ -191,8 +186,7 @@ def islink(path):
 
 @equivalent_to(os.path.ismount)
 def ismount(path):
-    """
-    Return True if pathname path is a mount point.
+    """Return True if the pathname path is a mount point.
 
     Equivalent to "os.path.ismount".
 
@@ -202,16 +196,17 @@ def ismount(path):
         path (path-like object): Path or URL.
 
     Returns:
-        bool: True if path is a mount point.
+        bool: True if the path is a mount point.
     """
     return True if not get_instance(path).relpath(path) else False
 
 
 @equivalent_to(os_path_realpath)
 def realpath(path, *, strict=False):
-    """
-    Return the canonical path of the specified filename, eliminating any symbolic links
-    encountered in the path (if they are supported by the operating system).
+    """Return the canonical path of the specified filename.
+
+    Eliminate any symbolic links encountered in the path
+    (if they are supported by the operating system).
 
     Equivalent to "os.path.realpath".
 
@@ -219,7 +214,7 @@ def realpath(path, *, strict=False):
 
     Args:
         path (path-like object): Path or URL.
-        strict (bool): If a path doesn’t exist or a symlink loop is encountered,
+        strict (bool): If a path doesn't exist or a symlink loop is encountered,
             and strict is True, OSError is raised. If strict is False,
             the path is resolved as far as possible and any remainder is appended
             without checking whether it exists.
@@ -233,14 +228,15 @@ def realpath(path, *, strict=False):
 
 @equivalent_to(os.path.relpath)
 def relpath(path, start=None):
-    """
-    Return a relative file path to path either from the current directory or from an
+    """Return the relative path.
+
+    Return a relative file path to the path either from the current directory or from an
     optional start directory.
 
     For storage objects, "path" and "start" are relative to storage root.
 
-    "/" are not stripped on storage objects path. The ending slash is required on some
-    storage to signify that target is a directory.
+    "/" are not stripped on a storage objects path. The ending slash is required on some
+    storage to signify that the target is a directory.
 
     Equivalent to "os.path.relpath".
 
@@ -262,8 +258,7 @@ def relpath(path, start=None):
 
 
 def samefile(path1, path2):
-    """
-    Return True if both pathname arguments refer to the same file or directory.
+    """Return True if both pathname arguments refer to the same file or directory.
 
     Equivalent to "os.path.samefile".
 
@@ -298,7 +293,8 @@ def samefile(path1, path2):
 
 @equivalent_to(os.path.splitdrive)
 def splitdrive(path):
-    """
+    """Split the path to a drive tail pair.
+
     Split the path into a pair (drive, tail) where drive is either a mount point or the
     empty string. On systems which do not use drive specifications, drive will always be
     the empty string.

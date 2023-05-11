@@ -1,10 +1,10 @@
-"""Test airfs.storage.github._client"""
+"""Test airfs.storage.github._client."""
 
 import pytest
 
 
 def test_client_api_headers():
-    """Test airfs.storage.github._client.Client._api_headers"""
+    """Test airfs.storage.github._client.Client._api_headers."""
     import airfs.storage.github._client as _client
 
     # Test token in headers
@@ -29,12 +29,12 @@ def test_client_api_headers():
 
 
 def test_client_rate_limit():
-    """Test rate limit with airfs.storage.github._client.Client"""
+    """Test rate limit with airfs.storage.github._client.Client."""
     import airfs.storage.github._client as _client
 
     # Mock
     class Response:
-        """Mocked Response"""
+        """Mocked Response."""
 
         reason = "Error"
 
@@ -44,18 +44,17 @@ def test_client_rate_limit():
             self.status_code = 200
 
         def json(self):
-            """Mocked Json result"""
+            """Mocked Json result."""
             return self.json_content
 
     class RateLimit:
-        """Simulate rate limit"""
+        """Simulate rate limit."""
 
         remaining = 10
 
         @classmethod
         def request(cls, method, url, **_):
-            """
-            Mocked request.
+            """Mocked request.
 
             Args:
                 method (str): Method.
@@ -88,7 +87,7 @@ def test_client_rate_limit():
             return resp
 
     class Client(_client.Client):
-        """Mocked Client"""
+        """Mocked Client."""
 
         def __init__(self, **kwargs):
             _client.Client.__init__(self, **kwargs)
@@ -119,7 +118,7 @@ def test_client_rate_limit():
 
 
 def test_client_get(tmpdir):
-    """Test airfs.storage.github._client.Client.get"""
+    """Test airfs.storage.github._client.Client.get."""
     from datetime import datetime, timedelta
     from requests import HTTPError
     import airfs.storage.github._client as _client
@@ -132,7 +131,7 @@ def test_client_get(tmpdir):
     valid_link_header = True
 
     class Response:
-        """Mocked Response"""
+        """Mocked Response."""
 
         counter = 0
         status_code = 200
@@ -148,9 +147,9 @@ def test_client_get(tmpdir):
                 Date=datetime.now().isoformat(),
             )
             if max_pages > 1:
-                self.headers[
-                    "Link"
-                ] = f'<https://api.github.com/resource?page={page}>; rel="next"'
+                self.headers["Link"] = (
+                    f'<https://api.github.com/resource?page={page}>; rel="next"'
+                )
                 if valid_link_header:
                     self.headers["Link"] += (
                         f", <https://api.github.com/resource?page={max_pages}>; "
@@ -159,18 +158,17 @@ def test_client_get(tmpdir):
             self.json_content = None
 
         def json(self):
-            """Mocked Json result"""
+            """Mocked Json result."""
             return self.json_content
 
         def raise_for_status(self):
-            """Raise for status"""
+            """Raise for status."""
             if self.status_code >= 300:
                 raise HTTPError("reason", response=self)
 
         @classmethod
         def request(cls, method, url, params=None, **_):
-            """
-            Mocked request.
+            """Mocked request.
 
             Args:
                 method (str): Method.
@@ -194,7 +192,7 @@ def test_client_get(tmpdir):
             return resp
 
     class Client(_client.Client):
-        """Mocked Client"""
+        """Mocked Client."""
 
         def __init__(self, **kwargs):
             _client.Client.__init__(self, **kwargs)

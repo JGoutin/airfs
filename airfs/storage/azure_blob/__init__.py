@@ -1,4 +1,4 @@
-"""Microsoft Azure Blobs Storage"""
+"""Microsoft Azure Blobs Storage."""
 
 from airfs.storage.azure_blob._system import _AzureBlobSystem  # noqa: F401
 from airfs.storage.azure_blob._base_blob import AzureBlobRawIO, AzureBlobBufferedIO

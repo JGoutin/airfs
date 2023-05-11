@@ -1,4 +1,4 @@
-"""Microsoft Azure Storage"""
+"""Microsoft Azure Storage."""
 from abc import abstractmethod as _abstractmethod
 from contextlib import contextmanager as _contextmanager
 from concurrent.futures import as_completed as _as_completed
@@ -27,8 +27,7 @@ _ERROR_CODES = {403: _ObjectPermissionError, 404: _ObjectNotFoundError}
 
 @_contextmanager
 def _handle_azure_exception():
-    """
-    Handles Azure exception and convert to class IO exceptions
+    """Handles Azure exception and convert to class IO exceptions.
 
     Raises:
         OSError subclasses: IO error.
@@ -43,8 +42,7 @@ def _handle_azure_exception():
 
 
 def _properties_model_to_dict(properties):
-    """
-    Convert properties model to dict.
+    """Convert properties model to dict.
 
     Args:
         properties: Properties model.
@@ -66,8 +64,7 @@ def _properties_model_to_dict(properties):
 
 
 def _make_sas_url(client_kwargs, expires_in, generate_sas, make_url, permissions):
-    """
-    Make a shareable URL using a SAS token.
+    """Make a shareable URL using a SAS token.
 
     Args:
         client_kwargs (dict): Client arguments.
@@ -90,14 +87,13 @@ def _make_sas_url(client_kwargs, expires_in, generate_sas, make_url, permissions
 
 
 class _AzureBaseSystem(_SystemBase):
-    """
-    Common base for Azure storage systems.
+    """Common base for Azure storage systems.
 
     Args:
         storage_parameters (dict): Azure service keyword arguments.
             This is generally Azure credentials and configuration. See
             "azure.storage.blob.baseblobservice.BaseBlobService" for more information.
-        unsecure (bool): If True, disables TLS/SSL to improves
+        unsecure (bool): If True, disables TLS/SSL to improve
             transfer performance. But makes connection unsecure.
     """
 
@@ -113,8 +109,7 @@ class _AzureBaseSystem(_SystemBase):
 
     @staticmethod
     def _get_time(header, keys, name):
-        """
-        Get time from header
+        """Get time from header.
 
         Args:
             header (dict): Object header.
@@ -133,11 +128,10 @@ class _AzureBaseSystem(_SystemBase):
         raise _ObjectUnsupportedOperation(name)
 
     def _get_endpoint(self, sub_domain):
-        """
-        Get endpoint information from storage parameters.
+        """Get endpoint information from storage parameters.
 
-        Update system with endpoint information and return information required to
-        define roots.
+        Update the system with endpoint information and return information
+        required to define roots.
 
         Args:
             self (airfs._core.io_system.SystemBase subclass): System.
@@ -162,8 +156,7 @@ class _AzureBaseSystem(_SystemBase):
         return account_name, suffix.replace(".", r"\.")
 
     def _secured_storage_parameters(self):
-        """
-        Updates storage parameters with unsecure mode.
+        """Updates storage parameters with unsecure mode.
 
         Returns:
             dict: Updated storage_parameters.
@@ -177,9 +170,10 @@ class _AzureBaseSystem(_SystemBase):
         return parameters
 
     def _format_src_url(self, path, caller_system):
-        """
-        Ensure path is absolute and use the correct URL format for use with cross Azure
-        storage account copy function.
+        """Format source URL.
+
+        Ensure the path is absolute and use the correct URL format for use with cross
+        Azure storage account copy function.
 
         Args:
             path (str): Path or URL.
@@ -201,8 +195,7 @@ class _AzureBaseSystem(_SystemBase):
 
     @staticmethod
     def _update_listing_client_kwargs(client_kwargs, max_results):
-        """
-        Updates client kwargs for listing functions.
+        """Updates client kwargs for listing functions.
 
         Args:
             client_kwargs (dict): Client arguments.
@@ -219,8 +212,7 @@ class _AzureBaseSystem(_SystemBase):
 
     @staticmethod
     def _model_to_dict(obj):
-        """
-        Convert object model to dict.
+        """Convert object model to dict.
 
         Args:
             obj: Object model.
@@ -240,27 +232,23 @@ class _AzureBaseSystem(_SystemBase):
 
 
 class _AzureStorageRawIOBase(_ObjectRawIOBase):
-    """
-    Common Raw IO for all Azure storage classes
-    """
+    """Common Raw IO for all Azure storage classes."""
 
     @property
     @_abstractmethod
     def _get_to_stream(self):
-        """
-        Azure storage function that read a range to a stream.
+        """Azure storage function that read a range to a stream.
 
         Returns:
             function: Read function.
         """
 
     def _read_range(self, start, end=0):
-        """
-        Read a range of bytes in stream.
+        """Read a range of bytes in stream.
 
         Args:
             start (int): Start stream position.
-            end (int): End stream position. 0 To not specify end.
+            end (int): End stream position. 0 To not specify the end.
 
         Returns:
             bytes: number of bytes read
@@ -283,8 +271,7 @@ class _AzureStorageRawIOBase(_ObjectRawIOBase):
         return stream.getvalue()
 
     def _readall(self):
-        """
-        Read and return all the bytes from the stream until EOF.
+        """Read and return all the bytes from the stream until EOF.
 
         Returns:
             bytes: Object content
@@ -298,9 +285,7 @@ class _AzureStorageRawIOBase(_ObjectRawIOBase):
 class _AzureStorageRawIORangeWriteBase(
     _ObjectRawIORandomWriteBase, _AzureStorageRawIOBase, _WorkerPoolBase
 ):
-    """
-    Common Raw IO for Azure storage classes that have write range ability.
-    """
+    """Common Raw IO for Azure storage classes that have write-range ability."""
 
     __slots__ = ("_content_length",)
 
@@ -318,8 +303,7 @@ class _AzureStorageRawIORangeWriteBase(
     @property
     @_abstractmethod
     def _resize(self):
-        """
-        Azure storage function that resize an object.
+        """Azure storage function that resizes an object.
 
         Returns:
             function: Resize function.
@@ -328,17 +312,14 @@ class _AzureStorageRawIORangeWriteBase(
     @property
     @_abstractmethod
     def _create_from_size(self):
-        """
-        Azure storage function that create an object with a specified size.
+        """Azure storage function that creates an object with a specified size.
 
         Returns:
             function: Create function.
         """
 
     def _init_append(self):
-        """
-        Initializes file on 'a' mode.
-        """
+        """Initializes file on 'a' mode."""
         if self._content_length:
             with _handle_azure_exception():
                 self._resize(content_length=self._content_length, **self._client_kwargs)
@@ -347,9 +328,7 @@ class _AzureStorageRawIORangeWriteBase(
         self._seek = self._size
 
     def _create(self):
-        """
-        Create the file if not exists.
-        """
+        """Create the file if not exists."""
         with _handle_azure_exception():
             self._create_from_size(
                 content_length=self._content_length, **self._client_kwargs
@@ -357,16 +336,14 @@ class _AzureStorageRawIORangeWriteBase(
 
     @_abstractmethod
     def _update_range(self, data, **kwargs):
-        """
-        Update range with data
+        """Update range with data.
 
         Args:
             data (bytes): data.
         """
 
     def _flush(self, buffer, start, end):
-        """
-        Flush the write buffer of the stream if applicable.
+        """Flush the write buffer of the stream if applicable.
 
         Args:
             buffer (memoryview): Buffer content.

@@ -1,4 +1,4 @@
-"""Test airfs._core.function_*"""
+"""Test airfs._core.function_*."""
 
 from io import BytesIO
 from platform import platform
@@ -8,7 +8,7 @@ import pytest
 
 
 def test_equivalent_to():
-    """Tests airfs._core.functions_core.equivalent_to"""
+    """Tests airfs._core.functions_core.equivalent_to."""
     from airfs._core.functions_core import equivalent_to, raises_on_dir_fd
     from airfs._core.exceptions import ObjectNotFoundError
     from os import fsdecode
@@ -25,7 +25,7 @@ def test_equivalent_to():
     # Mocks a standard function and is storage equivalent
 
     def std_function(path, *args, **kwargs):
-        """Checks arguments and returns fake result"""
+        """Checks arguments and returns fake result."""
         if not isinstance(path, int):
             assert fsdecode(path) == local_path, "std_function, path"
         assert args == dummy_args, "std_function, args"
@@ -34,7 +34,7 @@ def test_equivalent_to():
 
     @equivalent_to(std_function)
     def cos_function(path, *args, dir_fd=None, **kwargs):
-        """Checks arguments and returns fake result"""
+        """Checks arguments and returns fake result."""
         raises_on_dir_fd(dir_fd)
         assert path == storage_path, "cos_function, path"
         assert args == dummy_args, "cos_function, args"
@@ -67,7 +67,7 @@ def test_equivalent_to():
 
     @equivalent_to(std_function, keep_path_type=True)
     def cos_function_2(path, *args, **kwargs):
-        """Checks arguments and returns fake result"""
+        """Checks arguments and returns fake result."""
         return cos
 
     assert (
@@ -82,7 +82,7 @@ def test_equivalent_to():
 
 
 def test_equivalent_functions(tmpdir):
-    """Tests functions using airfs._core.functions_core.equivalent_to"""
+    """Tests functions using airfs._core.functions_core.equivalent_to."""
     import airfs
     from airfs._core.storage_manager import MOUNTED
     import airfs._core.functions_os_path as std_os_path
@@ -112,17 +112,17 @@ def test_equivalent_functions(tmpdir):
     is_dir_no_access = False
 
     class System(SystemBase):
-        """dummy system"""
+        """dummy system."""
 
         def relpath(self, path):
-            """Checks arguments and returns fake result"""
+            """Checks arguments and returns fake result."""
             if excepted_path:
                 assert path.startswith(excepted_path)
             return path.split(root)[1].strip("/")
 
         @staticmethod
         def isdir(path=None, *_, **__):
-            """Checks arguments and returns fake result"""
+            """Checks arguments and returns fake result."""
             if is_dir_no_access:
                 raise ObjectPermissionError
             if check_ending_slash:
@@ -131,41 +131,41 @@ def test_equivalent_functions(tmpdir):
 
         @staticmethod
         def isfile(path=None, *_, **__):
-            """Checks arguments and returns fake result"""
+            """Checks arguments and returns fake result."""
             return "isfile" in path
 
         @staticmethod
         def list_objects(path="", first_level=False, **__):
-            """Checks arguments and returns fake result"""
+            """Checks arguments and returns fake result."""
             for obj in first_level_objects_list if first_level else objects_list:
                 yield obj
 
         @staticmethod
         def _make_dir(*_, **__):
-            """Do nothing"""
+            """Do nothing."""
             dir_created.append(1)
 
         @staticmethod
         def _remove(*_, **__):
-            """Do nothing"""
+            """Do nothing."""
             removed.append(1)
 
         @staticmethod
         def _head(*_, **__):
-            """Do nothing"""
+            """Do nothing."""
 
         @staticmethod
         def _get_roots(*_, **__):
-            """Do nothing"""
+            """Do nothing."""
             return (root,)
 
         @staticmethod
         def _get_client(*_, **__):
-            """Do nothing"""
+            """Do nothing."""
 
         @staticmethod
         def get_client_kwargs(*_, **__):
-            """Do nothing"""
+            """Do nothing."""
 
     # Tests
     try:
@@ -174,7 +174,7 @@ def test_equivalent_functions(tmpdir):
         # Method itself tested with system tests
 
         def basic_function(path, **_):
-            """Checks arguments and returns fake result"""
+            """Checks arguments and returns fake result."""
             assert path == excepted_path
             return result
 
@@ -187,7 +187,6 @@ def test_equivalent_functions(tmpdir):
             ),
             (std_os, ("stat", "lstat")),
         ):
-
             for name in names:
                 system = System()
                 MOUNTED[root] = dict(system_cached=system)
@@ -374,9 +373,7 @@ def test_equivalent_functions(tmpdir):
 
 
 def test_cos_open(tmpdir):
-    """
-    Tests  airfs._core.functions_io.cos_open and airfs._core.functions_shutil.copy
-    """
+    """airfs._core.functions_io.cos_open and airfs._core.functions_shutil.copy."""
     from airfs import copy, copyfile
     from airfs._core.functions_io import cos_open
     from airfs._core.storage_manager import MOUNTED
@@ -397,62 +394,62 @@ def test_cos_open(tmpdir):
 
     # Mock storage
     class DummySystem(SystemBase):
-        """dummy system"""
+        """dummy system."""
 
         def __init__(self, *_, **__):
             self.copied = False
             self.raise_on_copy = False
 
         def copy(self, *_, **__):
-            """Checks called"""
+            """Checks called."""
             if self.raise_on_copy:
                 raise ObjectUnsupportedOperation
             self.copied = True
 
         def copy_to_storage3(self, *_, **__):
-            """Checks called"""
+            """Checks called."""
             if self.raise_on_copy:
                 raise ObjectUnsupportedOperation
             self.copied = True
 
         def copy_from_storage3(self, *_, **__):
-            """Checks called"""
+            """Checks called."""
             if self.raise_on_copy:
                 raise ObjectUnsupportedOperation
             self.copied = True
 
         def relpath(self, path):
-            """Returns fake result"""
+            """Returns fake result."""
             return path
 
         @staticmethod
         def _head(*_, **__):
-            """Do nothing"""
+            """Do nothing."""
 
         @staticmethod
         def _get_roots(*_, **__):
-            """Do nothing"""
+            """Do nothing."""
             return (root,)
 
         @staticmethod
         def _get_client(*_, **__):
-            """Do nothing"""
+            """Do nothing."""
 
         @staticmethod
         def get_client_kwargs(*_, **__):
-            """Do nothing"""
+            """Do nothing."""
 
     class DummyIO(BytesIO):
-        """Dummy IO"""
+        """Dummy IO."""
 
         def __init__(self, *_, **__):
             BytesIO.__init__(self, content)
 
     class DummyRawIO(DummyIO):
-        """Dummy raw IO"""
+        """Dummy raw IO."""
 
     class DummyBufferedIO(DummyIO):
-        """Dummy buffered IO"""
+        """Dummy buffered IO."""
 
     system = DummySystem()
     system._storage = "storage1"
@@ -482,7 +479,7 @@ def test_cos_open(tmpdir):
     )
 
     def dummy_isdir(path):
-        """Returns fake result"""
+        """Returns fake result."""
         if path in ("dummy_read:", "dummy_read2:", "dummy_read3:"):
             return True
         if "dummy_read://" in path:
@@ -639,7 +636,7 @@ def test_cos_open(tmpdir):
 
 
 def test_is_storage():
-    """Tests airfs._core.storage_manager.is_storage"""
+    """Tests airfs._core.storage_manager.is_storage."""
     from airfs._core.functions_core import is_storage
 
     # Remote paths

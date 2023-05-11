@@ -1,10 +1,10 @@
-"""Test airfs._core.exceptions"""
+"""Test airfs._core.exceptions."""
 
 import pytest
 
 
 def test_handle_os_exceptions():
-    """Tests airfs._core.exceptions.handle_os_exceptions"""
+    """Tests airfs._core.exceptions.handle_os_exceptions."""
     from airfs._core.exceptions import (
         handle_os_exceptions,
         ObjectNotFoundError,
@@ -35,7 +35,7 @@ def test_handle_os_exceptions():
 
 
 def test_full_traceback():
-    """Ensure full traceback mode is enabled in tests"""
+    """Ensure full traceback mode is enabled in tests."""
     from airfs._core.exceptions import _FULLTRACEBACK
 
     assert _FULLTRACEBACK

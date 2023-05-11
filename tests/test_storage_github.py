@@ -1,4 +1,4 @@
-"""Test airfs.storage.github"""
+"""Test airfs.storage.github."""
 import json
 import pickle
 from os.path import realpath, join
@@ -23,9 +23,18 @@ MOCK_DIR = realpath(join(__file__, "../resources/github_mock_responses"))
 
 
 class MockResponse:
-    """Mocked request.Response"""
+    """Mocked request.Response."""
 
     def __init__(self, url, headers, status_code, content, reason):
+        """Init.
+
+        Args:
+            url: URL.
+            headers: Headers.
+            status_code: Status code.
+            content: Content.
+            reason: Reason.
+        """
         self.headers = headers
         self.status_code = status_code
         self.content = content
@@ -33,16 +42,16 @@ class MockResponse:
         self.reason = reason
 
     def json(self):
-        """Mocked Json result"""
+        """Mocked Json result."""
         return json.loads(self.content)
 
     @property
     def text(self):
-        """Mocked Text result"""
+        """Mocked Text result."""
         return self.content.decode()
 
     def raise_for_status(self):
-        """Mocked exception"""
+        """Mocked exception."""
         if self.status_code >= 400:
             raise requests.HTTPError(
                 f"{self.status_code} Error: {self.reason} for: {self.url}",
@@ -51,7 +60,7 @@ class MockResponse:
 
 
 def test_mocked_storage():
-    """Tests airfs.github with a mock"""
+    """Tests airfs.github with a mock."""
     pytest.skip(
         "Unable to test using the generic test scenario due to "
         "fixed virtual filesystem tree."
@@ -59,7 +68,7 @@ def test_mocked_storage():
 
 
 def test_github_storage(tmpdir):
-    """Tests airfs.github specificities"""
+    """Tests airfs.github specificities."""
     from airfs._core.storage_manager import _DEFAULTS
 
     try:
@@ -80,7 +89,7 @@ def test_github_storage(tmpdir):
         request = system.client._request
 
         def request_save(method, url, *args, params=None, **kwargs):
-            """Performs requests and save result"""
+            """Performs requests and save result."""
             resp = request(method, url, *args, params=params, **kwargs)
             resp_dict = dict(
                 url=resp.url,
@@ -113,7 +122,7 @@ def test_github_storage(tmpdir):
 
 
 def test_github_mocked_storage(tmpdir):
-    """Tests airfs.github specificities with a mock"""
+    """Tests airfs.github specificities with a mock."""
     if UPDATE_MOCK:
         pytest.skip("Mock is updating...")
 
@@ -129,7 +138,7 @@ def test_github_mocked_storage(tmpdir):
     storage_manager.MOUNTED = OrderedDict()
 
     def request_load(_, url, *__, params=None, **___):
-        """Loads request result"""
+        """Loads request result."""
         try:
             with open(
                 join(MOCK_DIR, cache._hash_name(url + json.dumps(params or dict()))),
@@ -156,9 +165,7 @@ def test_github_mocked_storage(tmpdir):
 
 
 def github_storage_scenario():
-    """
-    Test scenario. Called from both mocked and non-mocked tests.
-    """
+    """Test scenario. Called from both mocked and non-mocked tests."""
     exists_scenario()
     listdir_scenario()
     stat_scenario()
@@ -167,9 +174,7 @@ def github_storage_scenario():
 
 
 def listdir_scenario():
-    """
-    Tests listing
-    """
+    """Tests listing."""
     from io import UnsupportedOperation
     import airfs
 
@@ -341,9 +346,7 @@ def listdir_scenario():
 
 
 def symlink_scenario():
-    """
-    Tests symbolic links
-    """
+    """Tests symbolic links."""
     from io import UnsupportedOperation
     import airfs
 
@@ -435,9 +438,7 @@ def symlink_scenario():
 
 
 def exists_scenario():
-    """
-    Tests exists, isdir, isfile
-    """
+    """Tests exists, isdir, isfile."""
     import airfs
 
     # Root
@@ -674,9 +675,7 @@ def exists_scenario():
 
 
 def stat_scenario():
-    """
-    Test stat.
-    """
+    """Test stat."""
     import airfs
     from stat import S_IFDIR, S_IFREG, S_IFLNK
 
@@ -826,9 +825,7 @@ def stat_scenario():
 
 
 def get_scenario():
-    """
-    Test get files.
-    """
+    """Test get files."""
     import airfs
     from airfs.storage.github import GithubBufferedIO, GithubRawIO
 
@@ -846,15 +843,19 @@ def get_scenario():
         assert file.read()
 
     with airfs.open(
-        "https://github.com/jgoutin/airfs/releases/tag/1.4.0/archive/"
-        "source_code.tar.gz",
+        (
+            "https://github.com/jgoutin/airfs/releases/tag/1.4.0/archive/"
+            "source_code.tar.gz"
+        ),
         buffering=0,
     ) as file:
         assert file.read()
 
     with airfs.open(
-        "https://github.com/jgoutin/airfs/releases/tag/1.4.0/assets/"
-        "airfs-1.4.0-py3-none-any.whl",
+        (
+            "https://github.com/jgoutin/airfs/releases/tag/1.4.0/assets/"
+            "airfs-1.4.0-py3-none-any.whl"
+        ),
         buffering=0,
     ) as file:
         assert file.read()

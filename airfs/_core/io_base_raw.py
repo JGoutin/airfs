@@ -1,4 +1,4 @@
-"""Cloud storage abstract Raw IO class"""
+"""Cloud storage abstract Raw IO class."""
 from abc import abstractmethod
 from io import RawIOBase, UnsupportedOperation
 from os import SEEK_CUR, SEEK_END, SEEK_SET
@@ -20,17 +20,8 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
     For big objects use ObjectBufferedIOBase that can performs operations with less
     memory.
 
-    In read mode, this class random access to the storage object and require only the
+    In read mode, this class random access to the storage object and requires only the
     accessed data size in memory.
-
-    Args:
-        name (path-like object): URL or path to the file which will be opened.
-        mode (str): The mode can be 'r', 'w', 'a', 'x' for reading (default), writing,
-            appending or creation.
-        storage_parameters (dict): Storage configuration parameters.
-            Generally, client configuration and credentials.
-        unsecure (bool): If True, disables TLS/SSL to improves transfer performance.
-            But makes connection unsecure.
     """
 
     __slots__ = (
@@ -47,7 +38,17 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
     MAX_FLUSH_SIZE = 0
 
     def __init__(self, name, mode="r", storage_parameters=None, **kwargs):
+        """Init.
 
+        Args:
+            name (path-like object): URL or path to the file which will be opened.
+            mode (str): The mode can be 'r', 'w', 'a', 'x' for reading (default),
+                writing, appending or creation.
+            storage_parameters (dict): Storage configuration parameters.
+                Generally, client configuration and credentials.
+            unsecure (bool): If True, disables TLS/SSL to improve transfer performance.
+                But makes connection unsecure.
+        """
         RawIOBase.__init__(self)
         ObjectIOBase.__init__(self, name, mode=mode)
 
@@ -107,16 +108,13 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
                 self._head()
 
     def _init_append(self):
-        """
-        Initializes file on 'a' mode.
-        """
+        """Initializes file on 'a' mode."""
         self._write_buffer[:] = self._readall()
         self._seek = self._size
 
     @property
     def _client(self):
-        """
-        Returns client instance.
+        """Returns client instance.
 
         Returns:
             client
@@ -124,16 +122,15 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         return self._system.client
 
     def close(self):
-        """
-        Flush the write buffers of the stream if applicable and close the object.
-        """
+        """Flush the write buffers of the stream if applicable and close the object."""
         if self._writable and not self._is_raw_of_buffered and not self._closed:
             self._closed = True
             if self._write_buffer:
                 self.flush()
 
     def flush(self):
-        """
+        """Flush.
+
         Flush the write buffers of the stream if applicable and save the object on the
         storage.
         """
@@ -143,22 +140,18 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
 
     @abstractmethod
     def _flush(self, buffer):
-        """
-        Flush the write buffers of the stream if applicable.
+        """Flush the write buffers of the stream if applicable.
 
         Args:
             buffer (memoryview): Buffer content.
         """
 
     def _create(self):
-        """
-        Create the file if not exists.
-        """
+        """Create the file if not exists."""
         self._flush(memoryview(b""))
 
     def _get_buffer(self):
-        """
-        Get a memory view of the current write buffer until its seek value.
+        """Get a memory view of the current write buffer until its seek value.
 
         Returns:
             memoryview: buffer view.
@@ -168,8 +161,7 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
     @property  # type: ignore
     @memoizedmethod
     def _size(self):
-        """
-        Return the size, in bytes, of path.
+        """Return the size, in bytes, of path.
 
         Returns:
             int: Size in bytes.
@@ -177,9 +169,7 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         return self._system.getsize(header=self._head())
 
     def _reset_head(self):
-        """
-        Reset memoized head and associated values.
-        """
+        """Reset memoized head and associated values."""
         for key in ("_size", "_head"):
             try:
                 del self._cache[key]
@@ -188,8 +178,7 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
 
     @memoizedmethod
     def _head(self):
-        """
-        Return file header.
+        """Return file header.
 
         Returns:
             dict: header.
@@ -198,8 +187,7 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
 
     @memoizedmethod
     def _exists(self):
-        """
-        Checks if file exists.
+        """Checks if file exists.
 
         Returns:
             int: 1 if exists, 0 if not exists, -1 if can't determine file existence
@@ -215,12 +203,11 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
 
     @staticmethod
     def _http_range(start=0, end=0):
-        """
-        Returns an HTTP Range request for a specified python range.
+        """Returns an HTTP Range request for a specified python range.
 
         Args:
             start (int): Start of the range.
-            end (int): End of the range. 0 To not specify end.
+            end (int): End of the range. 0 To not specify the end.
 
         Returns:
             str: range.
@@ -230,8 +217,7 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         return f"bytes={start}-"
 
     def _peek(self, size=-1):
-        """
-        Return bytes from the stream without advancing the position.
+        """Return bytes from the stream without advancing the position.
 
         Args:
             size (int): Number of bytes to read. -1 to read the full stream.
@@ -245,8 +231,7 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
             return self._read_range(seek, seek + size)
 
     def readall(self):
-        """
-        Read and return all the bytes from the stream until EOF.
+        """Read and return all the bytes from the stream until EOF.
 
         Returns:
             bytes: Object content
@@ -266,8 +251,7 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         return data
 
     def _readall(self):
-        """
-        Read and return all the bytes from the stream until EOF.
+        """Read and return all the bytes from the stream until EOF.
 
         Returns:
             bytes: Object content
@@ -275,7 +259,8 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         return self._read_range(0)
 
     def readinto(self, b):
-        """
+        """Read the object content into a buffer.
+
         Read bytes into a pre-allocated, writable bytes-like object b, and return the
         number of bytes read.
 
@@ -309,29 +294,27 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
 
     @abstractmethod
     def _read_range(self, start, end=0):
-        """
-        Read a range of bytes in stream.
+        """Read a range of bytes in stream.
 
         Args:
             start (int): Start stream position.
-            end (int): End stream position. 0 To not specify end.
+            end (int): End stream position. 0 To not specify the end.
 
         Returns:
             bytes: number of bytes read
         """
 
     def seek(self, offset, whence=SEEK_SET):
-        """
-        Change the stream position to the given byte offset.
+        """Change the stream position to the given byte offset.
 
         Args:
             offset (int): Offset is interpreted relative to the position indicated by
                 whence.
             whence (int): The default value for whence is SEEK_SET. Values are:
-                SEEK_SET or 0 – start of the stream (the default);
+                SEEK_SET or 0 – Start of the stream (the default);
                 offset should be zero or positive
-                SEEK_CUR or 1 – current stream position; offset may be negative
-                SEEK_END or 2 – end of the stream; offset is usually negative
+                SEEK_CUR or 1 – Current stream position; offset may be negative
+                SEEK_END or 2 – End of the stream; offset is usually negative
 
         Returns:
             int: The new absolute position.
@@ -349,8 +332,7 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         return seek
 
     def _update_seek(self, offset, whence):
-        """
-        Update seek value.
+        """Update seek value.
 
         Args:
             offset (int): Offset.
@@ -371,7 +353,8 @@ class ObjectRawIOBase(RawIOBase, ObjectIOBase):
         return self._seek
 
     def write(self, b):
-        """
+        """Write into the object.
+
         Write the given bytes-like object, b, to the underlying raw stream, and return
         the number of bytes written.
 

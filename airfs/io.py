@@ -1,6 +1,7 @@
-"""Cloud storage abstract IO classes
+"""Cloud storage abstract IO classes.
 
-Theses abstract classes are used as base to implement storage specific IO classes"""
+These abstract classes are used as base to implement storage-specific IO classes.
+"""
 
 from airfs._core.io_base_raw import ObjectRawIOBase
 from airfs._core.io_base_buffered import ObjectBufferedIOBase

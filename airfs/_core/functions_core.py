@@ -1,4 +1,4 @@
-"""Base utilities to define storage functions"""
+"""Base utilities to define storage functions."""
 
 from contextlib import contextmanager
 from functools import wraps
@@ -8,8 +8,7 @@ from airfs._core.exceptions import handle_os_exceptions, ObjectNotImplementedErr
 
 
 def is_storage(file, storage=None):
-    """
-    Check if file is a local file or a storage file.
+    """Check if the file is a local file or a storage file.
 
     Args:
         file (str or int): file path, URL or file descriptor.
@@ -29,10 +28,9 @@ def is_storage(file, storage=None):
 
 
 def format_and_is_storage(path, file_obj_as_storage=False, storage=None):
-    """
-    Checks if path is storage and format it.
+    """Check if the path is storage and format it.
 
-    If path is an opened file-like object, returns is storage as True.
+    If the path is an opened file-like object, return True.
 
     Args:
         path (path-like object or file-like object or int):
@@ -53,13 +51,13 @@ def format_and_is_storage(path, file_obj_as_storage=False, storage=None):
 
 
 def equivalent_to(std_function, keep_path_type=False):
-    """
-    Decorates an airfs object compatible function to provides fall back to standard
-    function if used on local files.
+    """Decorates an airfs object compatible function.
+
+    Provide fall back to standard function if used on local files.
 
     Args:
         std_function: standard function to use with local files.
-        keep_path_type (bool): Convert returned result to bytes if path argument was
+        keep_path_type (bool): Convert the returned result to bytes if path argument was
             bytes.
 
     Returns:
@@ -67,7 +65,7 @@ def equivalent_to(std_function, keep_path_type=False):
     """
 
     def decorate(cos_function):
-        """Decorator argument handler
+        """Decorator argument handler.
 
         Args:
             cos_function (function): Storage function to use with storage files.
@@ -75,8 +73,7 @@ def equivalent_to(std_function, keep_path_type=False):
 
         @wraps(cos_function)
         def decorated(path, *args, **kwargs):
-            """
-            Decorated function.
+            """Decorated function.
 
             Args:
                 path (path-like object or int): Path, URL or file descriptor.
@@ -98,8 +95,7 @@ def equivalent_to(std_function, keep_path_type=False):
 
 
 def raises_on_dir_fd(dir_fd):
-    """
-    Raise on use of dir_fd
+    """Raise on use of dir_fd.
 
     Args:
         dir_fd: Checks if None
@@ -112,29 +108,26 @@ def raises_on_dir_fd(dir_fd):
 
 
 class SeatsCounter:
-    """
-    A simple counter keeping track of available seats.
-
-    Args:
-        max_seats (int or None): Maximum available seats. None if no maximum.
-    """
+    """A simple counter keeping track of available seats."""
 
     __slots__ = ("_seats",)
 
     def __init__(self, max_seats):
+        """Init.
+
+        Args:
+            max_seats (int or None): Maximum available seats. None if no maximum.
+        """
         self._seats = max_seats
 
     def take_seat(self):
-        """
-        Take a seat.
-        """
+        """Take a seat."""
         if self._seats:
             self._seats -= 1
 
     @property
     def seats_left(self):
-        """
-        Remaining seats.
+        """Remaining seats.
 
         Returns:
             int or None: Remaining seats. None if no maximum.
@@ -144,20 +137,17 @@ class SeatsCounter:
 
     @property
     def full(self):
-        """
-        Check if seats are full.
+        """Check if seats are full.
 
         Returns:
-            bool: True if no more seat available.
+            bool: True if no more seats available.
         """
         return self._seats == 0
 
 
 @contextmanager
 def ignore_exception(exception):
-    """
-    Convenient shorter method to ignore exception.
-    """
+    """Convenient shorter method to ignore exception."""
     try:
         yield
     except exception:

@@ -1,4 +1,4 @@
-"""Amazon Web Services S3"""
+"""Amazon Web Services S3."""
 from contextlib import contextmanager as _contextmanager
 from io import UnsupportedOperation as _UnsupportedOperation
 import re as _re
@@ -29,8 +29,7 @@ _ERROR_CODES = {
 
 @_contextmanager
 def _handle_client_error():
-    """
-    Handle boto exception and convert to class IO exceptions.
+    """Handle boto exception and convert to class IO exceptions.
 
     Raises:
         OSError subclasses: IO error.
@@ -46,8 +45,7 @@ def _handle_client_error():
 
 
 class _S3System(_SystemBase):
-    """
-    S3 system.
+    """S3 system.
 
     Args:
         storage_parameters (dict): Boto3 Session keyword arguments.
@@ -56,7 +54,7 @@ class _S3System(_SystemBase):
             'session': That pass its arguments to "boto3.session.Session";
             'client': That pass its arguments to "boto3.session.Session.client".
             May be optional if already configured on host.
-        unsecure (bool): If True, disables TLS/SSL to improves transfer performance.
+        unsecure (bool): If True, disables TLS/SSL to improve transfer performance.
             But makes connection unsecure.
     """
 
@@ -71,8 +69,7 @@ class _S3System(_SystemBase):
         _SystemBase.__init__(self, *args, **kwargs)
 
     def copy(self, src, dst, other_system=None):
-        """
-        Copy object of the same storage.
+        """Copy an object of the same storage.
 
         Args:
             src (str): Path or URL.
@@ -85,8 +82,7 @@ class _S3System(_SystemBase):
             self.client.copy_object(CopySource=copy_source, **copy_destination)
 
     def get_client_kwargs(self, path):
-        """
-        Get base keyword arguments for client for a specific path.
+        """Get base keyword arguments for the client for a specific path.
 
         Args:
             path (str): Absolute path or URL.
@@ -101,8 +97,7 @@ class _S3System(_SystemBase):
         return kwargs
 
     def _get_session(self):
-        """
-        S3 Boto3 Session.
+        """S3 Boto3 Session.
 
         Returns:
             boto3.session.Session: session
@@ -114,8 +109,7 @@ class _S3System(_SystemBase):
         return self._session
 
     def _get_client(self):
-        """
-        S3 Boto3 client
+        """S3 Boto3 client.
 
         Returns:
             boto3.session.Session.client: client
@@ -129,8 +123,7 @@ class _S3System(_SystemBase):
         return self._get_session().client("s3", **client_kwargs)
 
     def _get_roots(self):
-        """
-        Return URL roots for this storage.
+        """Return URL roots for this storage.
 
         Returns:
             tuple of str or re.Pattern: URL roots
@@ -194,8 +187,7 @@ class _S3System(_SystemBase):
 
     @staticmethod
     def _get_time(header, keys, name):
-        """
-        Get time from header
+        """Get time from header.
 
         Args:
             header (dict): Object header.
@@ -213,8 +205,7 @@ class _S3System(_SystemBase):
         raise _UnsupportedOperation(name)
 
     def _getsize_from_header(self, header):
-        """
-        Return the size from header
+        """Return the size from header.
 
         Args:
             header (dict): Object header.
@@ -228,8 +219,7 @@ class _S3System(_SystemBase):
             raise _UnsupportedOperation("getsize")
 
     def _head(self, client_kwargs):
-        """
-        Returns object or bucket HTTP header.
+        """Returns object or bucket HTTP header.
 
         Args:
             client_kwargs (dict): Client arguments.
@@ -249,10 +239,9 @@ class _S3System(_SystemBase):
         return header
 
     def _make_dir(self, client_kwargs):
-        """
-        Make a directory.
+        """Make a directory.
 
-        args:
+        Args:
             client_kwargs (dict): Client arguments.
         """
         with _handle_client_error():
@@ -267,10 +256,9 @@ class _S3System(_SystemBase):
             )
 
     def _remove(self, client_kwargs):
-        """
-        Remove an object.
+        """Remove an object.
 
-        args:
+        Args:
             client_kwargs (dict): Client arguments.
         """
         with _handle_client_error():
@@ -280,10 +268,9 @@ class _S3System(_SystemBase):
             return self.client.delete_bucket(Bucket=client_kwargs["Bucket"])
 
     def _list_locators(self, max_results):
-        """
-        Lists locators.
+        """List locators.
 
-        args:
+        Args:
             max_results (int): The maximum results that should return the method.
 
         Yields:
@@ -300,14 +287,13 @@ class _S3System(_SystemBase):
             yield bucket.pop("Name"), bucket, True
 
     def _list_objects(self, client_kwargs, path, max_results, first_level):
-        """
-        Lists objects.
+        """List objects.
 
-        args:
+        Args:
             client_kwargs (dict): Client arguments.
             path (str): Path.
             max_results (int): The maximum results that should return the method.
-            first_level (bool): It True, may only first level objects.
+            first_level (bool): If True, may only first level objects.
 
         Yields:
             tuple: object path str, object header dict, has content bool
@@ -334,8 +320,7 @@ class _S3System(_SystemBase):
                 break
 
     def _shareable_url(self, client_kwargs, expires_in):
-        """
-        Get a shareable URL for the specified path.
+        """Get a shareable URL for the specified path.
 
         Args:
             client_kwargs (dict): Client arguments.
@@ -354,7 +339,7 @@ class _S3System(_SystemBase):
 
 
 class S3RawIO(_ObjectRawIOBase):
-    """Binary S3 Object I/O
+    """Binary S3 Object I/O.
 
     Args:
         name (path-like object): URL or path to the file which will be opened.
@@ -366,19 +351,18 @@ class S3RawIO(_ObjectRawIOBase):
             'session': That pass its arguments to "boto3.session.Session";
             'client': That pass its arguments to "boto3.session.Session.client".
             May be optional if already configured on host.
-        unsecure (bool): If True, disables TLS/SSL to improves transfer performance.
+        unsecure (bool): If True, disables TLS/SSL to improve transfer performance.
             But makes connection unsecure.
     """
 
     _SYSTEM_CLASS = _S3System
 
     def _read_range(self, start, end=0):
-        """
-        Read a range of bytes in stream.
+        """Read a range of bytes in stream.
 
         Args:
             start (int): Start stream position.
-            end (int): End stream position. 0 To not specify end.
+            end (int): End stream position. 0 To not specify the end.
 
         Returns:
             bytes: number of bytes read
@@ -397,8 +381,7 @@ class S3RawIO(_ObjectRawIOBase):
         return response["Body"].read()
 
     def _readall(self):
-        """
-        Read and return all the bytes from the stream until EOF.
+        """Read and return all the bytes from the stream until EOF.
 
         Returns:
             bytes: Object content
@@ -407,8 +390,7 @@ class S3RawIO(_ObjectRawIOBase):
             return self._client.get_object(**self._client_kwargs)["Body"].read()
 
     def _flush(self, buffer):
-        """
-        Flush the write buffers of the stream if applicable.
+        """Flush the write buffers of the stream if applicable.
 
         Args:
             buffer (memoryview): Buffer content.
@@ -418,25 +400,7 @@ class S3RawIO(_ObjectRawIOBase):
 
 
 class S3BufferedIO(_ObjectBufferedIOBase):
-    """Buffered binary S3 Object I/O
-
-    Args:
-        name (path-like object): URL or path to the file which will be opened.
-        mode (str): The mode can be 'r', 'w' for reading (default) or writing
-        buffer_size (int): The size of buffer.
-        max_buffers (int): The maximum number of buffers to preload in read mode or
-            awaiting flush in write mode. 0 for no limit.
-        max_workers (int): The maximum number of threads that can be used to execute the
-            given calls.
-        storage_parameters (dict): Boto3 Session keyword arguments.
-            This is generally AWS credentials and configuration.
-            This dict should contain two sub-dicts:
-            'session': That pass its arguments to "boto3.session.Session";
-            'client': That pass its arguments to "boto3.session.Session.client".
-            May be optional if already configured on host.
-        unsecure (bool): If True, disables TLS/SSL to improves transfer performance.
-            But makes connection unsecure.
-    """
+    """Buffered binary S3 Object I/O."""
 
     __slots__ = ("_upload_args",)
 
@@ -446,14 +410,31 @@ class S3BufferedIO(_ObjectBufferedIOBase):
     MINIMUM_BUFFER_SIZE = 5242880
 
     def __init__(self, *args, **kwargs):
+        """Init.
+
+        Args:
+            name (path-like object): URL or path to the file which will be opened.
+            mode (str): The mode can be 'r', 'w' for reading (default) or writing
+            buffer_size (int): The size of buffer.
+            max_buffers (int): The maximum number of buffers to preload in read mode or
+                awaiting flush in "write" mode. 0 for no limit.
+            max_workers (int): The maximum number of threads that can be used to execute
+                the given calls.
+            storage_parameters (dict): Boto3 Session keyword arguments.
+                This is generally AWS credentials and configuration.
+                This dict should contain two sub-dicts:
+                'session': That pass its arguments to "boto3.session.Session";
+                'client': That pass its arguments to "boto3.session.Session.client".
+                May be optional if already configured on host.
+            unsecure (bool): If True, disables TLS/SSL to improve transfer performance.
+                But makes connection unsecure.
+        """
         _ObjectBufferedIOBase.__init__(self, *args, **kwargs)
         if self._writable:
             self._upload_args = self._client_kwargs.copy()
 
     def _flush(self):
-        """
-        Flush the write buffers of the stream.
-        """
+        """Flush the write buffers of the stream."""
         if "UploadId" not in self._upload_args:
             with _handle_client_error():
                 self._upload_args["UploadId"] = self._client.create_multipart_upload(
@@ -470,9 +451,7 @@ class S3BufferedIO(_ObjectBufferedIOBase):
         self._write_futures.append(dict(response=response, PartNumber=self._seek))
 
     def _close_writable(self):
-        """
-        Close the object in write mode.
-        """
+        """Close the object in "write" mode."""
         for part in self._write_futures:
             part["ETag"] = part.pop("response").result()["ETag"]
 

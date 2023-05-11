@@ -1,10 +1,10 @@
-"""Test airfs._core.io_buffered"""
+"""Test airfs._core.io_buffered."""
 import os
 import time
 
 
 def test_object_buffered_base_io():
-    """Tests airfs._core.io_buffered.ObjectBufferedIOBase"""
+    """Tests airfs._core.io_buffered.ObjectBufferedIOBase."""
     from airfs._core.io_base_raw import ObjectRawIOBase
     from airfs._core.io_base_buffered import ObjectBufferedIOBase
     from airfs._core.io_random_write import (
@@ -21,53 +21,53 @@ def test_object_buffered_base_io():
     flush_sleep = 0
 
     def flush(data):
-        """Dummy flush"""
+        """Dummy flush."""
         flushed.extend(data)
         time.sleep(flush_sleep)
 
     class DummySystem:
-        """Dummy system"""
+        """Dummy system."""
 
         client = None
 
         def __init__(self, **_):
-            """Do nothing"""
+            """Do nothing."""
 
         @staticmethod
         def getsize(*_, **__):
-            """Returns fake result"""
+            """Returns fake result."""
             return size
 
         @staticmethod
         def head(*_, **__):
-            """Returns fake result"""
+            """Returns fake result."""
             return {}
 
         @staticmethod
         def relpath(path):
-            """Returns fake result"""
+            """Returns fake result."""
             return path
 
         @staticmethod
         def get_client_kwargs(*_, **__):
-            """Returns fake result"""
+            """Returns fake result."""
             return {}
 
     class DummyRawIO(ObjectRawIOBase):
-        """Dummy IO"""
+        """Dummy IO."""
 
         _SYSTEM_CLASS = DummySystem
 
         def _flush(self, buffer):
-            """Do nothing"""
+            """Do nothing."""
             raw_flushed.extend(buffer)
 
         def _read_range(self, start, end=0):
-            """Read fake bytes"""
+            """Read fake bytes."""
             return ((size if end > size else end) - start) * b"0"
 
     class DummyBufferedIO(ObjectBufferedIOBase):
-        """Dummy buffered IO"""
+        """Dummy buffered IO."""
 
         _RAW_CLASS = DummyRawIO
         DEFAULT_BUFFER_SIZE = buffer_size
@@ -75,7 +75,7 @@ def test_object_buffered_base_io():
         MAXIMUM_BUFFER_SIZE = 10000
 
         def ensure_ready(self):
-            """Ensure flush is complete"""
+            """Ensure flush is complete."""
             while any(1 for future in self._write_futures if not future.done()):
                 time.sleep(0.01)
 
@@ -84,30 +84,30 @@ def test_object_buffered_base_io():
             self.close_called = False
 
         def _close_writable(self):
-            """Checks called"""
+            """Checks called."""
             self.close_called = True
             self.ensure_ready()
 
         def _flush(self):
-            """Flush"""
+            """Flush."""
             self._write_futures.append(
                 self._workers.submit(flush, self._write_buffer[: self._buffer_seek])
             )
 
     class DummyRawIOPartFlush(DummyRawIO, ObjectRawIORandomWriteBase):
-        """Dummy IO with part flush support"""
+        """Dummy IO with part flush support."""
 
         _size = 20
 
         def _flush(self, buffer, start, *_):
-            """Do nothing"""
+            """Do nothing."""
             if start == 50:
                 # Simulate buffer that need to wait previous one
                 time.sleep(0.1)
             raw_flushed.extend(buffer)
 
     class DummyBufferedIOPartFlush(ObjectBufferedIORandomWriteBase):
-        """Dummy buffered IO with part flush support"""
+        """Dummy buffered IO with part flush support."""
 
         _RAW_CLASS = DummyRawIOPartFlush
 
@@ -171,7 +171,7 @@ def test_object_buffered_base_io():
 
     # Tests: Read, EOF before theoretical EOF
     def read_range(*_, **__):
-        """Returns empty bytes"""
+        """Returns empty bytes."""
         return b""
 
     object_io = DummyBufferedIO(name, max_buffers=5)

@@ -1,4 +1,4 @@
-"""Test airfs._core.io_system"""
+"""Test airfs._core.io_system."""
 import time
 import re
 from wsgiref.handlers import format_date_time
@@ -7,7 +7,7 @@ import pytest
 
 
 def test_system_base():
-    """Tests airfs._core.io_system.SystemBase"""
+    """Tests airfs._core.io_system.SystemBase."""
     from airfs._core.io_base_system import SystemBase
     from airfs._core.exceptions import (
         ObjectNotFoundError,
@@ -45,24 +45,24 @@ def test_system_base():
     )
 
     class DummySystem(SystemBase):
-        """Dummy System"""
+        """Dummy System."""
 
         def get_client_kwargs(self, path):
-            """Checks arguments and returns fake result"""
+            """Checks arguments and returns fake result."""
             assert path
             dummy_client_kwargs["path"] = path
             return dummy_client_kwargs
 
         def _get_client(self):
-            """Returns fake result"""
+            """Returns fake result."""
             return client
 
         def _get_roots(self):
-            """Returns fake result"""
+            """Returns fake result."""
             return roots
 
         def _list_objects(self, client_kwargs, *_, **__):
-            """Checks arguments and returns fake result"""
+            """Checks arguments and returns fake result."""
             assert client_kwargs == dummy_client_kwargs
 
             path = client_kwargs["path"].strip("/")
@@ -75,25 +75,25 @@ def test_system_base():
                 return
 
         def _list_locators(self, *_, **__):
-            """Returns fake result"""
+            """Returns fake result."""
             for locator in locators:
                 yield locator, object_header.copy(), True
 
         def _head(self, client_kwargs):
-            """Checks arguments and returns fake result"""
+            """Checks arguments and returns fake result."""
             assert client_kwargs == dummy_client_kwargs
             if raise_not_exists_exception:
                 raise ObjectNotFoundError
             return object_header.copy()
 
         def _make_dir(self, client_kwargs):
-            """Checks arguments"""
+            """Checks arguments."""
             path = client_kwargs["path"]
             assert "/" not in path or path[-1] == "/"
             assert client_kwargs == dummy_client_kwargs
 
         def _remove(self, client_kwargs):
-            """Checks arguments"""
+            """Checks arguments."""
             assert client_kwargs == dummy_client_kwargs
 
     system = DummySystem(storage_parameters=storage_parameters)
@@ -211,7 +211,7 @@ def test_system_base():
     assert stat_result.etag == object_header["ETag"]
 
     def islink(header=None, **_):
-        """Checks arguments and returns fake result"""
+        """Checks arguments and returns fake result."""
         assert header is not None
         return True
 

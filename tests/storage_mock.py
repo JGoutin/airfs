@@ -1,4 +1,4 @@
-"""Test airfs.storage"""
+"""Test airfs.storage."""
 from contextlib import contextmanager as _contextmanager
 from copy import deepcopy as _deepcopy
 from threading import Lock as _Lock
@@ -7,18 +7,18 @@ from uuid import uuid4 as _uuid
 
 
 class ObjectStorageMock:
-    """
-    Mocked Object storage.
-
-    Args:
-        raise_404 (callable): Function to call to raise a 404 error (Not found).
-        raise_416 (callable): Function to call to raise a 416 error
-            (End Of File/Out of range).
-        raise_500 (callable): Function to call to raise a 500 error (Server exception).
-        base_exception (Exception subclass): Type of exception raised by the 500 error.
-    """
+    """Mocked Object storage."""
 
     def __init__(self, raise_404, raise_416, raise_500, format_date=None):
+        """Init.
+
+        Args:
+            raise_404 (callable): Function to call to raise a 404 error.
+            raise_416 (callable): Function to call to raise a 416 error
+                (End Of File/Out of range).
+            raise_500 (callable): Function to call to raise a 500 error.
+            format_date: Date formatter.
+        """
         self._put_lock = _Lock()
         self._system = None
         self._locators = {}
@@ -36,8 +36,7 @@ class ObjectStorageMock:
         self._format_date = format_date
 
     def attach_io_system(self, system):
-        """
-        Attach IO system to use.
+        """Attach IO system to use.
 
         Args:
             system (airfs._core.io_system.SystemBase subclass): IO system to use.
@@ -66,8 +65,7 @@ class ObjectStorageMock:
             self._raise_server_error = False
 
     def put_locator(self, locator):
-        """
-        Put a locator.
+        """Put a locator.
 
         Args:
             locator (str): locator name
@@ -81,8 +79,7 @@ class ObjectStorageMock:
             locator[self._header_mtime] = self._format_date(_time())
 
     def _get_locator(self, locator):
-        """
-        Get a locator.
+        """Get a locator.
 
         Args:
             locator (str): locator name
@@ -102,13 +99,12 @@ class ObjectStorageMock:
         relative=False,
         **_,
     ):
-        """
-        Get locator content.
+        """Get locator content.
 
         Args:
             locator (str): locator name
             prefix (str): Filter returned object with this prefix.
-            limit (int): Maximum number of result to return.
+            limit (int): Maximum number of results to return.
             raise_404_if_empty (bool): Raise 404 Error if empty.
             first_level (bool): If True, return only first level after prefix.
             relative (bool): If True, return objects names relative to prefix.
@@ -121,7 +117,6 @@ class ObjectStorageMock:
         headers = dict()
         for name, header in self._get_locator_content(locator).items():
             if name.startswith(prefix):
-
                 if (relative and prefix) or first_level:
                     if prefix:
                         name = name.split(prefix)[1].lstrip("/")
@@ -149,8 +144,7 @@ class ObjectStorageMock:
         return headers
 
     def get_locators(self):
-        """
-        Get locators headers.
+        """Get locators headers.
 
         Returns:
             dict: locators names, locators headers.
@@ -166,8 +160,7 @@ class ObjectStorageMock:
         return headers
 
     def _get_locator_content(self, locator):
-        """
-        Get locator content.
+        """Get locator content.
 
         Args:
             locator (str): locator name
@@ -178,8 +171,7 @@ class ObjectStorageMock:
         return self._get_locator(locator)["_content"]
 
     def head_locator(self, locator):
-        """
-        Get locator header
+        """Get locator header.
 
         Args:
             locator (str): locator name
@@ -189,8 +181,7 @@ class ObjectStorageMock:
         return header
 
     def get_locator_ctime(self, locator):
-        """
-        Get locator creation time.
+        """Get locator creation time.
 
         Args:
             locator (str): locator name
@@ -201,8 +192,7 @@ class ObjectStorageMock:
         return self._get_locator(locator)[self._header_ctime]
 
     def get_locator_mtime(self, locator):
-        """
-        Get locator modification time.
+        """Get locator modification time.
 
         Args:
             locator (str): locator name
@@ -213,8 +203,7 @@ class ObjectStorageMock:
         return self._get_locator(locator)[self._header_mtime]
 
     def get_locator_size(self, locator):
-        """
-        Get locator size.
+        """Get locator size.
 
         Args:
             locator (str): locator name
@@ -225,8 +214,7 @@ class ObjectStorageMock:
         return self._get_locator(locator)[self._header_size]
 
     def delete_locator(self, locator):
-        """
-        Delete locator.
+        """Delete locator.
 
         Args:
             locator (str): locator name
@@ -239,8 +227,7 @@ class ObjectStorageMock:
     def put_object(
         self, locator, path, content=None, headers=None, data_range=None, new_file=False
     ):
-        """
-        Put object.
+        """Put object.
 
         Args:
             locator (str): locator name
@@ -308,8 +295,7 @@ class ObjectStorageMock:
         return header
 
     def concat_objects(self, locator, path, parts):
-        """
-        Concatenates objects as one object.
+        """Concatenates objects as one object.
 
         Args:
             locator (str): locator name
@@ -325,8 +311,7 @@ class ObjectStorageMock:
         return self.put_object(locator, path, content)
 
     def copy_object(self, src_path, dst_path, src_locator=None, dst_locator=None):
-        """
-        Copy object.
+        """Copy the object.
 
         Args:
             src_path (str): Source object path.
@@ -351,8 +336,7 @@ class ObjectStorageMock:
             file[self._header_mtime] = self._format_date(_time())
 
     def _get_object(self, locator, path):
-        """
-        Get object.
+        """Get object.
 
         Args:
             locator (str): locator name
@@ -367,8 +351,7 @@ class ObjectStorageMock:
             self._raise_404()
 
     def get_object(self, locator, path, data_range=None, header=None):
-        """
-        Get object content.
+        """Get object content.
 
         Args:
             locator (str): locator name.
@@ -410,8 +393,7 @@ class ObjectStorageMock:
         return content[start:end]
 
     def head_object(self, locator, path):
-        """
-        Get object header.
+        """Get object header.
 
         Args:
             locator (str): locator name
@@ -425,8 +407,7 @@ class ObjectStorageMock:
         return header
 
     def get_object_ctime(self, locator, path):
-        """
-        Get object creation time.
+        """Get object creation time.
 
         Args:
             locator (str): locator name
@@ -438,8 +419,7 @@ class ObjectStorageMock:
         return self._get_object(locator, path)[self._header_ctime]
 
     def get_object_mtime(self, locator, path):
-        """
-        Get object modification time.
+        """Get object modification time.
 
         Args:
             locator (str): locator name
@@ -451,8 +431,7 @@ class ObjectStorageMock:
         return self._get_object(locator, path)[self._header_mtime]
 
     def get_object_size(self, locator, path):
-        """
-        Get object size.
+        """Get object size.
 
         Args:
             locator (str): locator name
@@ -464,13 +443,12 @@ class ObjectStorageMock:
         return self._get_object(locator, path)[self._header_size]
 
     def delete_object(self, locator, path, not_exists_ok=False):
-        """
-        Delete object.
+        """Delete object.
 
         Args:
             locator (str): locator name
             path (str): Object path.
-            not_exists_ok (bool): If True, do not raise if object not exist.
+            not_exists_ok (bool): If True, do not raise if object not exists.
         """
         try:
             del self._get_locator_content(locator)[path]
@@ -479,8 +457,7 @@ class ObjectStorageMock:
                 self._raise_404()
 
     def get_symlink(self, locator, path):
-        """
-        Get symlink target.
+        """Get symlink target.
 
         Args:
             locator (str): locator name
@@ -496,8 +473,7 @@ class ObjectStorageMock:
             self._raise_500()
 
     def put_symlink(self, locator, path, target):
-        """
-        Put symlink.
+        """Put symlink.
 
         Args:
             locator (str): locator name

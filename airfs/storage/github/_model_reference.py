@@ -1,20 +1,18 @@
-"""Wildcard reference object"""
+"""Wildcard reference object."""
 from airfs._core.exceptions import ObjectNotFoundError
 from airfs.storage.github._model_base import GithubObject
 from airfs.storage.github._model_git import Branch, Commit, Tag, Tree
 
 
 class Reference(GithubObject):
-    """
-    Can be any valid Git reference like tags, branches, commits or HEAD.
+    """Can be any valid Git reference like tags, branches, commits or HEAD.
 
     This class replaces itself with the relevant class.
     """
 
     @classmethod
     def _get_cls(cls, client, spec):
-        """
-        Get object class.
+        """Get object class.
 
         Args:
             client (airfs.storage.github._api.ApiV3): Client.
@@ -44,8 +42,7 @@ class Reference(GithubObject):
 
     @classmethod
     def head(cls, client, spec, headers=None):
-        """
-        Returns "head" result for the detected "_GithubObject" subclass.
+        """Return "head" result for the detected "_GithubObject" subclass.
 
         Args:
             client (airfs.storage.github._api.ApiV3): Client.
@@ -60,7 +57,7 @@ class Reference(GithubObject):
 
 
 class DefaultBranch(GithubObject):
-    """Default Git branch"""
+    """Default Git branch."""
 
     REF = "HEAD"
     STRUCT = Tree
@@ -68,8 +65,7 @@ class DefaultBranch(GithubObject):
 
     @classmethod
     def _get_branch(cls, client, spec):
-        """
-        Update spec with branch.
+        """Update spec with branch.
 
         Args:
             client (airfs.storage.github._api.ApiV3): Client.
@@ -82,13 +78,12 @@ class DefaultBranch(GithubObject):
 
     @classmethod
     def list(cls, client, spec, first_level=False):
-        """
-        List objects of this GitHub class matching the spec.
+        """List objects of this GitHub class matching the spec.
 
         Args:
             client (airfs.storage.github._api.ApiV3): Client.
             spec (dict): Item spec.
-            first_level (bool): It True, returns only first level objects.
+            first_level (bool): If True, returns only first level objects.
 
         Yields:
             tuple: object name str, object header dict, has content bool
@@ -98,8 +93,7 @@ class DefaultBranch(GithubObject):
 
     @classmethod
     def head(cls, client, spec, headers=None):
-        """
-        Head the object of this GitHub class matching the spec.
+        """Head the object of this GitHub class matching the spec.
 
         Returns a dict like object that can retrieve keys from this object response or
         its parents.

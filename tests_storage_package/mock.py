@@ -1,4 +1,4 @@
-"""airfs storage based on tests.storage_mock"""
+"""airfs storage based on tests.storage_mock."""
 
 from airfs.io import (
     SystemBase as _SystemBase,
@@ -11,36 +11,35 @@ from tests.storage_mock import ObjectStorageMock as _ObjectStorageMock
 
 
 def _raise_404():
-    """Raise 404 error"""
+    """Raise 404 error."""
     raise _exc.ObjectNotFoundError("Object not found")
 
 
 class MockException(Exception):
-    """Mock storage exception"""
+    """Mock storage exception."""
 
 
 class _Error416(MockException):
-    """416 Error"""
+    """416 Error."""
 
 
 def _raise_416():
-    """Raise 416 error"""
+    """Raise 416 error."""
     raise _Error416("Invalid range or End of file")
 
 
 def _raise_500():
-    """Raise 500 error"""
+    """Raise 500 error."""
     raise MockException("Server error")
 
 
 class MockSystem(_SystemBase):
-    """Mock System"""
+    """Mock System."""
 
     _CTIME_KEYS = ("Created",)
 
     def _get_client(self):
-        """
-        Storage client
+        """Storage client.
 
         Returns:
             tests.storage_mock.ObjectStorageMock: client
@@ -50,8 +49,7 @@ class MockSystem(_SystemBase):
         return storage_mock
 
     def get_client_kwargs(self, path):
-        """
-        Get base keyword arguments for client for a specific path.
+        """Get base keyword arguments for the client for a specific path.
 
         Args:
             path (str): Absolute path or URL.
@@ -66,8 +64,7 @@ class MockSystem(_SystemBase):
         return kwargs
 
     def _get_roots(self):
-        """
-        Return URL roots for this storage.
+        """Return URL roots for this storage.
 
         Returns:
             tuple of str or re.Pattern: URL roots
@@ -75,8 +72,7 @@ class MockSystem(_SystemBase):
         return ("mock://",)
 
     def _head(self, client_kwargs):
-        """
-        Returns object HTTP header.
+        """Return object HTTP header.
 
         Args:
             client_kwargs (dict): Client arguments.
@@ -89,10 +85,9 @@ class MockSystem(_SystemBase):
         return self.client.head_locator(**client_kwargs)
 
     def _make_dir(self, client_kwargs):
-        """
-        Make a directory.
+        """Make a directory.
 
-        args:
+        Args:
             client_kwargs (dict): Client arguments.
         """
         if "path" in client_kwargs:
@@ -100,22 +95,20 @@ class MockSystem(_SystemBase):
         return self.client.put_locator(**client_kwargs)
 
     def copy(self, src, dst, other_system=None):
-        """
-        Copy object of the same storage.
+        """Copy an object of the same storage.
 
         Args:
             src (str): Path or URL.
             dst (str): Path or URL.
             other_system (airfs._core.io_system.SystemBase subclass):
-                Other storage system. May be required for some storage.
+                Another storage system. May be required for some storage.
         """
         self.client.copy_object(src_path=self.relpath(src), dst_path=self.relpath(dst))
 
     def _remove(self, client_kwargs):
-        """
-        Remove an object.
+        """Remove an object.
 
-        args:
+        Args:
             client_kwargs (dict): Client arguments.
         """
         if "path" in client_kwargs:
@@ -123,8 +116,7 @@ class MockSystem(_SystemBase):
         return self.client.delete_locator(**client_kwargs)
 
     def _list_locators(self, max_results):
-        """
-        Lists locators.
+        """List locators.
 
         Yields:
             tuple: locator name str, locator header dict, has content bool
@@ -133,14 +125,13 @@ class MockSystem(_SystemBase):
             yield locator, headers, True
 
     def _list_objects(self, client_kwargs, path, max_results, first_level):
-        """
-        Lists objects.
+        """List objects.
 
-        args:
+        Args:
             client_kwargs (dict): Client arguments.
             path (str): Path to list.
             max_results (int): The maximum results that should return the method.
-            first_level (bool): It True, may only first level objects.
+            first_level (bool): If True, may only first level objects.
 
         Yields:
             tuple: object path str, object header dict, has content bool
@@ -162,8 +153,7 @@ class MockSystem(_SystemBase):
             yield name[index:], headers, False
 
     def _shareable_url(self, client_kwargs, expires_in):
-        """
-        Get a shareable URL for the specified path.
+        """Get a shareable URL for the specified path.
 
         Args:
             client_kwargs (dict): Client arguments.
@@ -181,8 +171,7 @@ class MockSystem(_SystemBase):
             raise _exc.ObjectNotImplementedError()
 
     def islink(self, path=None, client_kwargs=None, header=None):
-        """
-        Returns True if object is a symbolic link.
+        """Return True if the object is a symbolic link.
 
         Args:
             path (str): File path or URL.
@@ -190,15 +179,14 @@ class MockSystem(_SystemBase):
             header (dict): Object header.
 
         Returns:
-            bool: True if object is Symlink.
+            bool: True if the object is Symlink.
         """
         if client_kwargs is None:
             client_kwargs = self.get_client_kwargs(path)
         return "_target" in self.client.head_object(**client_kwargs)
 
     def read_link(self, path=None, client_kwargs=None, header=None):
-        """
-        Return the path linked by the symbolic link.
+        """Return the path linked by the symbolic link.
 
         Args:
             path (str): File path or URL.
@@ -216,13 +204,12 @@ class MockSystem(_SystemBase):
 
 
 class MockRawIO(_ObjectRawIORandomWriteBase):
-    """Mock Raw IO"""
+    """Mock Raw IO."""
 
     _SYSTEM_CLASS = MockSystem
 
     def _flush(self, buffer, start, end):
-        """
-        Flush the write buffers of the stream if applicable.
+        """Flush the write buffers of the stream if applicable.
 
         Args:
             buffer (memoryview): Buffer content.
@@ -236,18 +223,15 @@ class MockRawIO(_ObjectRawIORandomWriteBase):
         )
 
     def _create(self):
-        """
-        Create the file if not exists.
-        """
+        """Create the file if not exists."""
         self._client.put_object(new_file=True, **self._client_kwargs)
 
     def _read_range(self, start, end=0):
-        """
-        Read a range of bytes in stream.
+        """Read a range of bytes in stream.
 
         Args:
             start (int): Start stream position.
-            end (int): End stream position. 0 To not specify end.
+            end (int): End stream position. 0 To not specify the end.
 
         Returns:
             bytes: number of bytes read
@@ -261,6 +245,6 @@ class MockRawIO(_ObjectRawIORandomWriteBase):
 
 
 class MockBufferedIO(_ObjectBufferedIORandomWriteBase):
-    """Mock Buffered IO"""
+    """Mock Buffered IO."""
 
     _RAW_CLASS = MockRawIO

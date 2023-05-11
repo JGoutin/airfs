@@ -1,4 +1,4 @@
-"""Cloud storage abstract IO classes with random write support"""
+"""Cloud storage abstract IO classes with random write support."""
 from abc import abstractmethod
 from functools import partial
 from io import UnsupportedOperation
@@ -11,19 +11,19 @@ from airfs._core.exceptions import handle_os_exceptions, ObjectNotFoundError
 
 
 class ObjectRawIORandomWriteBase(ObjectRawIOBase):
-    """
-    Base class for binary storage object I/O that support flushing parts of file
-    instead of requiring flushing the full file at once.
+    """Base class for raw binary storage object I/O with partial flush support.
+
+    Objects that support flushing parts of file instead of requiring flushing the full
+    file at once.
     """
 
     def _init_append(self):
-        """
-        Initializes file on 'a' mode.
-        """
+        """Initializes file on 'a' mode."""
         self._seek = self._size
 
     def flush(self):
-        """
+        """Flush.
+
         Flush the write buffers of the stream if applicable and save the object on the
         storage.
         """
@@ -41,8 +41,7 @@ class ObjectRawIORandomWriteBase(ObjectRawIOBase):
 
     @abstractmethod
     def _flush(self, buffer, start, end):
-        """
-        Flush the write buffers of the stream if applicable.
+        """Flush the write buffers of the stream if applicable.
 
         Args:
             buffer (memoryview): Buffer content.
@@ -53,23 +52,20 @@ class ObjectRawIORandomWriteBase(ObjectRawIOBase):
         """
 
     def _create(self):
-        """
-        Create the file if not exists.
-        """
+        """Create the file if not exists."""
         self._flush(memoryview(b""), 0, 0)
 
     def seek(self, offset, whence=SEEK_SET):
-        """
-        Change the stream position to the given byte offset.
+        """Change the stream position to the given byte offset.
 
         Args:
             offset (int): Offset is interpreted relative to the position indicated by
                 whence.
             whence (int): The default value for whence is SEEK_SET. Values are:
-                SEEK_SET or 0 – start of the stream (the default);
+                SEEK_SET or 0 – Start of the stream (the default);
                 offset should be zero or positive
-                SEEK_CUR or 1 – current stream position; offset may be negative
-                SEEK_END or 2 – end of the stream; offset is usually negative
+                SEEK_CUR or 1 – Current stream position; offset may be negative
+                SEEK_END or 2 – End of the stream; offset is usually negative
 
         Returns:
             int: The new absolute position.
@@ -83,19 +79,15 @@ class ObjectRawIORandomWriteBase(ObjectRawIOBase):
 
 
 class ObjectBufferedIORandomWriteBase(ObjectBufferedIOBase):
-    """
-    Buffered base class for binary storage object I/O that support flushing parts
-    of file instead of requiring flushing the full file at once.
-    """
+    """Base class for buffered binary storage object I/O with partial flush support."""
 
     # Need to be flagged because it is not an abstract class
     __DEFAULT_CLASS = False
 
     def _flush(self):
-        """
-        Flush the write buffers of the stream if applicable.
+        """Flush the write buffers of the stream if applicable.
 
-        In write mode, send the buffer content to the storage object.
+        In "write" mode, send the buffer content to the storage object.
         """
         buffer = self._get_buffer()
         start = self._buffer_size * (self._seek - 1)
@@ -108,8 +100,7 @@ class ObjectBufferedIORandomWriteBase(ObjectBufferedIOBase):
         future.add_done_callback(partial(self._update_size, end))
 
     def _update_size(self, size, future):
-        """
-        Keep track of the file size during writing.
+        """Keep track of the file size during writing.
 
         If specified size value is greater than the current size, update the current
         size using specified value.
@@ -127,10 +118,9 @@ class ObjectBufferedIORandomWriteBase(ObjectBufferedIOBase):
                 self._size = size
 
     def _flush_range(self, buffer, start, end):
-        """
-        Flush a buffer to a range of the file.
+        """Flush a buffer to a range of the file.
 
-        Meant to be used asynchronously, used to provides parallel flushing of file
+        Meant to be used asynchronously, used to provide parallel flushing of file
         parts when applicable.
 
         Args:

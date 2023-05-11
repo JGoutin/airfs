@@ -1,4 +1,4 @@
-"""Test airfs.storage.s3"""
+"""Test airfs.storage.s3."""
 import pytest
 
 pytest.importorskip("boto3")
@@ -11,7 +11,7 @@ UNSUPPORTED_OPERATIONS = (
 
 
 def test_handle_client_error():
-    """Test airfs.s3._handle_client_error"""
+    """Test airfs.s3._handle_client_error."""
     from airfs.storage.s3 import _handle_client_error
     from botocore.exceptions import ClientError  # type: ignore
     from airfs._core.exceptions import ObjectNotFoundError, ObjectPermissionError
@@ -37,7 +37,7 @@ def test_handle_client_error():
 
 
 def test_mocked_storage():
-    """Tests airfs.s3 with a mock"""
+    """Tests airfs.s3 with a mock."""
     from datetime import datetime
     from io import BytesIO, UnsupportedOperation
 
@@ -52,17 +52,17 @@ def test_mocked_storage():
     # Mocks client
 
     def raise_404():
-        """Raise 404 error"""
+        """Raise 404 error."""
         raise ClientError({"Error": {"Code": "404", "Message": "Error"}}, "Error")
 
     def raise_416():
-        """Raise 416 error"""
+        """Raise 416 error."""
         raise ClientError(
             {"Error": {"Code": "InvalidRange", "Message": "Error"}}, "Error"
         )
 
     def raise_500():
-        """Raise 500 error"""
+        """Raise 500 error."""
         raise ClientError({"Error": {"Code": "Error", "Message": "Error"}}, "Error")
 
     storage_mock = ObjectStorageMock(
@@ -72,15 +72,15 @@ def test_mocked_storage():
     no_head = False
 
     class Client:
-        """boto3.client"""
+        """boto3.client."""
 
         def __init__(self, *_, **kwargs):
-            """boto3.client.__init__"""
+            """boto3.client.__init__."""
             self.kwargs = kwargs
 
         @staticmethod
         def get_object(Bucket=None, Key=None, Range=None, **_):
-            """boto3.client.get_object"""
+            """boto3.client.get_object."""
             return dict(
                 Body=BytesIO(
                     storage_mock.get_object(Bucket, Key, header=dict(Range=Range))
@@ -89,34 +89,34 @@ def test_mocked_storage():
 
         @staticmethod
         def head_object(Bucket=None, Key=None, **_):
-            """boto3.client.head_object"""
+            """boto3.client.head_object."""
             if no_head:
                 return dict()
             return storage_mock.head_object(Bucket, Key)
 
         @staticmethod
         def put_object(Bucket=None, Key=None, Body=None, **_):
-            """boto3.client.put_object"""
+            """boto3.client.put_object."""
             storage_mock.put_object(Bucket, Key, Body, new_file=True)
 
         @staticmethod
         def delete_object(Bucket=None, Key=None, **_):
-            """boto3.client.delete_object"""
+            """boto3.client.delete_object."""
             storage_mock.delete_object(Bucket, Key)
 
         @staticmethod
         def head_bucket(Bucket=None, **_):
-            """boto3.client.head_bucket"""
+            """boto3.client.head_bucket."""
             return storage_mock.head_locator(Bucket)
 
         @staticmethod
         def create_bucket(Bucket=None, **_):
-            """boto3.client.create_bucket"""
+            """boto3.client.create_bucket."""
             storage_mock.put_locator(Bucket)
 
         @staticmethod
         def copy_object(Bucket=None, Key=None, CopySource=None, **_):
-            """boto3.client.copy_object"""
+            """boto3.client.copy_object."""
             storage_mock.copy_object(
                 CopySource["Key"],
                 Key,
@@ -126,18 +126,17 @@ def test_mocked_storage():
 
         @staticmethod
         def delete_bucket(Bucket=None, **_):
-            """boto3.client.delete_bucket"""
+            """boto3.client.delete_bucket."""
             storage_mock.delete_locator(Bucket)
 
         @staticmethod
         def list_objects_v2(Bucket=None, Prefix=None, MaxKeys=None, **_):
-            """boto3.client.list_objects_v2"""
+            """boto3.client.list_objects_v2."""
             objects = []
 
             for name, header in storage_mock.get_locator(
                 Bucket, prefix=Prefix, limit=MaxKeys, raise_404_if_empty=False
             ).items():
-
                 header["Key"] = name
                 objects.append(header)
 
@@ -147,7 +146,7 @@ def test_mocked_storage():
 
         @staticmethod
         def list_buckets(**__):
-            """boto3.client.list_buckets"""
+            """boto3.client.list_buckets."""
             objects = []
             for name, header in storage_mock.get_locators().items():
                 header["Name"] = name
@@ -157,14 +156,14 @@ def test_mocked_storage():
 
         @staticmethod
         def create_multipart_upload(**_):
-            """boto3.client.create_multipart_upload"""
+            """boto3.client.create_multipart_upload."""
             return dict(UploadId=123)
 
         @staticmethod
         def complete_multipart_upload(
             Bucket=None, Key=None, MultipartUpload=None, UploadId=None, **_
         ):
-            """boto3.client.complete_multipart_upload"""
+            """boto3.client.complete_multipart_upload."""
             uploaded_parts = MultipartUpload["Parts"]
             assert UploadId == 123
 
@@ -179,24 +178,24 @@ def test_mocked_storage():
         def upload_part(
             Bucket=None, Key=None, PartNumber=None, Body=None, UploadId=None, **_
         ):
-            """boto3.client.upload_part"""
+            """boto3.client.upload_part."""
             assert UploadId == 123
             return storage_mock.put_object(Bucket, Key + str(PartNumber), Body)
 
         @staticmethod
         def generate_presigned_url(ClientMethod, Params=None, **_):
-            """boto3.client.generate_presigned_url"""
+            """boto3.client.generate_presigned_url."""
             assert ClientMethod == "get_object", "get_object Client method"
             return f"https://{Params['Bucket']}/{Params['Key']}#token=123456"
 
     class Session:
-        """boto3.session.Session"""
+        """boto3.session.Session."""
 
         client = Client
         region_name = ""
 
         def __init__(self, *_, **__):
-            """boto3.session.Session.__init__"""
+            """boto3.session.Session.__init__."""
 
     boto3_client = boto3.client
     boto3_session_session = boto3.session.Session
@@ -217,7 +216,6 @@ def test_mocked_storage():
             storage_mock,
             unsupported_operations=UNSUPPORTED_OPERATIONS,
         ) as tester:
-
             # Common tests
             tester.test_common()
 

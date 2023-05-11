@@ -1,4 +1,4 @@
-"""Github as a filesystem model"""
+"""GitHub as a filesystem model."""
 from airfs._core.exceptions import ObjectNotImplementedError
 from airfs.storage.github._model_archive import Archive
 from airfs.storage.github._model_base import GithubObject
@@ -8,7 +8,7 @@ from airfs.storage.github._model_release import LatestRelease, Release, ReleaseD
 
 
 class Repo(GithubObject):
-    """Git repository"""
+    """Git repository."""
 
     KEY = "repo"
     LIST = "/users/{owner}/repos"
@@ -43,7 +43,7 @@ class Repo(GithubObject):
 
 
 class Owner(GithubObject):
-    """GitHub Owner (User or Organization)"""
+    """GitHub Owner (User or Organization)."""
 
     KEY = "owner"
     HEAD = "/users/{owner}"
@@ -60,13 +60,12 @@ class Owner(GithubObject):
 
     @classmethod
     def list(cls, client, spec, first_level=False):
-        """
-        List objects of this GitHub class matching the spec.
+        """List objects of this GitHub class matching the spec.
 
         Args:
             client (airfs.storage.github._api.ApiV3): Client.
             spec (dict): Item spec.
-            first_level (bool): It True, returns only first level objects.
+            first_level (bool): If True, returns only first level objects.
 
         Returns:
             generator of tuple: object name str, object header dict, has content bool
@@ -75,16 +74,15 @@ class Owner(GithubObject):
 
 
 class Root(GithubObject):
-    """GitHub Root"""
+    """GitHub Root."""
 
     STRUCT = Owner
 
     @classmethod
     def head_obj(cls, client, spec):
-        """
-        Head the object of this GitHub class matching the spec.
+        """Head the object of this GitHub class matching the spec.
 
-        Only return result directly from current object response as dict.
+        Only return result directly from the current object response as dict.
 
         Args:
             client (airfs.storage.github._api.ApiV3): Client.

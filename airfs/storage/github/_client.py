@@ -1,4 +1,5 @@
-"""GitHub API client
+"""GitHub API client.
+
 https://developer.github.com/v3/
 """
 from datetime import datetime, timedelta
@@ -33,27 +34,15 @@ _CODES_CONVERSION = {
 
 
 class GithubRateLimitException(AirfsException):
-    """Exception if rate limit reached"""
+    """Exception if rate limit reached."""
 
 
 class GithubRateLimitWarning(AirfsWarning):
-    """Warning if rate limit reached and waiting"""
+    """Warning if rate limit reached and waiting."""
 
 
 class Client:
-    """
-    GitHub REST API client.
-
-    Args:
-        token (str): GitHub API authentication token.
-        wait_rate_limit (bool): If True, wait if API rate limit is reached, else raise
-            "airfs.storage.github.GithubRateLimitException" exception.
-        wait_warn (bool): If True and "wait_rate_limit" is True, warn using
-            "airfs.storage.github.GithubRateLimitWarning" when waiting for rate limit
-            reset for the first time.
-        wait_retry_delay (int or float): Delay in seconds between two API get attempt
-            when waiting for rate limit reset.
-    """
+    """GitHub REST API client."""
 
     _RATE_LIMIT_WARNED = False
 
@@ -70,6 +59,18 @@ class Client:
     def __init__(
         self, token=None, wait_rate_limit=True, wait_warn=True, wait_retry_delay=60
     ):
+        """Init.
+
+        Args:
+            token (str): GitHub API authentication token.
+            wait_rate_limit (bool): If True, wait if API rate limit is reached, else
+                raise"airfs.storage.github.GithubRateLimitException" exception.
+            wait_warn (bool): If True and "wait_rate_limit" is True, warn using
+                "airfs.storage.github.GithubRateLimitWarning" when waiting for rate
+                limit reset for the first time.
+            wait_retry_delay (int or float): Delay in seconds between two API get
+                attempt when waiting for rate limit reset.
+        """
         self._wait_rate_limit = wait_rate_limit
         self._wait_warn = wait_warn
         self._wait_retry_delay = wait_retry_delay
@@ -79,13 +80,12 @@ class Client:
         self._request = self.session.request
 
     def _api_headers(self, previous_headers=None):
-        """
-        Return headers to use to make requests to GitHub API.
+        """Return headers to use to make requests to GitHub API.
 
         Args:
             previous_headers (dict): Headers from a previous cached identical request.
                 Used to perform a conditional request to check if data was updated
-                without consume the rate limit.
+                without consuming the rate limit.
 
         Returns:
             dict or None: API request headers.
@@ -112,8 +112,7 @@ class Client:
         return self._headers
 
     def request(self, path, method="GET", **kwargs):
-        """
-        Perform an HTTP request over the GitHub API and other GitHub domains.
+        """Perform an HTTP request over the GitHub API and other GitHub domains.
 
         Handle the case where the API rate-limit is reached.
 
@@ -143,9 +142,10 @@ class Client:
             return response
 
     def get(self, path, params=None, never_expire=False):
-        """
-        Get result from the GitHub API. Also handle caching of result to speed up
-        futures requests and improve rate-limit consumption.
+        """Get the result from the GitHub API.
+
+        Also handle caching of the result to speed up future requests and improve
+        rate-limit consumption.
 
         Args:
             path (str): GitHub API path.
@@ -185,8 +185,7 @@ class Client:
         return result, headers
 
     def get_paged(self, path, params=None):
-        """
-        Get a multiple paged result from the GitHub API.
+        """Get a multiple paged result from the GitHub API.
 
         Args:
             path (str): GitHub API path.
@@ -220,14 +219,13 @@ class Client:
 
     @staticmethod
     def _parse_link_header(links):
-        """
-        Get number of the last page from the "Link" header.
+        """Get number on the last page from the "Link" header.
 
         Args:
             links (str): "Links" header value.
 
         Returns:
-            int: Number of the last page.
+            int: Number on the last page.
         """
         for link in links.split(","):
             url, rel = link.split(";", 1)
@@ -236,9 +234,7 @@ class Client:
         raise RuntimeError('Last page not found in "Link" header: ' + links)
 
     def _handle_rate_limit(self):
-        """
-        Wait until remaining rate limit is greater than 0, or raise exception.
-        """
+        """Wait until the remaining rate limit is greater than 0, or raise exception."""
         if not self._wait_rate_limit:
             raise GithubRateLimitException(self._rate_limit_reached())
 
@@ -246,7 +242,6 @@ class Client:
         headers = self._api_headers()
         remaining = 0
         while remaining == 0:
-
             if self._wait_warn and not Client._RATE_LIMIT_WARNED:
                 from warnings import warn
 
@@ -258,8 +253,7 @@ class Client:
             remaining = int((resp.json())["resources"]["core"]["remaining"])
 
     def _rate_limit_reached(self, waiting=False):
-        """
-        Rate limit message for exception or warning.
+        """Rate limit message for exception or warning.
 
         Args:
             waiting (bool): True if waiting for reset.

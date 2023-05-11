@@ -1,4 +1,4 @@
-"""Test Standard library modules replacements"""
+"""Test Standard library modules replacements."""
 
 
 def test_os():

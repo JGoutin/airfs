@@ -1,16 +1,16 @@
-"""Test airfs._core.cache"""
+"""Test airfs._core.cache."""
 import pytest
 
 
 def test_hash_name():
-    """Test airfs._core.cache._hash_name"""
+    """Test airfs._core.cache._hash_name."""
     from airfs._core.cache import _hash_name
 
     assert len(_hash_name("test")) == 64, "Hash length"
 
 
 def test_cache(tmpdir):
-    """Test cache functions"""
+    """Test cache functions."""
     import airfs._core.cache as cache
     from time import sleep
 

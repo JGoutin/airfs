@@ -1,4 +1,4 @@
-"""Cloud storage abstract buffered IO class"""
+"""Cloud storage abstract buffered IO class."""
 from abc import abstractmethod
 from concurrent.futures import as_completed
 from io import BufferedIOBase, UnsupportedOperation
@@ -13,22 +13,7 @@ from airfs._core.exceptions import handle_os_exceptions
 
 
 class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
-    """
-    Base class for buffered binary storage object I/O
-
-    Args:
-        name (path-like object): URL or path to the file which will be opened.
-        mode (str): The mode can be 'r' (default), 'w' for reading (default) or writing.
-        buffer_size (int): The size of buffer.
-        max_buffers (int): The maximum number of buffers to preload in read mode or
-            awaiting flush in write mode. 0 for no limit.
-        max_workers (int): The maximum number of threads that can be used to execute the
-            given calls.
-        storage_parameters (dict): Storage configuration parameters.
-            Generally, client configuration and credentials.
-        unsecure (bool): If True, disables TLS/SSL to improves transfer performance.
-            But makes connection unsecure.
-    """
+    """Base class for buffered binary storage object I/O."""
 
     __slots__ = (
         "_raw",
@@ -69,7 +54,22 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
         max_workers=None,
         **kwargs
     ):
+        """Init.
 
+        Args:
+            name (path-like object): URL or path to the file which will be opened.
+            mode (str): The mode can be 'r' (default), 'w' for reading (default) or
+                writing.
+            buffer_size (int): The size of buffer.
+            max_buffers (int): The maximum number of buffers to preload in read mode or
+                awaiting flush in "write" mode. 0 for no limit.
+            max_workers (int): The maximum number of threads that can be used to execute
+                the given calls.
+            storage_parameters (dict): Storage configuration parameters.
+                Generally, client configuration and credentials.
+            unsecure (bool): If True, disables TLS/SSL to improve transfer performance.
+                But makes connection unsecure.
+        """
         if "a" in mode:
             raise NotImplementedError('"a" mode not implemented yet')
 
@@ -118,8 +118,7 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
 
     @property
     def _client(self):
-        """
-        Returns client instance.
+        """Returns client instance.
 
         Returns:
             client
@@ -127,9 +126,7 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
         return self._raw._client
 
     def close(self):
-        """
-        Flush the write buffers of the stream if applicable and close the object.
-        """
+        """Flush the write buffers of the stream if applicable and close the object."""
         if self._writable and not self._closed:
             self._closed = True
             with self._seek_lock:
@@ -139,8 +136,7 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
                     self._close_writable()
 
     def _close_writable(self):
-        """
-        Closes the object in write mode.
+        """Closes the object in "write" mode.
 
         Performs any finalization operation required to complete the object writing on
         the storage.
@@ -149,9 +145,7 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
             future.result()
 
     def flush(self):
-        """
-        Flush the write buffers of the stream if applicable.
-        """
+        """Flush the write buffers of the stream if applicable."""
         if self._writable:
             with self._seek_lock:
                 self._flush_raw_or_buffered()
@@ -159,18 +153,16 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
                 self._buffer_seek = 0
 
     def _flush_raw_or_buffered(self):
-        """
-        Flush using raw of buffered methods.
-        """
+        """Flush using raw of buffered methods."""
         # Flush only if bytes written
-        # This avoid no required process/thread creation and network call.
+        # This avoids no required process/thread creation and network call.
         # This step is performed by raw stream.
         if self._buffer_seek and self._seek:
             self._seek += 1
             with handle_os_exceptions():
                 self._flush()
 
-        # If data lower than buffer size flush data with raw stream to reduce IO calls
+        # If data lower than buffer size, flush data with raw stream to reduce IO calls
         elif self._buffer_seek:
             self._raw._write_buffer = self._get_buffer()
             self._raw._seek = self._buffer_seek
@@ -178,15 +170,13 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
 
     @abstractmethod
     def _flush(self):
-        """
-        Flush the write buffers of the stream if applicable.
+        """Flush the write buffers of the stream if applicable.
 
-        In write mode, send the buffer content to the storage object.
+        In "write" mode, send the buffer content to the storage object.
         """
 
     def _get_buffer(self):
-        """
-        Get a memory view of the current write buffer until its seek value.
+        """Get a memory view of the current write buffer until its seek value.
 
         Returns:
             memoryview: buffer view.
@@ -194,8 +184,7 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
         return memoryview(self._write_buffer)[: self._buffer_seek]
 
     def peek(self, size=-1):
-        """
-        Return bytes from the stream without advancing the position.
+        """Return bytes from the stream without advancing the position.
 
         Args:
             size (int): Number of bytes to read. -1 to read the full stream.
@@ -211,7 +200,7 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
             return self._raw._peek(size)
 
     def _preload_range(self):
-        """Preload data for reading"""
+        """Preload data for reading."""
         queue = self._read_queue
         size = self._buffer_size
         start = self._seek
@@ -230,8 +219,7 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
 
     @property
     def raw(self):
-        """
-        The underlying raw stream
+        """The underlying raw stream.
 
         Returns:
             ObjectRawIOBase subclass: Raw stream.
@@ -239,14 +227,15 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
         return self._raw
 
     def read(self, size=-1):
-        """
+        """Read the object content.
+
         Read and return up to size bytes, with at most one call to the underlying raw
         stream.
 
         Use at most one call to the underlying raw stream’s read method.
 
         Args:
-            size (int): Number of bytes to read. -1 to read the stream until end.
+            size (int): Number of bytes to read. -1 to read the stream until the end.
 
         Returns:
             bytes: Object content
@@ -288,14 +277,15 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
         return memoryview(buffer)[:read_size].tobytes()
 
     def read1(self, size=-1):
-        """
+        """Read the object content.
+
         Read and return up to size bytes, with at most one call to the underlying raw
         stream.
 
         Use at most one call to the underlying raw stream’s read method.
 
         Args:
-            size (int): Number of bytes to read. -1 to read the stream until end.
+            size (int): Number of bytes to read. -1 to read the stream until the end.
 
         Returns:
             bytes: Object content
@@ -303,7 +293,8 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
         return self._raw.read(size)
 
     def readinto(self, b):
-        """
+        """Read the object content into a buffer.
+
         Read bytes into a pre-allocated, writable bytes-like object b, and return the
         number of bytes read.
 
@@ -327,7 +318,7 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
 
             size = len(b)
             if size:
-                # Preallocated buffer: Use memory view to avoid copies
+                # Pre-allocated buffer: Use memory view to avoid copies
                 b_view = memoryview(b)
                 size_left = size
             else:
@@ -391,7 +382,8 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
         return b_end
 
     def readinto1(self, b):
-        """
+        """Read the object content into a buffer.
+
         Read bytes into a pre-allocated, writable bytes-like object b, and return the
         number of bytes read.
 
@@ -406,17 +398,16 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
         return self._raw.readinto(b)
 
     def seek(self, offset, whence=SEEK_SET):
-        """
-        Change the stream position to the given byte offset.
+        """Change the stream position to the given byte offset.
 
         Args:
             offset: Offset is interpreted relative to the position indicated by
                 whence.
             whence: The default value for whence is SEEK_SET. Values are:
-                SEEK_SET or 0 – start of the stream (the default);
+                SEEK_SET or 0 – Start of the stream (the default);
                 offset should be zero or positive
-                SEEK_CUR or 1 – current stream position; offset may be negative
-                SEEK_END or 2 – end of the stream; offset is usually negative
+                SEEK_CUR or 1 – Current stream position; offset may be negative
+                SEEK_END or 2 – End of the stream; offset is usually negative
 
         Returns:
             int: The new absolute position.
@@ -433,7 +424,8 @@ class ObjectBufferedIOBase(BufferedIOBase, ObjectIOBase, WorkerPoolBase):
         return seek
 
     def write(self, b):
-        """
+        """Write into the object.
+
         Write the given bytes-like object, b, to the underlying raw stream, and return
         the number of bytes written.
 

@@ -1,4 +1,4 @@
-"""OpenStack Swift"""
+"""OpenStack Swift."""
 from contextlib import contextmanager as _contextmanager
 from json import dumps as _dumps
 
@@ -24,8 +24,7 @@ _ERROR_CODES = {403: _ObjectPermissionError, 404: _ObjectNotFoundError}
 
 @_contextmanager
 def _handle_client_exception():
-    """
-    Handle Swift exception and convert to class IO exceptions
+    """Handle Swift exception and convert to class IO exceptions.
 
     Raises:
         OSError subclasses: IO error.
@@ -40,14 +39,13 @@ def _handle_client_exception():
 
 
 class _SwiftSystem(_SystemBase):
-    """
-    Swift system.
+    """Swift system.
 
     Args:
         storage_parameters (dict): Swift connection keyword arguments.
             This is generally OpenStack credentials and configuration.
             (see "swiftclient.client.Connection" for more information)
-        unsecure (bool): If True, disables TLS/SSL to improves transfer performance.
+        unsecure (bool): If True, disables TLS/SSL to improve transfer performance.
             But makes connection unsecure.
     """
 
@@ -56,8 +54,7 @@ class _SwiftSystem(_SystemBase):
     _MTIME_KEYS = ("last-modified", "last_modified")
 
     def copy(self, src, dst, other_system=None):
-        """
-        Copy object of the same storage.
+        """Copy an object of the same storage.
 
         Args:
             src (str): Path or URL.
@@ -71,8 +68,7 @@ class _SwiftSystem(_SystemBase):
             )
 
     def get_client_kwargs(self, path):
-        """
-        Get base keyword arguments for client for a specific path.
+        """Get base keyword arguments for the client for a specific path.
 
         Args:
             path (str): Absolute path or URL.
@@ -87,8 +83,7 @@ class _SwiftSystem(_SystemBase):
         return kwargs
 
     def _get_client(self):
-        """
-        Swift client
+        """Swift client.
 
         Returns:
             swiftclient.client.Connection: client
@@ -107,8 +102,7 @@ class _SwiftSystem(_SystemBase):
         return _swift.client.Connection(**kwargs)
 
     def _get_roots(self):
-        """
-        Return URL roots for this storage.
+        """Return URL roots for this storage.
 
         Returns:
             tuple of str or re.Pattern: URL roots
@@ -118,8 +112,7 @@ class _SwiftSystem(_SystemBase):
         return (self.client.get_auth()[0],)
 
     def _head(self, client_kwargs):
-        """
-        Returns object HTTP header.
+        """Returns object HTTP header.
 
         Args:
             client_kwargs (dict): Client arguments.
@@ -134,10 +127,9 @@ class _SwiftSystem(_SystemBase):
             return self.client.head_container(**client_kwargs)
 
     def _make_dir(self, client_kwargs):
-        """
-        Make a directory.
+        """Make a directory.
 
-        args:
+        Args:
             client_kwargs (dict): Client arguments.
         """
         with _handle_client_exception():
@@ -149,10 +141,9 @@ class _SwiftSystem(_SystemBase):
             return self.client.put_container(client_kwargs["container"])
 
     def _remove(self, client_kwargs):
-        """
-        Remove an object.
+        """Remove an object.
 
-        args:
+        Args:
             client_kwargs (dict): Client arguments.
         """
         with _handle_client_exception():
@@ -164,10 +155,9 @@ class _SwiftSystem(_SystemBase):
             return self.client.delete_container(client_kwargs["container"])
 
     def _list_locators(self, max_results):
-        """
-        Lists locators.
+        """List locators.
 
-        args:
+        Args:
             max_results (int): The maximum results that should return the method.
 
         Yields:
@@ -186,14 +176,13 @@ class _SwiftSystem(_SystemBase):
             yield container.pop("name"), container, True
 
     def _list_objects(self, client_kwargs, path, max_results, first_level):
-        """
-        Lists objects.
+        """List objects.
 
-        args:
+        Args:
             client_kwargs (dict): Client arguments.
             path (str): Path to list.
             max_results (int): The maximum results that should return the method.
-            first_level (bool): It True, may only first level objects.
+            first_level (bool): If True, may only first level objects.
 
         Yields:
             tuple: object path str, object header dict, has content bool
@@ -213,8 +202,7 @@ class _SwiftSystem(_SystemBase):
             yield obj.pop("name")[index:], obj, False
 
     def _shareable_url(self, client_kwargs, expires_in):
-        """
-        Get a shareable URL for the specified path.
+        """Get a shareable URL for the specified path.
 
         Args:
             client_kwargs (dict): Client arguments.
@@ -247,7 +235,7 @@ class _SwiftSystem(_SystemBase):
 
 
 class SwiftRawIO(_ObjectRawIOBase):
-    """Binary OpenStack Swift Object I/O
+    """Binary OpenStack Swift Object I/O.
 
     Args:
         name (path-like object): URL or path to the file which will be opened.
@@ -255,11 +243,11 @@ class SwiftRawIO(_ObjectRawIOBase):
             appending.
         buffer_size (int): The size of buffer.
         max_buffers (int): The maximum number of buffers to preload in read mode or
-            awaiting flush in write mode. 0 for no limit.
+            awaiting flush in "write" mode. 0 for no limit.
         storage_parameters (dict): Swift connection keyword arguments.
             This is generally OpenStack credentials and configuration.
             (see "swiftclient.client.Connection" for more information)
-        unsecure (bool): If True, disables TLS/SSL to improves transfer performance.
+        unsecure (bool): If True, disables TLS/SSL to improve transfer performance.
             But makes connection unsecure.
     """
 
@@ -268,8 +256,7 @@ class SwiftRawIO(_ObjectRawIOBase):
     @property  # type: ignore
     @_memoizedmethod
     def _client_args(self):
-        """
-        Client arguments as tuple.
+        """Client arguments as tuple.
 
         Returns:
             tuple of str: Client args.
@@ -277,12 +264,11 @@ class SwiftRawIO(_ObjectRawIOBase):
         return (self._client_kwargs["container"], self._client_kwargs["obj"])
 
     def _read_range(self, start, end=0):
-        """
-        Read a range of bytes in stream.
+        """Read a range of bytes in stream.
 
         Args:
             start (int): Start stream position.
-            end (int): End stream position. 0 To not specify end.
+            end (int): End stream position. 0 To not specify the end.
 
         Returns:
             bytes: number of bytes read
@@ -300,8 +286,7 @@ class SwiftRawIO(_ObjectRawIOBase):
             raise
 
     def _readall(self):
-        """
-        Read and return all the bytes from the stream until EOF.
+        """Read and return all the bytes from the stream until EOF.
 
         Returns:
             bytes: Object content
@@ -310,8 +295,7 @@ class SwiftRawIO(_ObjectRawIOBase):
             return self._client.get_object(*self._client_args)[1]
 
     def _flush(self, buffer):
-        """
-        Flush the write buffers of the stream if applicable.
+        """Flush the write buffers of the stream if applicable.
 
         Args:
             buffer (memoryview): Buffer content.
@@ -322,26 +306,26 @@ class SwiftRawIO(_ObjectRawIOBase):
 
 
 class SwiftBufferedIO(_ObjectBufferedIOBase):
-    """Buffered binary OpenStack Swift Object I/O
-
-    Args:
-        name (path-like object): URL or path to the file which will be opened.
-        mode (str): The mode can be 'r', 'w' for reading (default) or writing
-        max_workers (int): The maximum number of threads that can be used to execute the
-            given calls.
-        storage_parameters (dict): Swift connection keyword arguments.
-            This is generally OpenStack credentials and configuration.
-            (see "swiftclient.client.Connection" for more information)
-        unsecure (bool): If True, disables TLS/SSL to improves transfer performance.
-            But makes connection unsecure.
-    """
+    """Buffered binary OpenStack Swift Object I/O."""
 
     __slots__ = ("_container", "_object_name", "_segment_name")
 
     _RAW_CLASS = SwiftRawIO
 
     def __init__(self, *args, **kwargs):
+        """Init.
 
+        Args:
+            name (path-like object): URL or path to the file which will be opened.
+            mode (str): The mode can be 'r', 'w' for reading (default) or writing
+            max_workers (int): The maximum number of threads that can be used to execute
+                the given calls.
+            storage_parameters (dict): Swift connection keyword arguments.
+                This is generally OpenStack credentials and configuration.
+                (see "swiftclient.client.Connection" for more information)
+            unsecure (bool): If True, disables TLS/SSL to improve transfer performance.
+                But makes connection unsecure.
+        """
         _ObjectBufferedIOBase.__init__(self, *args, **kwargs)
 
         self._container, self._object_name = self._raw._client_args
@@ -350,9 +334,7 @@ class SwiftBufferedIO(_ObjectBufferedIOBase):
             self._segment_name = self._object_name + ".%03d"
 
     def _flush(self):
-        """
-        Flush the write buffers of the stream.
-        """
+        """Flush the write buffers of the stream."""
         name = self._segment_name % self._seek
         response = self._workers.submit(
             self._client.put_object, self._container, name, self._get_buffer()
@@ -363,9 +345,7 @@ class SwiftBufferedIO(_ObjectBufferedIOBase):
         )
 
     def _close_writable(self):
-        """
-        Close the object in write mode.
-        """
+        """Close the object in "write" mode."""
         for segment in self._write_futures:
             segment["etag"] = segment["etag"].result()
 

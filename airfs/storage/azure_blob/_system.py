@@ -1,4 +1,4 @@
-"""Microsoft Azure Blobs Storage: System"""
+"""Microsoft Azure Blobs Storage: System."""
 import re
 
 from azure.storage.blob import (  # type: ignore
@@ -18,20 +18,18 @@ _DEFAULT_BLOB_TYPE = _BlobTypes.BlockBlob
 
 
 class _AzureBlobSystem(_AzureBaseSystem):
-    """
-    Azure Blobs Storage system.
+    """Azure Blobs Storage system.
 
     Args:
         storage_parameters (dict): Azure service keyword arguments.
             This is generally Azure credentials and configuration. See
             "azure.storage.blob.baseblobservice.BaseBlobService" for more information.
-        unsecure (bool): If True, disables TLS/SSL to improves transfer performance.
+        unsecure (bool): If True, disables TLS/SSL to improve transfer performance.
             But makes connection unsecure.
     """
 
     def copy(self, src, dst, other_system=None):
-        """
-        Copy object of the same storage.
+        """Copy an object of the same storage.
 
         Args:
             src (str): Path or URL.
@@ -46,8 +44,7 @@ class _AzureBlobSystem(_AzureBaseSystem):
             )
 
     def _get_client(self):
-        """
-        Azure blob service
+        """Azure blob service.
 
         Returns:
             dict of azure.storage.blob.baseblobservice.BaseBlobService subclass: Service
@@ -68,8 +65,7 @@ class _AzureBlobSystem(_AzureBaseSystem):
     @property  # type: ignore
     @memoizedmethod
     def _client_block(self):
-        """
-        Storage client
+        """Storage client.
 
         Returns:
             azure.storage.blob.blockblobservice.BlockBlobService: client
@@ -79,8 +75,7 @@ class _AzureBlobSystem(_AzureBaseSystem):
     @property  # type: ignore
     @memoizedmethod
     def _default_blob_type(self):
-        """
-        Return default blob type to use when creating objects.
+        """Return the default blob type to use when creating objects.
 
         Returns:
             str: Blob type.
@@ -88,9 +83,7 @@ class _AzureBlobSystem(_AzureBaseSystem):
         return self._storage_parameters.get("blob_type", _DEFAULT_BLOB_TYPE)
 
     def get_client_kwargs(self, path):
-        """
-        Get base keyword arguments for client for a
-        specific path.
+        """Get base keyword arguments for the client for a specific path.
 
         Args:
             path (str): Absolute path or URL.
@@ -109,8 +102,7 @@ class _AzureBlobSystem(_AzureBaseSystem):
         return kwargs
 
     def _get_roots(self):
-        """
-        Return URL roots for this storage.
+        """Return URL roots for this storage.
 
         Returns:
             tuple of str or re.Pattern: URL roots
@@ -123,8 +115,7 @@ class _AzureBlobSystem(_AzureBaseSystem):
         return (re.compile(r"^https?://%s\.blob\.%s" % self._get_endpoint("blob")),)
 
     def _head(self, client_kwargs):
-        """
-        Returns object or bucket HTTP header.
+        """Return object or bucket HTTP header.
 
         Args:
             client_kwargs (dict): Client arguments.
@@ -142,10 +133,9 @@ class _AzureBlobSystem(_AzureBaseSystem):
         return self._model_to_dict(result)
 
     def _list_locators(self, max_results):
-        """
-        Lists locators.
+        """List locators.
 
-        args:
+        Args:
             max_results (int): The maximum results that should return the method.
 
         Yields:
@@ -158,14 +148,13 @@ class _AzureBlobSystem(_AzureBaseSystem):
                 yield container.name, self._model_to_dict(container), True
 
     def _list_objects(self, client_kwargs, path, max_results, first_level):
-        """
-        Lists objects.
+        """List objects.
 
-        args:
+        Args:
             client_kwargs (dict): Client arguments.
             path (str): Path to list.
             max_results (int): The maximum results that should return the method.
-            first_level (bool): It True, may only first level objects.
+            first_level (bool): If True, may only first level objects.
 
         Yields:
             tuple: object path str, object header dict, has content bool
@@ -183,10 +172,9 @@ class _AzureBlobSystem(_AzureBaseSystem):
             raise ObjectNotFoundError(path=path)
 
     def _make_dir(self, client_kwargs):
-        """
-        Make a directory.
+        """Make a directory.
 
-        args:
+        Args:
             client_kwargs (dict): Client arguments.
         """
         with _handle_azure_exception():
@@ -198,10 +186,9 @@ class _AzureBlobSystem(_AzureBaseSystem):
             return self._client_block.create_container(**client_kwargs)
 
     def _remove(self, client_kwargs):
-        """
-        Remove an object.
+        """Remove an object.
 
-        args:
+        Args:
             client_kwargs (dict): Client arguments.
         """
         with _handle_azure_exception():
@@ -211,8 +198,7 @@ class _AzureBlobSystem(_AzureBaseSystem):
             return self._client_block.delete_container(**client_kwargs)
 
     def _shareable_url(self, client_kwargs, expires_in):
-        """
-        Get a shareable URL for the specified path.
+        """Get a shareable URL for the specified path.
 
         Args:
             client_kwargs (dict): Client arguments.

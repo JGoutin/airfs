@@ -1,12 +1,14 @@
-"""Pytest configuration"""
+"""Pytest configuration."""
 from os import environ as _environ
 
 _environ["AIRFS_FULLTRACEBACK"] = "1"
 
 
 def pytest_addoption(parser):
-    """
-    Add command lines arguments
+    """Add command lines arguments.
+
+    Args:
+        parser: Parser.
     """
     parser.addoption(
         "--mount",
@@ -17,14 +19,18 @@ def pytest_addoption(parser):
     parser.addoption(
         "--filter_id",
         action="store",
-        help='Allow to run only a subset of tests specified with "--mount". '
-        "Comma separated list of tests ID to run (ID: <storage>_<id_prefix>).",
+        help=(
+            'Allow to run only a subset of tests specified with "--mount". '
+            "Comma separated list of tests ID to run (ID: <storage>_<id_prefix>)."
+        ),
     )
 
 
 def pytest_generate_tests(metafunc):
-    """
-    Generate test for mounted storage.
+    """Generate test for mounted storage.
+
+    Args:
+        metafunc: Metafunc.
     """
     if "storage_test_kwargs" in metafunc.fixturenames:
         config_path = metafunc.config.getoption("mount")

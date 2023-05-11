@@ -1,4 +1,4 @@
-"""Cloud object compatibles standard library 'shutil' equivalent functions"""
+"""Cloud object compatibles standard library 'shutil' equivalent functions."""
 from os.path import join, basename
 from shutil import (
     copy as shutil_copy,
@@ -19,8 +19,7 @@ from airfs._core.storage_manager import get_instance
 
 
 def _copy(src, dst, src_is_storage, dst_is_storage, follow_symlinks):
-    """
-    Copies file from source to destination
+    """Copy file from source to destination.
 
     Args:
         src (str or file-like object): Source file.
@@ -59,8 +58,7 @@ def _copy(src, dst, src_is_storage, dst_is_storage, follow_symlinks):
 
 
 def _copy_stream(dst, src):
-    """
-    Copy files by streaming content from source to destination.
+    """Copy files by streaming content from source to destination.
 
     Args:
         src (str or file-like object): Source file.
@@ -80,8 +78,7 @@ def _copy_stream(dst, src):
 
 
 def copy(src, dst, *, follow_symlinks=True):
-    """
-    Copies a source file to a destination file or directory.
+    """Copy a source file to a destination file or directory.
 
     Equivalent to "shutil.copy".
 
@@ -114,8 +111,7 @@ def copy(src, dst, *, follow_symlinks=True):
 
 
 def copyfile(src, dst, *, follow_symlinks=True):
-    """
-    Copies a source file to a destination file.
+    """Copy a source file to a destination file.
 
     Equivalent to "shutil.copyfile".
 

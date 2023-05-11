@@ -1,4 +1,4 @@
-"""GitHub"""
+"""GitHub."""
 from re import compile
 
 ROOTS = (

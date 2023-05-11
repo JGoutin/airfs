@@ -1,4 +1,4 @@
-"""Cloud storage abstract System"""
+"""Cloud storage abstract System."""
 from abc import abstractmethod, ABC
 from collections import OrderedDict, namedtuple
 from re import compile, Pattern
@@ -18,20 +18,12 @@ from airfs._core.functions_core import SeatsCounter
 
 
 class SystemBase(ABC, WorkerPoolBase):
-    """
-    Cloud storage system handler.
+    """Cloud storage system handler.
 
     This class subclasses are not intended to be public and are implementation details.
 
-    This base system is for Object storage that does not handles files with a true
+    This base system is for Object storage that does not handle files with a true
     hierarchy like file systems. Directories are virtual with this kind of storage.
-
-    Args:
-        storage_parameters (dict): Storage configuration parameters.
-            Generally, client configuration and credentials.
-        unsecure (bool): If True, disables TLS/SSL to improves transfer performance.
-            But makes connection unsecure.
-        roots (tuple): Tuple of roots to force use.
     """
 
     __slots__ = (
@@ -46,7 +38,7 @@ class SystemBase(ABC, WorkerPoolBase):
     #: If True, storage support symlinks
     SUPPORTS_SYMLINKS = False
 
-    # By default, assumes that information are in a standard HTTP header
+    # By default, assumes that information is in a standard HTTP header
     _SIZE_KEYS = ("Content-Length",)
     _CTIME_KEYS = ()
     _MTIME_KEYS = ("Last-Modified",)
@@ -54,6 +46,15 @@ class SystemBase(ABC, WorkerPoolBase):
     _CHAR_FILTER = compile(r"[^a-z0-9_]*")
 
     def __init__(self, storage_parameters=None, unsecure=False, roots=None, **_):
+        """Init.
+
+        Args:
+            storage_parameters (dict): Storage configuration parameters.
+                Generally, client configuration and credentials.
+            unsecure (bool): If True, disables TLS/SSL to improve transfer performance.
+                But makes connection unsecure.
+            roots (tuple): Tuple of roots to force use.
+        """
         WorkerPoolBase.__init__(self)
 
         if storage_parameters:
@@ -79,8 +80,7 @@ class SystemBase(ABC, WorkerPoolBase):
 
     @property
     def storage(self):
-        """
-        Storage name
+        """Storage name.
 
         Returns:
             str: Storage
@@ -89,8 +89,7 @@ class SystemBase(ABC, WorkerPoolBase):
 
     @property
     def client(self):
-        """
-        Storage client
+        """Storage client.
 
         Returns:
             client
@@ -100,28 +99,27 @@ class SystemBase(ABC, WorkerPoolBase):
         return self._client
 
     def copy(self, src, dst, other_system=None):
-        """
-        Copy object of the same storage.
+        """Copy an object of the same storage.
 
         Args:
             src (str): Path or URL.
             dst (str): Path or URL.
             other_system (airfs._core.io_system.SystemBase subclass):
-                Other storage system. May be required for some storage.
+                Another storage system. May be required for some storage.
         """
-        # This method is intended to copy objects to and from a same storage
+        # This method is intended to copy objects to and from the same storage
 
         # It is possible to define methods to copy from a different storage by creating
         # a "copy_from_<src_storage>" method for the target storage and, vice versa, to
         # copy to a different storage by creating a "copy_to_<dst_storage>" method.
 
-        # Theses methods must have the same signature as "copy".
+        # These methods must have the same signature as "copy".
         # "other_system" is optional and will be:
         # - The destination storage system with "copy_to_<src_storage>" method.
         # - The source storage system with "copy_from_<src_storage>" method.
         # - None elsewhere.
 
-        # Note that if no "copy_from"/'copy_to" methods are defined, copy are performed
+        # Note that if no "copy_from"/"copy_to" methods are defined, copy is performed
         # over the current machine with "shutil.copyfileobj".
         raise ObjectUnsupportedOperation
 
@@ -133,13 +131,12 @@ class SystemBase(ABC, WorkerPoolBase):
         header=None,
         follow_symlinks=None,
     ):
-        """
-        Return True if path refers to an existing path.
+        """Return True if the path refers to an existing path.
 
         Args:
             path (str): Path or URL.
             client_kwargs (dict): Client arguments.
-            assume_exists (bool or None): This value define the value to return in the
+            assume_exists (bool or None): This value defines the value to return in
                 case there is no enough permission to determinate the existing status of
                 the file. If set to None, the permission exception is reraised
                 (Default behavior). if set to True or False, return this value.
@@ -164,8 +161,7 @@ class SystemBase(ABC, WorkerPoolBase):
 
     @abstractmethod
     def _get_client(self):
-        """
-        Storage client
+        """Storage client.
 
         Returns:
             client
@@ -173,8 +169,7 @@ class SystemBase(ABC, WorkerPoolBase):
 
     @abstractmethod
     def get_client_kwargs(self, path):
-        """
-        Get base keyword arguments for client for a specific path.
+        """Get base keyword arguments for the client for a specific path.
 
         Args:
             path (str): Absolute path or URL.
@@ -184,8 +179,7 @@ class SystemBase(ABC, WorkerPoolBase):
         """
 
     def getctime(self, path=None, client_kwargs=None, header=None):
-        """
-        Return the creation time of path.
+        """Return the creation time of path.
 
         Args:
             path (str): File path or URL.
@@ -198,8 +192,7 @@ class SystemBase(ABC, WorkerPoolBase):
         return self._getctime_from_header(self.head(path, client_kwargs, header))
 
     def _getctime_from_header(self, header):
-        """
-        Return the time from header
+        """Return the time from header.
 
         Args:
             header (dict): Object header.
@@ -210,8 +203,7 @@ class SystemBase(ABC, WorkerPoolBase):
         return self._get_time(header, self._CTIME_KEYS, "getctime")
 
     def getmtime(self, path=None, client_kwargs=None, header=None):
-        """
-        Return the time of last access of path.
+        """Return the time of last access of path.
 
         Args:
             path (str): File path or URL.
@@ -224,8 +216,7 @@ class SystemBase(ABC, WorkerPoolBase):
         return self._getmtime_from_header(self.head(path, client_kwargs, header))
 
     def _getmtime_from_header(self, header):
-        """
-        Return the time from header
+        """Return the time from header.
 
         Args:
             header (dict): Object header.
@@ -237,8 +228,7 @@ class SystemBase(ABC, WorkerPoolBase):
 
     @staticmethod
     def _get_time(header, keys, name):
-        """
-        Get time from header
+        """Get time from header.
 
         Args:
             header (dict): Object header.
@@ -261,16 +251,14 @@ class SystemBase(ABC, WorkerPoolBase):
 
     @abstractmethod
     def _get_roots(self):
-        """
-        Return URL roots for this storage.
+        """Return URL roots for this storage.
 
         Returns:
             tuple of str or re.Pattern: URL roots
         """
 
     def getsize(self, path=None, client_kwargs=None, header=None):
-        """
-        Return the size, in bytes, of path.
+        """Return the size, in bytes, of path.
 
         Args:
             path (str): File path or URL.
@@ -283,8 +271,7 @@ class SystemBase(ABC, WorkerPoolBase):
         return self._getsize_from_header(self.head(path, client_kwargs, header))
 
     def _getsize_from_header(self, header):
-        """
-        Return the size from header
+        """Return the size from header.
 
         Args:
             header (dict): Object header.
@@ -309,15 +296,14 @@ class SystemBase(ABC, WorkerPoolBase):
         header=None,
         follow_symlinks=None,
     ):
-        """
-        Return True if path is an existing directory.
+        """Return True if the path is an existing directory.
 
         Args:
             path (str): Path or URL.
             client_kwargs (dict): Client arguments.
             virtual_dir (bool): If True, checks if directory exists virtually if an
                 object path if not exists as a specific object.
-            assume_exists (bool or None): This value define the value to return in the
+            assume_exists (bool or None): This value defines the value to return in
                 case there is no enough permission to determinate the existing status of
                 the file. If set to None, the permission exception is reraised
                 (Default behavior). if set to True or False, return this value.
@@ -355,13 +341,12 @@ class SystemBase(ABC, WorkerPoolBase):
         header=None,
         follow_symlinks=None,
     ):
-        """
-        Return True if path is an existing regular file.
+        """Return True if the path is an existing regular file.
 
         Args:
             path (str): Path or URL.
             client_kwargs (dict): Client arguments.
-            assume_exists (bool or None): This value define the value to return in the
+            assume_exists (bool or None): This value defines the value to return in
                 case there is no enough permission to determinate the existing status of
                 the file. If set to None, the permission exception is reraised
                 (Default behavior). if set to True or False, return this value.
@@ -384,8 +369,7 @@ class SystemBase(ABC, WorkerPoolBase):
 
     @property
     def storage_parameters(self):
-        """
-        Storage parameters
+        """Storage parameters.
 
         Returns:
             dict: Storage parameters
@@ -394,8 +378,7 @@ class SystemBase(ABC, WorkerPoolBase):
 
     @abstractmethod
     def _head(self, client_kwargs):
-        """
-        Returns object HTTP header.
+        """Returns object HTTP header.
 
         Args:
             client_kwargs (dict): Client arguments.
@@ -405,8 +388,7 @@ class SystemBase(ABC, WorkerPoolBase):
         """
 
     def head(self, path=None, client_kwargs=None, header=None):
-        """
-        Returns object HTTP header.
+        """Returns object HTTP header.
 
         Args:
             path (str): Path or URL.
@@ -424,8 +406,7 @@ class SystemBase(ABC, WorkerPoolBase):
 
     @property
     def roots(self):
-        """
-        Return URL roots for this storage.
+        """Return URL roots for this storage.
 
         Returns:
             tuple of str: URL roots
@@ -434,8 +415,7 @@ class SystemBase(ABC, WorkerPoolBase):
 
     @roots.setter
     def roots(self, roots):
-        """
-        Set URL roots for this storage.
+        """Set URL roots for this storage.
 
         Args:
             roots (tuple of str): URL roots
@@ -443,10 +423,9 @@ class SystemBase(ABC, WorkerPoolBase):
         self._roots = roots
 
     def relpath(self, path):
-        """
-        Get path relative to storage.
+        """Get the path relative to storage.
 
-        args:
+        Args:
             path (str): Absolute path or URL.
 
         Returns:
@@ -468,10 +447,9 @@ class SystemBase(ABC, WorkerPoolBase):
         return path
 
     def is_abs(self, path):
-        """
-        Return True if path is absolute in this storage.
+        """Return True if the path is absolute in this storage.
 
-        args:
+        Args:
             path (str): Path or URL.
 
         Returns:
@@ -486,12 +464,12 @@ class SystemBase(ABC, WorkerPoolBase):
         return False
 
     def is_locator(self, path, relative=False):
-        """
-        Returns True if path refer to a locator.
+        """Returns True if the path refer to a locator.
 
-        Depending the storage, locator may be a bucket or container name, a hostname,...
+        Depending on the storage, locator may be a bucket or container name,
+        a hostname,...
 
-        args:
+        Args:
             path (str): path or URL.
             relative (bool): Path is relative to current root.
 
@@ -503,10 +481,9 @@ class SystemBase(ABC, WorkerPoolBase):
         return path and "/" not in path.rstrip("/")
 
     def split_locator(self, path):
-        """
-        Split the path into a pair (locator, path).
+        """Split the path into a pair (locator, path).
 
-        args:
+        Args:
             path (str): Absolute path or URL.
 
         Returns:
@@ -521,8 +498,7 @@ class SystemBase(ABC, WorkerPoolBase):
         return locator, tail
 
     def make_dir(self, path, relative=False):
-        """
-        Make a directory.
+        """Make a directory.
 
         Args:
             path (str): Path or URL.
@@ -535,17 +511,15 @@ class SystemBase(ABC, WorkerPoolBase):
         )
 
     def _make_dir(self, client_kwargs):
-        """
-        Make a directory.
+        """Make a directory.
 
-        args:
+        Args:
             client_kwargs (dict): Client arguments.
         """
         raise ObjectUnsupportedOperation("mkdir")
 
     def remove(self, path, relative=False):
-        """
-        Remove an object.
+        """Remove an object.
 
         Args:
             path (str): Path or URL.
@@ -556,17 +530,15 @@ class SystemBase(ABC, WorkerPoolBase):
         self._remove(self.get_client_kwargs(path))
 
     def _remove(self, client_kwargs):
-        """
-        Remove an object.
+        """Remove an object.
 
-        args:
+        Args:
             client_kwargs (dict): Client arguments.
         """
         raise ObjectUnsupportedOperation("remove")
 
     def ensure_dir_path(self, path, relative=False):
-        """
-        Ensure the path is a dir path.
+        """Ensure the path is a dir path.
 
         Should end with '/' except for schemes and locators.
 
@@ -593,15 +565,14 @@ class SystemBase(ABC, WorkerPoolBase):
     def list_objects(
         self, path="", relative=False, first_level=False, max_results=None
     ):
-        """
-        List objects.
+        """List objects.
 
         Returns object path (relative to input "path") and object headers.
 
         Args:
             path (str): Path or URL.
             relative (bool): Path is relative to current root.
-            first_level (bool): It True, returns only first level objects.
+            first_level (bool): If True, returns only first level objects.
                 Else, returns full tree.
             max_results (int): If specified, the maximum result count returned.
 
@@ -633,8 +604,7 @@ class SystemBase(ABC, WorkerPoolBase):
                 return
 
     def _list_all_levels(self, generator, path, seats):
-        """
-        Recursively yields all level entries.
+        """Recursively yields all level entries.
 
         Args:
             generator (iterable of tuple): path str, header dict, directory bool
@@ -684,8 +654,7 @@ class SystemBase(ABC, WorkerPoolBase):
 
     @staticmethod
     def _list_first_level_only(generator):
-        """
-        Yield the first level entries only.
+        """Yield the first level entries only.
 
         Args:
             generator (iterable of tuple): path str, header dict, has content bool
@@ -715,10 +684,9 @@ class SystemBase(ABC, WorkerPoolBase):
             yield obj_path + "/", dict()
 
     def _list_locators(self, max_results):
-        """
-        Lists locators.
+        """List locators.
 
-        args:
+        Args:
             max_results (int): The maximum results that should return the method.
 
         Yields:
@@ -728,15 +696,14 @@ class SystemBase(ABC, WorkerPoolBase):
         raise ObjectUnsupportedOperation("listdir")
 
     def _list_objects(self, client_kwargs, path, max_results, first_level):
-        """
-        Lists objects.
+        """List objects.
 
-        args:
+        Args:
             client_kwargs (dict): Client arguments.
             path (str): Path to list.
             max_results (int): The maximum results that should return the method.
                 None if no limit.
-            first_level (bool): It True, may only first level objects.
+            first_level (bool): If True, may only first level objects.
 
         Yields:
             tuple: object path str, object header dict, has content bool
@@ -748,8 +715,8 @@ class SystemBase(ABC, WorkerPoolBase):
         # - The object headers
         # - The "had content" bool that must be True if the object has sub-content that
         #   should be listed recursively by the function. For instance, it should be
-        #   False for files, True for directories that are list without there content
-        #   and False for directories that are list with their content.
+        #   False for files, True for directories that are a list without there content
+        #   and False for directories that are a list with their content.
         #
         # Returning only first level entries with "first_level" or only the maximum
         # entries with "max_results" are optional, these parameters are mainly
@@ -758,8 +725,7 @@ class SystemBase(ABC, WorkerPoolBase):
         raise ObjectUnsupportedOperation("listdir")
 
     def islink(self, path=None, client_kwargs=None, header=None):
-        """
-        Returns True if object is a symbolic link.
+        """Returns True if the object is a symbolic link.
 
         Args:
             path (str): File path or URL.
@@ -767,13 +733,12 @@ class SystemBase(ABC, WorkerPoolBase):
             header (dict): Object header.
 
         Returns:
-            bool: True if object is Symlink.
+            bool: True if the object is Symlink.
         """
         return False
 
     def _getuid(self, path=None, client_kwargs=None, header=None):
-        """
-        Get object user ID.
+        """Get object user ID.
 
         Args:
             path (str): File path or URL.
@@ -787,8 +752,7 @@ class SystemBase(ABC, WorkerPoolBase):
         return getuid()
 
     def _getgid(self, path=None, client_kwargs=None, header=None):
-        """
-        Get object group ID.
+        """Get object group ID.
 
         Args:
             path (str): File path or URL.
@@ -802,8 +766,7 @@ class SystemBase(ABC, WorkerPoolBase):
         return getgid()
 
     def _getmode(self, path=None, client_kwargs=None, header=None):
-        """
-        Get object permission mode in Unix format.
+        """Get object permission mode in Unix format.
 
         Args:
             path (str): File path or URL.
@@ -817,8 +780,7 @@ class SystemBase(ABC, WorkerPoolBase):
         return 0o644
 
     def stat(self, path=None, client_kwargs=None, header=None, follow_symlinks=None):
-        """
-        Get the status of an object.
+        """Get the status of an object.
 
         Args:
             path (str): File path or URL.
@@ -885,8 +847,7 @@ class SystemBase(ABC, WorkerPoolBase):
         return stat_result(**stat)
 
     def read_link(self, path=None, client_kwargs=None, header=None):
-        """
-        Return the path linked by the symbolic link.
+        """Return the path linked by the symbolic link.
 
         Args:
             path (str): File path or URL.
@@ -899,8 +860,7 @@ class SystemBase(ABC, WorkerPoolBase):
         raise ObjectUnsupportedOperation("symlink")
 
     def symlink(self, target, path=None, client_kwargs=None):
-        """
-        Creates a symbolic link to target.
+        """Creates a symbolic link to target.
 
         Args:
             target (str): Target path or URL.
@@ -910,23 +870,22 @@ class SystemBase(ABC, WorkerPoolBase):
         raise ObjectUnsupportedOperation("symlink")
 
     def resolve(self, path=None, client_kwargs=None, header=None, follow_symlinks=None):
-        """
-        Follow symlinks and return input arguments updated for target.
+        """Follow symlinks and return input arguments updated for target.
 
         Args:
             path (str): File path or URL.
             client_kwargs (dict): Client arguments.
             header (dict): Object header.
             follow_symlinks (bool): If True, follow symlink if any.
-                If False, return input directly if symlink are supported by storage,
-                else raise NotImplementedError. If None, same as False but returns
+                If False, return input directly if symlink is supported by storage,
+                else raise NotImplementedError. If None, the same as False but returns
                 input instead of raising exception.
 
         Returns:
             tuple: path, client_kwargs, headers of the target.
 
         Raises:
-            ObjectNotImplementedError: follow_symlink is False on storage that do not
+            ObjectNotImplementedError: follow_symlink is False on storage that does not
                 support symlink.
         """
         if not self.SUPPORTS_SYMLINKS and follow_symlinks is False:
@@ -936,8 +895,7 @@ class SystemBase(ABC, WorkerPoolBase):
         return self._resolve(path, client_kwargs, header)
 
     def _resolve(self, path=None, client_kwargs=None, header=None):
-        """
-        Resolve core function.
+        """Resolve core function.
 
         Args:
             path (str): File path or URL.
@@ -971,8 +929,7 @@ class SystemBase(ABC, WorkerPoolBase):
         return path, None, None
 
     def shareable_url(self, path, expires_in):
-        """
-        Get a shareable URL for the specified path.
+        """Get a shareable URL for the specified path.
 
         Args:
             path (str): Path or URL.
@@ -986,8 +943,7 @@ class SystemBase(ABC, WorkerPoolBase):
         )
 
     def _shareable_url(self, client_kwargs, expires_in):
-        """
-        Get a shareable URL for the specified path.
+        """Get a shareable URL for the specified path.
 
         Args:
             client_kwargs (dict): Client arguments.

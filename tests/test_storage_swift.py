@@ -1,4 +1,4 @@
-"""Test airfs.storage.swift"""
+"""Test airfs.storage.swift."""
 import pytest
 
 pytest.importorskip("swiftclient")
@@ -11,8 +11,7 @@ UNSUPPORTED_OPERATIONS = (
 
 
 def token(size):
-    """
-    Get token.
+    """Get token.
 
     Args:
         size (int): Size.
@@ -27,7 +26,7 @@ def token(size):
 
 
 def test_handle_client_exception():
-    """Test airfs.swift._handle_client_exception"""
+    """Test airfs.swift._handle_client_exception."""
     from airfs.storage.swift import _handle_client_exception
     from swiftclient import ClientException  # type: ignore
     from airfs._core.exceptions import ObjectNotFoundError, ObjectPermissionError
@@ -53,7 +52,7 @@ def test_handle_client_exception():
 
 
 def test_mocked_storage():
-    """Tests airfs.swift with a mock"""
+    """Tests airfs.swift with a mock."""
     from json import loads
     import swiftclient
     from airfs.storage.swift import SwiftRawIO, _SwiftSystem, SwiftBufferedIO
@@ -66,33 +65,33 @@ def test_mocked_storage():
     # Mocks client
 
     def raise_404():
-        """Raise 404 error"""
+        """Raise 404 error."""
         raise swiftclient.ClientException("error", http_status=404)
 
     def raise_416():
-        """Raise 416 error"""
+        """Raise 416 error."""
         raise swiftclient.ClientException("error", http_status=416)
 
     def raise_500():
-        """Raise 500 error"""
+        """Raise 500 error."""
         raise swiftclient.ClientException("error", http_status=500)
 
     storage_mock = ObjectStorageMock(raise_404, raise_416, raise_500)
 
     class Connection:
-        """swiftclient.client.Connection"""
+        """swiftclient.client.Connection."""
 
         def __init__(self, *_, **kwargs):
             self.kwargs = kwargs
 
         @staticmethod
         def get_auth():
-            """swiftclient.client.Connection.get_auth"""
+            """swiftclient.client.Connection.get_auth."""
             return (URL,)
 
         @staticmethod
         def get_object(container, obj, headers=None, **_):
-            """swiftclient.client.Connection.get_object"""
+            """swiftclient.client.Connection.get_object."""
             return (
                 storage_mock.head_object(container, obj),
                 storage_mock.get_object(container, obj, header=headers),
@@ -100,12 +99,12 @@ def test_mocked_storage():
 
         @staticmethod
         def head_object(container, obj, **_):
-            """swiftclient.client.Connection.head_object"""
+            """swiftclient.client.Connection.head_object."""
             return storage_mock.head_object(container, obj)
 
         @staticmethod
         def put_object(container, obj, contents, query_string=None, **_):
-            """swiftclient.client.Connection.put_object"""
+            """swiftclient.client.Connection.put_object."""
             # Concatenates object parts
             if query_string == "multipart-manifest=put":
                 manifest = loads(contents)
@@ -131,32 +130,32 @@ def test_mocked_storage():
 
         @staticmethod
         def delete_object(container, obj, **_):
-            """swiftclient.client.Connection.delete_object"""
+            """swiftclient.client.Connection.delete_object."""
             storage_mock.delete_object(container, obj)
 
         @staticmethod
         def put_container(container, **_):
-            """swiftclient.client.Connection.put_container"""
+            """swiftclient.client.Connection.put_container."""
             storage_mock.put_locator(container)
 
         @staticmethod
         def head_container(container=None, **_):
-            """swiftclient.client.Connection.head_container"""
+            """swiftclient.client.Connection.head_container."""
             return storage_mock.head_locator(container)
 
         @staticmethod
         def delete_container(container, **_):
-            """swiftclient.client.Connection.delete_container"""
+            """swiftclient.client.Connection.delete_container."""
             storage_mock.delete_locator(container)
 
         @staticmethod
         def copy_object(container=None, obj=None, destination=None, **_):
-            """swiftclient.client.Connection.copy_object"""
+            """swiftclient.client.Connection.copy_object."""
             storage_mock.copy_object(obj, destination, src_locator=container)
 
         @staticmethod
         def get_container(container, limit=None, prefix=None, **_):
-            """swiftclient.client.Connection.get_container"""
+            """swiftclient.client.Connection.get_container."""
             objects = []
 
             for name, header in storage_mock.get_locator(
@@ -169,7 +168,7 @@ def test_mocked_storage():
 
         @staticmethod
         def get_account(**_):
-            """swiftclient.client.Connection.get_account"""
+            """swiftclient.client.Connection.get_account."""
             objects = []
             for name, header in storage_mock.get_locators().items():
                 header["name"] = name
@@ -194,7 +193,6 @@ def test_mocked_storage():
             storage_mock,
             unsupported_operations=UNSUPPORTED_OPERATIONS,
         ) as tester:
-
             # Common tests
             tester.test_common()
 

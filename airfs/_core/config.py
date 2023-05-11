@@ -1,4 +1,4 @@
-"""Application directories"""
+"""Application directories."""
 from json import load
 import os
 from os import getenv
@@ -6,8 +6,7 @@ from os.path import join, expandvars, expanduser
 
 
 def _init_paths():
-    """
-    Initialize application directories.
+    """Initialize application directories.
 
     Returns:
         tuple of str: Configuration directory, cache directory
@@ -32,8 +31,7 @@ CONFIG_FILE = join(CONFIG_DIR, "config.json")
 
 
 def read_config():
-    """
-    Read the configuration.
+    """Read the configuration.
 
     Returns:
         dict or None: Configuration. None if no configuration.

@@ -1,11 +1,11 @@
-"""GitHub Tarball/Zipball archives objects"""
+"""GitHub Tarball/Zipball archives objects."""
 from airfs.storage.github._model_base import GithubObject
 from airfs.storage.github._model_git import Branch, Tag
 from airfs.storage.github._model_reference import Reference
 
 
 class Archive(GithubObject):
-    """Git tree archive"""
+    """Git tree archive."""
 
     KEY = "archive"
     GET = "https://github.com/{owner}/{repo}/archive/{archive}"
@@ -14,13 +14,12 @@ class Archive(GithubObject):
 
     @classmethod
     def list(cls, client, spec, first_level=False):
-        """
-        List archives for all branches and tags.
+        """List archives for all branches and tags.
 
         Args:
             client (airfs.storage.github._api.ApiV3): Client.
             spec (dict): Item spec.
-            first_level (bool): It True, returns only first level objects.
+            first_level (bool): If True, returns only first level objects.
 
         Returns:
             generator of tuple: object name str, object header dict, has content bool
@@ -41,8 +40,7 @@ class Archive(GithubObject):
 
     @classmethod
     def head_obj(cls, client, spec):
-        """
-        Get archive headers.
+        """Get archive headers.
 
         Args:
             client (airfs.storage.github._api.ApiV3): Client.
@@ -59,8 +57,7 @@ class Archive(GithubObject):
         return cls.set_header(headers)
 
     def _update_spec_parent_ref(self, parent_key):
-        """
-        Update the spec with the parent reference.
+        """Update the spec with the parent reference.
 
         Args:
             parent_key (str): The parent key (parent_class.KEY).

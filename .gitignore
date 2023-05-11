@@ -10,7 +10,7 @@ mount.json
 test_mount.json
 
 # Build generated files
-docs/_build/
+doc/_build/
 build/
 dist/
 .eggs/

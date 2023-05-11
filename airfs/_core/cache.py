@@ -1,12 +1,11 @@
-"""
-A simple cache system to store requests results and improve performance.
+"""A simple cache system to store requests results and improve performance.
 
 Cache modes:
     Short cache:
-        Short cache have a short expiration delay and will be discarded once this delay
+        Short cache has a short expiration delay and will be discarded once this delay
         is reached.
     Long cache:
-        Long cache have a far greater expiration delay that is reset on access.
+        Long cache has a far greater expiration delay that is reset on access.
         This is useful to store data that will not change.
 """
 from gzip import open as open_archive
@@ -19,7 +18,7 @@ from airfs._core.config import CACHE_DIR
 
 
 class NoCacheException(Exception):
-    """No cache available"""
+    """No cache available."""
 
 
 #: Long cache default expiry
@@ -33,8 +32,7 @@ _CACHE_INITIALIZED = False
 
 
 def _hash_name(name):
-    """
-    Convert name to hashed name.
+    """Convert name to hashed name.
 
     Args:
         name (str): name.
@@ -46,9 +44,7 @@ def _hash_name(name):
 
 
 def clear_cache():
-    """
-    Clear expired cache files.
-    """
+    """Clear expired cache files."""
     expiry = _get_expiry()
     for cached_name in listdir(CACHE_DIR):
         path = join(CACHE_DIR, cached_name)
@@ -58,8 +54,7 @@ def clear_cache():
 
 
 def _get_expiry():
-    """
-    Get expiry timestamps.
+    """Get expiry timestamps.
 
     Returns:
         dict: Expiry for both short and long modes.
@@ -72,14 +67,13 @@ def _get_expiry():
 
 
 def get_cache(name):
-    """
-    Get an object from disk cache.
+    """Get an object from disk cache.
 
     Args:
         name (str): Cache name.
 
     Returns:
-        dict or list or None: object, None if object is not cached.
+        dict or list or None: object, None if the object is not cached.
     """
     expiry = _get_expiry()
     hashed_name = _hash_name(name)
@@ -107,8 +101,7 @@ def get_cache(name):
 
 
 def set_cache(name, obj, long=False):
-    """
-    Add an object to disk cache.
+    """Add an object to disk cache.
 
     Args:
         name (str): Cache name.

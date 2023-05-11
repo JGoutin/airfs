@@ -43,8 +43,8 @@ Limitation
 
 Only one configuration per Azure Storage account can be mounted simultaneously.
 
-Preallocating files
--------------------
+Pre-allocating files
+--------------------
 
 When flushing a file out of its current size, airfs first resize the file to allow the
 flush of the new data.
@@ -54,7 +54,7 @@ extra requests to the Azure server. If The size to write is known before opening
 file, it is possible to avoid these extra requests by to preallocate the required size
 in only one initial request.
 
-The ``content_length`` argument allow preallocating a file to a defined size when
+The ``content_length`` argument allow pre-allocating a file to a defined size when
 opening it in write mode:
 
 .. code-block:: python
@@ -73,7 +73,7 @@ opening it in write mode:
             ) as file:
         file.write(b'1')
 
-The preallocation is done with padding of null characters (``b'\0'``).
+The pre-allocation is done with padding of null characters (``b'\0'``).
 
 
 Files objects classes

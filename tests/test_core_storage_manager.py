@@ -1,11 +1,11 @@
-"""Test airfs._core.storage_manager"""
+"""Test airfs._core.storage_manager."""
 import re
 
 import pytest
 
 
 def test_mount():
-    """Tests airfs._core.storage_manager.mount and get_instance"""
+    """Tests airfs._core.storage_manager.mount and get_instance."""
     from airfs._core.storage_manager import mount, MOUNTED, get_instance, _root_sort_key
     import airfs.storage.http
     from airfs.storage.http import HTTPRawIO, _HTTPSystem, HTTPBufferedIO
@@ -27,20 +27,20 @@ def test_mount():
 
     # Mock requests
     class Response:
-        """Fake response"""
+        """Fake response."""
 
         status_code = 200
         headers = {"Accept-Ranges": "bytes", "Content-Length": "100"}
 
     class Session:
-        """Fake Session"""
+        """Fake Session."""
 
         def __init__(self, *_, **__):
-            """Do nothing"""
+            """Do nothing."""
 
         @staticmethod
         def request(*_, **__):
-            """Returns fake result"""
+            """Returns fake result."""
             return Response()
 
     requests_session = requests.Session
@@ -58,7 +58,6 @@ def test_mount():
             # Lazy registration
             None,
         ):
-
             # Unmount if already mounted
             for root in roots:
                 try:
@@ -146,7 +145,7 @@ def test_mount():
 
 
 def test_find_storage():
-    """Test storage name inferance from url"""
+    """Test storage name inferance from url."""
     from re import compile
     from uuid import uuid4
     from airfs._core.storage_manager import _find_storage as find_storage
@@ -173,7 +172,7 @@ def test_find_storage():
 
 
 def test_import_storage_errors():
-    """Test errors on storage import"""
+    """Test errors on storage import."""
     from airfs import MountException
     from airfs._core.storage_manager import _import_storage_module
     from tests_storage_package import init_test_storage

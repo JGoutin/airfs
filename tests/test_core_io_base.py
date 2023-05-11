@@ -1,9 +1,9 @@
-"""Test airfs._core.io_base"""
+"""Test airfs._core.io_base."""
 import pytest
 
 
 def test_object_base_io():
-    """Tests airfs._core.io_base.ObjectIOBase"""
+    """Tests airfs._core.io_base.ObjectIOBase."""
     from airfs._core.io_base import ObjectIOBase
 
     name = "name"
@@ -33,18 +33,18 @@ def test_object_base_io():
 
 
 def test_memoizedmethod():
-    """Tests airfs._core.utilities.memoizedmethod"""
+    """Tests airfs._core.utilities.memoizedmethod."""
     from airfs._core.io_base import memoizedmethod
 
     class Dummy:
-        """Dummy class"""
+        """Dummy class."""
 
         def __init__(self):
             self._cache = {}
 
         @memoizedmethod
         def to_memoize(self, arg):
-            """Fake method"""
+            """Fake method."""
             return arg
 
     dummy = Dummy()

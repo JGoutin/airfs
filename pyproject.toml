@@ -1,0 +1,104 @@
+[tool.poetry]
+name = "airfs"
+version = "0.0.0"
+description = "A Python library for cloud and remote file Systems."
+readme = "README.md"
+authors = ["J.Goutin"]
+license = "Apache License, Version 2.0"
+classifiers = [
+        "Development Status :: 5 - Production/Stable",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: Apache Software License",
+        "Topic :: System :: Filesystems",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Operating System :: OS Independent",
+]
+keywords = [
+    "file-system",
+    "storage",
+    "io",
+    "stream",
+    "cloud",
+    "cloud-storage",
+    "blob",
+    "bucket",
+    "alibaba",
+    "aws",
+    "azure",
+    "github",
+    "http",
+    "openstack",
+    "oss",
+    "s3",
+    "swift",
+    "minio"
+]
+repository = "https://github.com/JGoutin/airfs"
+documentation = "https://jgoutin.github.io/airfs/"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+requests = { version = "*"}
+python-dateutil = { version = "*"}
+azure-storage-blob = { version = "^2", optional = true }
+azure-storage-file = { version = "^2", optional = true }
+oss2 = { version = "^2.15", optional = true }
+boto3 = { version = "^1.26", optional = true }
+python-swiftclient = { version = "^4", extras = ["keystone"], optional = true }
+
+[tool.poetry.dev-dependencies]
+bandit = "*"
+black = "*"
+flake8 = "*"
+flake8-docstrings = "*"
+pre-commit = "*"
+pytest-cov = "*"
+radon = "*"
+yamllint = "*"
+sphinx-rtd-theme = "*"
+
+[tool.poetry.extras]
+all = [
+    # All the following extras
+    "azure-storage-blob",
+    "azure-storage-file",
+    "boto3",
+    "oss2",
+    "python-swiftclient"
+]
+azure_blob = ["azure-storage-blob"]
+azure_file = ["azure-storage-file"]
+oss = ["oss2"]
+s3 = ["boto3"]
+swift = ["python-swiftclient"]
+
+[tool.pytest.ini_options]
+addopts = [
+    "--strict-markers",
+    "--cov=airfs",
+]
+
+[tool.coverage.run]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise UnsupportedOperation",
+    "raise ObjectUnsupportedOperation",
+    "raise _ObjectUnsupportedOperation",
+    "raise NotImplementedError",
+    "raise ObjectNotImplementedError",
+    "raise _ObjectNotImplementedError"
+]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

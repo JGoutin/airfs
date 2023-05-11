@@ -1,4 +1,4 @@
-"""Git objects"""
+"""Git objects."""
 from posixpath import commonpath, dirname
 
 from airfs._core.exceptions import ObjectNotASymlinkError, ObjectNotFoundError
@@ -7,7 +7,7 @@ from airfs.storage.http import _handle_http_errors
 
 
 class Tree(GithubObject):
-    """Git tree"""
+    """Git tree."""
 
     KEY = "path"
     LIST = "/repos/{owner}/{repo}/git/trees/{tree_sha}"
@@ -16,8 +16,7 @@ class Tree(GithubObject):
     GET = "https://raw.githubusercontent.com/{owner}/{repo}/{ref}/{path}"
 
     def __iter__(self):
-        """
-        Iterate over object header keys.
+        """Iterate over object header keys.
 
         Yields:
             str: keys
@@ -29,8 +28,7 @@ class Tree(GithubObject):
             yield "size"
 
     def __len__(self):
-        """
-        Header length.
+        """Header length.
 
         Returns:
             int: Length
@@ -38,8 +36,7 @@ class Tree(GithubObject):
         return len(self.HEAD_KEYS) + len(self.HEAD_FROM) - (1 if self._is_dir() else 0)
 
     def __getitem__(self, key):
-        """
-        Get a value from the object header.
+        """Get a value from the object header.
 
         Args:
             key (str): Header key.
@@ -73,10 +70,9 @@ class Tree(GithubObject):
 
     @classmethod
     def head_obj(cls, client, spec):
-        """
-        Head the object of this Git tree matching the spec.
+        """Head the object of this Git tree matching the spec.
 
-        Only return result directly from current object response as dict.
+        Only return result directly from the current object response as dict.
 
         Args:
             client (airfs.storage.github._api.ApiV3): Client.
@@ -99,8 +95,7 @@ class Tree(GithubObject):
 
     @classmethod
     def read_link(cls, client, spec):
-        """
-        Returns "read_link" result for the detected "_GithubObject" subclass.
+        """Returns "read_link" result for the detected "_GithubObject" subclass.
 
         Args:
             client (airfs.storage.github._api.ApiV3): Client.
@@ -117,13 +112,12 @@ class Tree(GithubObject):
 
     @classmethod
     def list(cls, client, spec, first_level=False):
-        """
-        List objects of this GitHub class matching the spec.
+        """List objects of this GitHub class matching the spec.
 
         Args:
             client (airfs.storage.github._api.ApiV3): Client.
             spec (dict): Item spec.
-            first_level (bool): It True, returns only first level objects.
+            first_level (bool): If True, returns only first level objects.
 
         Yields:
             tuple: object name str, object header dict, has content bool
@@ -136,13 +130,12 @@ class Tree(GithubObject):
 
     @classmethod
     def _list(cls, client, spec, first_level=False):
-        """
-        List tree using recursive then non recursive API. Yields raw results.
+        """List tree using recursive then non-recursive API. Yield raw results.
 
         Args:
             client (airfs.storage.github._api.ApiV3): Client.
             spec (dict): Item spec.
-            first_level (bool): It True, returns only first level objects.
+            first_level (bool): If True, returns only first level objects.
 
         Yields:
             tuple: Relative path, Absolute path, spec, headers, has content bool
@@ -188,8 +181,7 @@ class Tree(GithubObject):
             raise ObjectNotFoundError(path=spec["full_path"])
 
     def _is_dir(self):
-        """
-        Check if path is a directory using the Git "mode".
+        """Check if the path is a directory using the Git "mode".
 
         Returns:
             bool: True if directory.
@@ -198,7 +190,7 @@ class Tree(GithubObject):
 
 
 class Branch(GithubObject):
-    """Git branch"""
+    """Git branch."""
 
     KEY = "branch"
     REF = True
@@ -214,7 +206,7 @@ class Branch(GithubObject):
 
 
 class Commit(GithubObject):
-    """Git commit"""
+    """Git commit."""
 
     KEY = "sha"
     REF = True
@@ -230,10 +222,9 @@ class Commit(GithubObject):
 
     @classmethod
     def head_obj(cls, client, spec):
-        """
-        Head the object of this commit matching the spec.
+        """Head the object of this commit matching the spec.
 
-        Only return result directly from current object response as dict.
+        Only return result directly from the current object response as dict.
 
         Args:
             client (airfs.storage.github._api.ApiV3): Client.
@@ -246,7 +237,7 @@ class Commit(GithubObject):
 
 
 class Tag(GithubObject):
-    """Git tag"""
+    """Git tag."""
 
     KEY = "tag"
     REF = True

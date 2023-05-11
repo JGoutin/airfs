@@ -1,4 +1,4 @@
-"""Handle storage classes"""
+"""Handle storage classes."""
 from collections import OrderedDict
 from importlib import import_module
 from importlib.util import find_spec
@@ -31,8 +31,7 @@ _BASE_CLASSES = {
 
 
 def _automount():
-    """
-    Initialize AUTOMOUNT variable with roots patterns that may be lazily automounted.
+    """Initialize AUTOMOUNT variable with roots patterns that may be lazily automounted.
 
     The target storage must allow to be mounted with a default configuration.
 
@@ -69,9 +68,7 @@ _DEFAULTS = dict()
 
 
 def _user_mount():
-    """
-    Mount user configured storages.
-    """
+    """Mount user configured storages."""
     config = read_config()
     if config is not None:
         for storage, system_parameters in read_config().items():
@@ -96,8 +93,7 @@ def get_instance(
     *args,
     **kwargs,
 ):
-    """
-    Get a storage instance.
+    """Get a storage instance.
 
     Args:
         name (str): File name, path or URL.
@@ -105,7 +101,7 @@ def get_instance(
         storage (str): Storage name.
         storage_parameters (dict): Storage configuration parameters.
             Generally, client configuration and credentials.
-        unsecure (bool): If True, disables TLS/SSL to improves transfer performance.
+        unsecure (bool): If True, disables TLS/SSL to improve transfer performance.
             But makes connection unsecure. Default to False.
         args, kwargs: Instance arguments
 
@@ -138,8 +134,7 @@ def get_instance(
 
 
 def _get_storage_info(name, storage, system_parameters):
-    """
-    Get mounted storage information. Mount storage if required.
+    """Get mounted storage information. Mount storage if required.
 
     Args:
         name (str): File name, path or URL.
@@ -183,23 +178,22 @@ def _get_storage_info(name, storage, system_parameters):
 def mount(
     storage=None, name="", storage_parameters=None, unsecure=None, extra_root=None
 ):
-    """
-    Mount a new storage.
+    """Mount a new storage.
 
     .. versionadded:: 1.0.0
 
     Args:
         storage (str): Storage name.
-        name (str): File URL. If storage is not specified, it will be infered from this
+        name (str): File URL. If storage is not specified, it will be inferred from this
             name.
         storage_parameters (dict): Storage configuration parameters.
             Generally, client configuration and credentials.
-        unsecure (bool): If True, disables TLS/SSL to improves
+        unsecure (bool): If True, disables TLS/SSL to improve
             transfer performance. But makes connection unsecure. Default to False.
-        extra_root (str): Extra root that can be used in replacement of root in path.
-            This can be used to provides support for shorter URLS.
+        extra_root (str): Extra root that can be used in replacement of root in the
+            path. This can be used to provide support for shorter URLS.
             Example: with root "https://www.my_storage.com/user" and extra_root
-            "mystorage://" it is possible to access object using
+            "mystorage://" it is possible to access an object using
             "mystorage://container/object" instead of
             "https://www.my_storage.com/user/container/object".
 
@@ -245,8 +239,7 @@ def mount(
 
 
 def _find_storage_classes(module, storage_info):
-    """
-    Update storage information with storage sub-classes.
+    """Update storage information with storage subclasses.
 
     Args:
         module (module): Storage Python module.
@@ -284,8 +277,7 @@ def _find_storage_classes(module, storage_info):
 
 
 def _updates_mounts(storage, storage_info):
-    """
-    Update mount information.
+    """Update mount information.
 
     Args:
         storage (str): Storage name.
@@ -309,12 +301,11 @@ def _updates_mounts(storage, storage_info):
 
 
 def _storage_roots(storage_info, extra_root):
-    """
-    Update storage information with storage roots.
+    """Update storage information with storage roots.
 
     Args:
         storage_info (dict): Storage information.
-        extra_root (str): Extra root that can be used in replacement of root in path.
+        extra_root (str): Extra root that can be used in replacement of root in a path.
 
     Returns:
         list: Roots.
@@ -329,8 +320,7 @@ def _storage_roots(storage_info, extra_root):
 
 
 def _import_storage_module(storage):
-    """
-    Import the Python module of the specified storage.
+    """Import the Python module of the specified storage.
 
     Args:
         storage (str): storage name.
@@ -349,8 +339,7 @@ def _import_storage_module(storage):
 
 
 def _find_storage(name):
-    """
-    Find the storage from the file name or URL.
+    """Find the storage from the file name or URL.
 
     Args:
         name (str): File URL or path.
@@ -383,8 +372,7 @@ def _find_storage(name):
 
 
 def _system_parameters(**kwargs):
-    """
-    Returns system keyword arguments removing Nones.
+    """Returns system keyword arguments removing Nones.
 
     Args:
         kwargs: system keyword arguments.
@@ -400,8 +388,7 @@ def _system_parameters(**kwargs):
 
 
 def _root_sort_key(root):
-    """
-    Allow root comparison when sorting.
+    """Allow root comparison when sorting.
 
     Args:
         root (str or re.Pattern): Root.
@@ -416,7 +403,7 @@ def _root_sort_key(root):
 
 
 def _match_root(root, name):
-    """
+    """Check if name matches root.
 
     Args:
         root (str or re.Pattern): Root.
@@ -431,8 +418,7 @@ def _match_root(root, name):
 
 
 def _get_default(storage, key, value):
-    """
-    Get default if value is not specified.
+    """Get default if value is not specified.
 
     Args:
         storage (str): Storage name.

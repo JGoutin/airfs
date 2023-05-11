@@ -1,4 +1,4 @@
-"""Cloud storage abstract IO Base class"""
+"""Cloud storage abstract IO Base class."""
 from concurrent.futures import ThreadPoolExecutor
 from functools import wraps
 from io import IOBase, UnsupportedOperation
@@ -8,14 +8,7 @@ from threading import Lock
 
 
 class ObjectIOBase(IOBase):
-    """
-    Base class to handle storage object.
-
-    Args:
-        name (path-like object): URL or path to the file which will be opened.
-        mode (str): The mode can be 'r', 'w', 'a', 'x' for reading (default),
-            writing, appending or creation.
-    """
+    """Base class to handle a storage object."""
 
     __slots__ = (
         "_name",
@@ -30,6 +23,13 @@ class ObjectIOBase(IOBase):
     )
 
     def __init__(self, name, mode="r"):
+        """Init.
+
+        Args:
+            name (path-like object): URL or path to the file which will be opened.
+            mode (str): The mode can be 'r', 'w', 'a', 'x' for reading (default),
+                writing, appending or creation.
+        """
         IOBase.__init__(self)
 
         self._name = fsdecode(name)
@@ -61,8 +61,7 @@ class ObjectIOBase(IOBase):
 
     @property
     def mode(self):
-        """
-        The mode.
+        """The mode.
 
         Returns:
             str: Mode.
@@ -71,8 +70,7 @@ class ObjectIOBase(IOBase):
 
     @property
     def name(self):
-        """
-        The file name.
+        """The file name.
 
         Returns:
             str: Name.
@@ -80,8 +78,8 @@ class ObjectIOBase(IOBase):
         return self._name
 
     def readable(self):
-        """
-        Return True if the stream can be read from.
+        """Return True if the stream can be read from.
+
         If False, read() will raise OSError.
 
         Returns:
@@ -90,8 +88,8 @@ class ObjectIOBase(IOBase):
         return self._readable
 
     def seekable(self):
-        """
-        Return True if the stream supports random access.
+        """Return True if the stream supports random access.
+
         If False, seek(), tell() and truncate() will raise OSError.
 
         Returns:
@@ -100,8 +98,7 @@ class ObjectIOBase(IOBase):
         return self._seekable
 
     def tell(self):
-        """
-        Return the current stream position.
+        """Return the current stream position.
 
         Returns:
             int: Stream position.
@@ -113,8 +110,8 @@ class ObjectIOBase(IOBase):
             return self._seek
 
     def writable(self):
-        """
-        Return True if the stream supports writing.
+        """Return True if the stream supports writing.
+
         If False, write() and truncate() will raise OSError.
 
         Returns:
@@ -124,8 +121,7 @@ class ObjectIOBase(IOBase):
 
 
 def memoizedmethod(method):
-    """
-    Decorator that caches method result.
+    """Decorator that caches method result.
 
     Args:
         method (function): Method
@@ -142,7 +138,7 @@ def memoizedmethod(method):
 
     @wraps(method)
     def patched(self, *args, **kwargs):
-        """Patched method"""
+        """Patched method."""
         try:
             return self._cache[method_name]
 
@@ -154,27 +150,29 @@ def memoizedmethod(method):
 
 
 class WorkerPoolBase:
-    """
-    Base class that handle a worker pool.
-
-    Args:
-        max_workers (int): Maximum number of workers.
-    """
+    """Base class that handle a worker pool."""
 
     def __init__(self, max_workers=None):
+        """Init.
+
+        Args:
+            max_workers (int): Maximum number of workers.
+        """
         self._workers_count = max_workers
 
     @property  # type: ignore
     @memoizedmethod
     def _workers(self):
-        """Executor pool
+        """Executor pool.
 
         Returns:
-            concurrent.futures.Executor: Executor pool"""
+            concurrent.futures.Executor: Executor pool.
+        """
         return ThreadPoolExecutor(max_workers=self._workers_count)
 
     def _generate_async(self, generator):
-        """
+        """Async generator.
+
         Return the previous generator object after having run the first element
         evaluation as a background task.
 
@@ -182,13 +180,13 @@ class WorkerPoolBase:
             generator (iterable): A generator function.
 
         Returns:
-            iterable: The generator function with first element evaluated in background.
+            iterable: The generator function with the first element evaluated in the
+                background.
         """
         first_value_future = self._workers.submit(next, generator)
 
         def get_first_element(future=first_value_future):
-            """
-            Get first element value from future.
+            """Get first element value from future.
 
             Args:
                 future (concurrent.futures._base.Future): First value future.

@@ -86,7 +86,7 @@ Improvements:
 
 Fixes:
 
-* airfs now let correctly ``ImportError`` from dependencies be raised instead of hidding
+* airfs now let correctly ``ImportError`` from dependencies be raised instead of hiding
   it by raising an exception saying that the storage is not available.
 * ``airfs.io.ObjectBufferedIOBase`` ``read`` and ``readinto`` methods now properly
   fallback to ``read1`` and ``readinto1`` if the object is not seekable.

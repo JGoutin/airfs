@@ -1,8 +1,8 @@
-"""Test airfs.storage.github models"""
+"""Test airfs.storage.github models."""
 
 
 def test_get_client_kwargs():
-    """Test get_model"""
+    """Test get_model."""
     from airfs.storage.github import _GithubSystem
     from airfs.storage.github._model import Repo, Owner
     from airfs.storage.github._model_reference import DefaultBranch

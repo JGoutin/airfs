@@ -1,5 +1,4 @@
-# type: ignore
-"""Standard library "os.path" equivalents"""
+"""Standard library "os.path" equivalents."""
 
 from os.path import *  # noqa
 from airfs._core.functions_os_path import (  # noqa

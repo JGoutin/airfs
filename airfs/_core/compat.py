@@ -1,4 +1,4 @@
-"""Python old versions compatibility"""
+"""Python older versions compatibility."""
 import os as _os
 from sys import version_info as _py
 
@@ -9,13 +9,11 @@ __all__ = ["getgid", "getuid", "realpath"]
 if _py[0] == 3 and _py[1] < 10:
     # Missing "strict" in "os.path.realpath" function
     def realpath(path, *, strict=False):
-        """
-        Return the canonical path of the specified filename, eliminating any symbolic
-        links encountered in the path.
+        """Return the canonical path of the specified filename.
 
         Args:
             path (path-like object): Path.
-            strict (bool): If a path doesn’t exist or a symlink loop is encountered,
+            strict (bool): If a path doesn't exist or a symlink loop is encountered,
                 and strict is True, OSError is raised. If strict is False,
                 the path is resolved as far as possible and any remainder is appended
                 without checking whether it exists.
@@ -37,8 +35,7 @@ try:
 except ImportError:
 
     def getuid():  # type: ignore
-        """
-        Get user or group ID.
+        """Get user or group ID.
 
         Returns:
             int: ID

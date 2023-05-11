@@ -1,4 +1,4 @@
-"""airfs exceptions"""
+"""airfs exceptions."""
 from contextlib import contextmanager as _contextmanager
 from io import UnsupportedOperation as _UnsupportedOperation
 from os import getenv as _getenv
@@ -10,28 +10,28 @@ from sys import exc_info as _exc_info
 
 
 class AirfsException(Exception):
-    """airfs base exception
+    """airfs base exception.
 
     .. versionadded:: 1.0.0
     """
 
 
 class AirfsWarning(UserWarning):
-    """airfs base warning
+    """airfs base warning.
 
     .. versionadded:: 1.5.0
     """
 
 
 class MountException(AirfsException):
-    """airfs mount exception
+    """airfs mount exception.
 
     .. versionadded:: 1.5.0
     """
 
 
 class ConfigurationException(AirfsException):
-    """airfs configuration exception
+    """airfs configuration exception.
 
     .. versionadded:: 1.5.0
     """
@@ -41,42 +41,48 @@ class ConfigurationException(AirfsException):
 
 
 class AirfsInternalException(Exception):
-    """airfs internal base exception"""
+    """airfs internal base exception."""
 
     _PATH_MSG = "Error"
 
     def __init__(self, *args, path=None):
+        """Init.
+
+        Args:
+            *args: Exception args.
+            path: Path.
+        """
         if path:
             args = [f"{self._PATH_MSG}: '{path}'"]
         Exception.__init__(self, *args)
 
 
 class ObjectNotFoundError(AirfsInternalException):
-    """Reraised as "FileNotFoundError" by handle_os_exceptions"""
+    """Reraised as "FileNotFoundError" by handle_os_exceptions."""
 
     _PATH_MSG = "No such file or directory"
 
 
 class ObjectPermissionError(AirfsInternalException):
-    """Reraised as "PermissionError" by handle_os_exceptions"""
+    """Reraised as "PermissionError" by handle_os_exceptions."""
 
     _PATH_MSG = "Permission denied"
 
 
 class ObjectExistsError(AirfsInternalException):
-    """Reraised as "FileExistsError" by handle_os_exceptions"""
+    """Reraised as "FileExistsError" by handle_os_exceptions."""
 
     _PATH_MSG = "File exists"
 
 
 class ObjectNotADirectoryError(AirfsInternalException):
-    """Reraised as "NotADirectoryError" by handle_os_exceptions"""
+    """Reraised as "NotADirectoryError" by handle_os_exceptions."""
 
     _PATH_MSG = "Not a directory"
 
 
 class ObjectNotASymlinkError(AirfsInternalException):
-    """Reraised as "OSError" by handle_os_exceptions"""
+    """Reraised as "OSError" by handle_os_exceptions."""
 
     _PATH_MSG = "Not a symbolic link"
 
@@ -91,6 +97,12 @@ class ObjectNotImplementedError(AirfsInternalException):
     """Reraised as "NotImplementedError" by handle_os_exceptions."""
 
     def __init__(self, *args, feature=None):
+        """Init.
+
+        Args:
+            *args: Exception args.
+            feature: Unavailable storage feature.
+        """
         if feature:
             args = [f"'{feature}' unavailable on this storage"]
         Exception.__init__(self, *args)
@@ -100,6 +112,13 @@ class ObjectSameFileError(AirfsInternalException):
     """Reraised as "shutil.SameFileError" by handle_os_exceptions."""
 
     def __init__(self, *, path1=None, path2=None):
+        """Init.
+
+        Args:
+            *args: Exception args.
+            path1: Path.
+            path2: Path.
+        """
         Exception.__init__(self, [f"'{path1}' and '{path2}' are the same file"])
 
 
@@ -122,9 +141,7 @@ _FULLTRACEBACK = True if _getenv("AIRFS_FULLTRACEBACK") else False
 
 @_contextmanager
 def handle_os_exceptions():
-    """
-    Handles airfs exceptions and raise standard OS exceptions.
-    """
+    """Handles airfs exceptions and raise standard OS exceptions."""
     try:
         yield
 

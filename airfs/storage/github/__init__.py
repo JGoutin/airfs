@@ -1,4 +1,4 @@
-"""GitHub"""
+"""GitHub."""
 from collections import deque as _deque
 from re import compile as _compile
 
@@ -34,8 +34,7 @@ _RAW_GITHUB = _compile(r"^https?://raw\.githubusercontent\.com")
 
 
 class _GithubSystem(_SystemBase):
-    """
-    GitHub system.
+    """GitHub system.
 
     Args:
         storage_parameters (dict): "github.MainClass.Github" keyword arguments.
@@ -57,8 +56,7 @@ class _GithubSystem(_SystemBase):
     __slots__ = ()
 
     def _get_roots(self):
-        """
-        Return URL roots for this storage.
+        """Return URL roots for this storage.
 
         Returns:
             tuple of str or re.Pattern: URL roots
@@ -66,8 +64,7 @@ class _GithubSystem(_SystemBase):
         return ("github://", _compile(r"^https?://github\.com"), _RAW_GITHUB)
 
     def _get_client(self):
-        """
-        GitHub client
+        """Github client.
 
         Returns:
             airfs.storage.github._client.Client: client
@@ -75,8 +72,7 @@ class _GithubSystem(_SystemBase):
         return _Client(**self._storage_parameters)
 
     def get_client_kwargs(self, path):
-        """
-        Get base keyword arguments for client for a specific path.
+        """Get base keyword arguments for the client for a specific path.
 
         Args:
             path (str): Absolute path or URL.
@@ -101,8 +97,7 @@ class _GithubSystem(_SystemBase):
         return spec
 
     def _head(self, client_kwargs):
-        """
-        Returns object HTTP header.
+        """Returns object HTTP header.
 
         Args:
             client_kwargs (dict): Client arguments.
@@ -115,14 +110,13 @@ class _GithubSystem(_SystemBase):
         return client_kwargs["object"].head(self.client, client_kwargs)
 
     def _list_objects(self, client_kwargs, path, max_results, first_level):
-        """
-        Lists objects.
+        """List objects.
 
-        args:
+        Args:
             client_kwargs (dict): Client arguments.
             path (str): Path to list.
             max_results (int): The maximum results that should return the method.
-            first_level (bool): It True, may only first level objects.
+            first_level (bool): If True, may only first level objects.
 
         Yields:
             tuple: object path str, object header dict, has content bool
@@ -147,8 +141,7 @@ class _GithubSystem(_SystemBase):
             raise _ObjectNotADirectoryError(path=client_kwargs["full_path"])
 
     def islink(self, path=None, client_kwargs=None, header=None):
-        """
-        Returns True if o²bject is a symbolic link.
+        """Return True if the object is a symbolic link.
 
         Args:
             path (str): File path or URL.
@@ -156,7 +149,7 @@ class _GithubSystem(_SystemBase):
             header (dict): Object header.
 
         Returns:
-            bool: True if object is Symlink.
+            bool: True if the object is Symlink.
         """
         if client_kwargs is None:
             client_kwargs = self.get_client_kwargs(path)
@@ -180,13 +173,12 @@ class _GithubSystem(_SystemBase):
         header,
         follow_symlinks,
     ):
-        """
-        Return True if path is exists and if of specified kind.
+        """Return True if the path is existing and if of specified kind.
 
         Args:
             path (str): Path or URL.
             client_kwargs (dict): Client arguments.
-            assume_exists (bool or None): This value define the value to return in the
+            assume_exists (bool or None): This value defines the value to return in
                 case there is no enough permission to determinate the existing status of
                 the file. If set to None, the permission exception is reraised
                 (Default behavior). if set to True or False, return this value.
@@ -241,15 +233,14 @@ class _GithubSystem(_SystemBase):
         header=None,
         follow_symlinks=None,
     ):
-        """
-        Return True if path is an existing directory.
+        """Return True if the path is an existing directory.
 
         Args:
             path (str): Path or URL.
             client_kwargs (dict): Client arguments.
             virtual_dir (bool): If True, checks if directory exists virtually if an
                 object path if not exists as a specific object.
-            assume_exists (bool or None): This value define the value to return in the
+            assume_exists (bool or None): This value defines the value to return in
                 case there is no enough permission to determinate the existing status of
                 the file. If set to None, the permission exception is reraised
                 (Default behavior). if set to True or False, return this value.
@@ -271,13 +262,12 @@ class _GithubSystem(_SystemBase):
         header=None,
         follow_symlinks=None,
     ):
-        """
-        Return True if path is an existing regular file.
+        """Return True if the path is an existing regular file.
 
         Args:
             path (str): Path or URL.
             client_kwargs (dict): Client arguments.
-            assume_exists (bool or None): This value define the value to return in the
+            assume_exists (bool or None): This value defines the value to return in
                 case there is no enough permission to determinate the existing status of
                 the file. If set to None, the permission exception is reraised
                 (Default behavior). if set to True or False, return this value.
@@ -292,8 +282,8 @@ class _GithubSystem(_SystemBase):
         )
 
     def _has_git_mode(self, mode_start, path, client_kwargs, header, follow_symlinks):
-        """
-        Check if the Git object has the specified Git mode.
+        """Check if the Git object has the specified Git mode.
+
         Follow symlinks if any.
 
         Args:
@@ -304,7 +294,7 @@ class _GithubSystem(_SystemBase):
             follow_symlinks (bool): Follow symlinks.
 
         Returns:
-            bool: True if excepted mode or non existing object.
+            bool: True if excepted mode or non-existing object.
         """
         path, client_kwargs, header = self.resolve(
             path, client_kwargs, header, follow_symlinks
@@ -313,8 +303,7 @@ class _GithubSystem(_SystemBase):
             return True
 
     def _getmode(self, path=None, client_kwargs=None, header=None):
-        """
-        Get object mode permission bits in Unix format.
+        """Get object mode permission bits in Unix format.
 
         Args:
             path (str): File path or URL.
@@ -333,8 +322,7 @@ class _GithubSystem(_SystemBase):
         return 0o644
 
     def read_link(self, path=None, client_kwargs=None, header=None):
-        """
-        Return the path linked by the symbolic link.
+        """Return the path linked by the symbolic link.
 
         Args:
             path (str): File path or URL.
@@ -350,7 +338,7 @@ class _GithubSystem(_SystemBase):
 
 
 class GithubRawIO(_HTTPRawIO):
-    """Binary GitHub Object I/O
+    """Binary GitHub Object I/O.
 
     Args:
         name (path-like object): URL to the file which will be opened.
@@ -363,8 +351,7 @@ class GithubRawIO(_HTTPRawIO):
     @property
     @_memoizedmethod
     def name(self):
-        """
-        Name
+        """Name.
 
         Returns:
             str: Name
@@ -376,8 +363,7 @@ class GithubRawIO(_HTTPRawIO):
     @property
     @_memoizedmethod
     def _client(self):
-        """
-        Returns client instance.
+        """Returns client instance.
 
         Returns:
             client
@@ -386,14 +372,14 @@ class GithubRawIO(_HTTPRawIO):
 
 
 class GithubBufferedIO(_HTTPBufferedIO):
-    """Buffered GitHub Object I/O
+    """Buffered GitHub Object I/O.
 
     Args:
         name (path-like object): URL to the file which will be opened.
         mode (str): The mode can be 'r' for reading.
         buffer_size (int): The size of buffer.
         max_buffers (int): The maximum number of buffers to preload in read mode or
-            awaiting flush in write mode. 0 for no limit.
+            awaiting flush in "write" mode. 0 for no limit.
         max_workers (int): The maximum number of threads that can be used to execute
             the given calls.
     """

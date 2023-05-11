@@ -1,4 +1,4 @@
-"""Microsoft Azure Files Storage"""
+"""Microsoft Azure Files Storage."""
 import re as _re
 
 from azure.storage.file import (  # type: ignore
@@ -24,20 +24,18 @@ from airfs.io import (
 
 
 class _AzureFileSystem(_AzureBaseSystem, _SystemBase):
-    """
-    Azure Files Storage system.
+    """Azure Files Storage system.
 
     Args:
         storage_parameters (dict): Azure service keyword arguments.
             This is generally Azure credentials and configuration. See
             "azure.storage.file.fileservice.FileService" for more information.
-        unsecure (bool): If True, disables TLS/SSL to improves transfer performance.
+        unsecure (bool): If True, disables TLS/SSL to improve transfer performance.
             But makes connection unsecure.
     """
 
     def copy(self, src, dst, other_system=None):
-        """
-        Copy object of the same storage.
+        """Copy an object of the same storage.
 
         Args:
             src (str): Path or URL.
@@ -54,8 +52,7 @@ class _AzureFileSystem(_AzureBaseSystem, _SystemBase):
     copy_from_azure_blobs = copy
 
     def _get_client(self):
-        """
-        Azure file service
+        """Azure file service.
 
         Returns:
             azure.storage.file.fileservice.FileService: Service
@@ -63,9 +60,7 @@ class _AzureFileSystem(_AzureBaseSystem, _SystemBase):
         return _FileService(**self._secured_storage_parameters())
 
     def get_client_kwargs(self, path):
-        """
-        Get base keyword arguments for client for a
-        specific path.
+        """Get base keyword arguments for the client for a specific path.
 
         Args:
             path (str): Absolute path or URL.
@@ -91,8 +86,7 @@ class _AzureFileSystem(_AzureBaseSystem, _SystemBase):
         return kwargs
 
     def _get_roots(self):
-        """
-        Return URL roots for this storage.
+        """Return URL roots for this storage.
 
         Returns:
             tuple of str or re.Pattern: URL roots
@@ -116,8 +110,7 @@ class _AzureFileSystem(_AzureBaseSystem, _SystemBase):
         )
 
     def _head(self, client_kwargs):
-        """
-        Returns object or bucket HTTP header.
+        """Returns object or bucket HTTP header.
 
         Args:
             client_kwargs (dict): Client arguments.
@@ -138,10 +131,9 @@ class _AzureFileSystem(_AzureBaseSystem, _SystemBase):
         return self._model_to_dict(result)
 
     def _list_locators(self, max_results):
-        """
-        Lists locators.
+        """List locators.
 
-        args:
+        Args:
             max_results (int): The maximum results that should return the method.
 
         Yields:
@@ -152,14 +144,13 @@ class _AzureFileSystem(_AzureBaseSystem, _SystemBase):
                 yield share.name, self._model_to_dict(share), True
 
     def _list_objects(self, client_kwargs, path, max_results, first_level):
-        """
-        Lists objects.
+        """List objects.
 
-        args:
+        Args:
             client_kwargs (dict): Client arguments.
             path (str): Path to list.
             max_results (int): The maximum results that should return the method.
-            first_level (bool): It True, may only first level objects.
+            first_level (bool): If True, may only first level objects.
 
         Yields:
             tuple: object path str, object header dict, has content bool
@@ -171,10 +162,9 @@ class _AzureFileSystem(_AzureBaseSystem, _SystemBase):
                 yield obj.name, self._model_to_dict(obj), isinstance(obj, _Directory)
 
     def _make_dir(self, client_kwargs):
-        """
-        Make a directory.
+        """Make a directory.
 
-        args:
+        Args:
             client_kwargs (dict): Client arguments.
         """
         with _handle_azure_exception():
@@ -187,10 +177,9 @@ class _AzureFileSystem(_AzureBaseSystem, _SystemBase):
             return self.client.create_share(**client_kwargs)
 
     def _remove(self, client_kwargs):
-        """
-        Remove an object.
+        """Remove an object.
 
-        args:
+        Args:
             client_kwargs (dict): Client arguments.
         """
         with _handle_azure_exception():
@@ -210,8 +199,7 @@ class _AzureFileSystem(_AzureBaseSystem, _SystemBase):
             return self.client.delete_share(share_name=client_kwargs["share_name"])
 
     def _shareable_url(self, client_kwargs, expires_in):
-        """
-        Get a shareable URL for the specified path.
+        """Get a shareable URL for the specified path.
 
         Args:
             client_kwargs (dict): Client arguments.
@@ -235,7 +223,7 @@ class _AzureFileSystem(_AzureBaseSystem, _SystemBase):
 
 
 class AzureFileRawIO(_AzureStorageRawIORangeWriteBase):
-    """Binary Azure Files Storage Object I/O
+    """Binary Azure Files Storage Object I/O.
 
     Args:
         name (path-like object): URL or path to the file which will be opened.
@@ -244,10 +232,10 @@ class AzureFileRawIO(_AzureStorageRawIORangeWriteBase):
         storage_parameters (dict): Azure service keyword arguments.
             This is generally Azure credentials and configuration. See
             "azure.storage.file.fileservice.FileService" for more information.
-        unsecure (bool): If True, disables TLS/SSL to improves transfer performance.
+        unsecure (bool): If True, disables TLS/SSL to improve transfer performance.
             But makes connection unsecure.
         content_length (int): Define the size to preallocate on new file creation.
-            This is not mandatory, and file will be resized on needs but this allow to
+            This is not mandatory, and file will be resized on needs, but this allows to
             improve performance when file size is known in advance.
     """
 
@@ -259,8 +247,7 @@ class AzureFileRawIO(_AzureStorageRawIORangeWriteBase):
     @property  # type: ignore
     @_memoizedmethod
     def _get_to_stream(self):
-        """
-        Azure storage function that read a range to a stream.
+        """Azure storage function that read a range to a stream.
 
         Returns:
             function: Read function.
@@ -270,8 +257,7 @@ class AzureFileRawIO(_AzureStorageRawIORangeWriteBase):
     @property  # type: ignore
     @_memoizedmethod
     def _resize(self):
-        """
-        Azure storage function that resize an object.
+        """Azure storage function that resizes an object.
 
         Returns:
             function: Resize function.
@@ -281,8 +267,7 @@ class AzureFileRawIO(_AzureStorageRawIORangeWriteBase):
     @property  # type: ignore
     @_memoizedmethod
     def _create_from_size(self):
-        """
-        Azure storage function that create an object.
+        """Azure storage function that creates an object.
 
         Returns:
             function: Create function.
@@ -290,8 +275,7 @@ class AzureFileRawIO(_AzureStorageRawIORangeWriteBase):
         return self._client.create_file
 
     def _update_range(self, data, **kwargs):
-        """
-        Update range with data
+        """Update range with data.
 
         Args:
             data (bytes): data.
@@ -300,23 +284,23 @@ class AzureFileRawIO(_AzureStorageRawIORangeWriteBase):
 
 
 class AzureFileBufferedIO(_ObjectBufferedIORandomWriteBase):
-    """Buffered binary Azure Files Storage Object I/O
+    """Buffered binary Azure Files Storage Object I/O.
 
     Args:
         name (path-like object): URL or path to the file which will be opened.
         mode (str): The mode can be 'r', 'w' for reading (default) or writing
         buffer_size (int): The size of buffer.
         max_buffers (int): The maximum number of buffers to preload in read mode or
-            awaiting flush in write mode. 0 for no limit.
+            awaiting flush in "write" mode. 0 for no limit.
         max_workers (int): The maximum number of threads that can be used to execute the
             given calls.
         storage_parameters (dict): Azure service keyword arguments.
             This is generally Azure credentials and configuration. See
             "azure.storage.file.fileservice.FileService" for more information.
-        unsecure (bool): If True, disables TLS/SSL to improves transfer performance.
+        unsecure (bool): If True, disables TLS/SSL to improve transfer performance.
             But makes connection unsecure.
         content_length (int): Define the size to preallocate on new file creation. This
-            is not mandatory, and file will be resized on needs but this allow to
+            is not mandatory, and file will be resized on needs, but this allows to
             improve performance when file size is known in advance.
     """
 

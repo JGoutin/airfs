@@ -1,4 +1,4 @@
-"""Access file over HTTP"""
+"""Access file over HTTP."""
 from io import UnsupportedOperation as _UnsupportedOperation
 
 from requests import Session as _Session
@@ -17,9 +17,7 @@ _CODES_CONVERSION = {403: _ObjectPermissionError, 404: _ObjectNotFoundError}
 
 
 def _handle_http_errors(response, codes_conversion=None):
-    """
-    Check for HTTP errors and raise
-    OSError if relevant.
+    """Check for HTTP errors and raise OSError if relevant.
 
     Args:
         response (requests.Response): Request response.
@@ -41,16 +39,13 @@ def _handle_http_errors(response, codes_conversion=None):
 
 
 class _HTTPSystem(_SystemBase):
-    """
-    HTTP system.
-    """
+    """HTTP system."""
 
     #: Request Timeout (seconds)
     _TIMEOUT = 5
 
     def get_client_kwargs(self, path):
-        """
-        Get base keyword arguments for client for a specific path.
+        """Get base keyword arguments for the client for a specific path.
 
         Args:
             path (str): Absolute path or URL.
@@ -61,8 +56,7 @@ class _HTTPSystem(_SystemBase):
         return dict(url=path)
 
     def _get_client(self):
-        """
-        HTTP client
+        """HTTP client.
 
         Returns:
             requests.Session: client
@@ -70,8 +64,7 @@ class _HTTPSystem(_SystemBase):
         return _Session()
 
     def _get_roots(self):
-        """
-        Return URL roots for this storage.
+        """Return URL roots for this storage.
 
         Returns:
             tuple of str or re.Pattern: URL roots
@@ -79,8 +72,7 @@ class _HTTPSystem(_SystemBase):
         return "http://", "https://"
 
     def _head(self, client_kwargs):
-        """
-        Returns object HTTP header.
+        """Returns object HTTP header.
 
         Args:
             client_kwargs (dict): Client arguments.
@@ -94,29 +86,28 @@ class _HTTPSystem(_SystemBase):
 
 
 class HTTPRawIO(_ObjectRawIOBase):
-    """Binary HTTP Object I/O
-
-    Args:
-        name (path-like object): URL to the file which will be opened.
-        mode (str): The mode can be 'r' for reading (default)
-    """
+    """Binary HTTP Object I/O."""
 
     _SYSTEM_CLASS = _HTTPSystem
     _TIMEOUT = _HTTPSystem._TIMEOUT
 
     def __init__(self, *args, **kwargs):
+        """Init.
 
+        Args:
+            name (path-like object): URL to the file which will be opened.
+            mode (str): The mode can be 'r' for reading (default).
+        """
         _ObjectRawIOBase.__init__(self, *args, **kwargs)
         if "r" not in self._mode:
             raise _UnsupportedOperation("write")
         self._seekable = self._head().get("Accept-Ranges") == "bytes"
 
     def _read_range(self, start, end=0):
-        """
-        Read a range of bytes in stream.
+        """Read a range of bytes in stream.
 
         Args:
-            start (int): Start stream position. 0 To not specify end.
+            start (int): Start stream position. 0 To not specify the end.
 
         Returns:
             bytes: number of bytes read
@@ -134,8 +125,7 @@ class HTTPRawIO(_ObjectRawIOBase):
         return _handle_http_errors(response).content
 
     def _readall(self):
-        """
-        Read and return all the bytes from the stream until EOF.
+        """Read and return all the bytes from the stream until EOF.
 
         Returns:
             bytes: Object content
@@ -145,20 +135,18 @@ class HTTPRawIO(_ObjectRawIOBase):
         ).content
 
     def _flush(self, *_):
-        """
-        Flush the write buffers of the stream if applicable.
-        """
+        """Flush the write buffers of the stream if applicable."""
 
 
 class HTTPBufferedIO(_ObjectBufferedIOBase):
-    """Buffered binary HTTP Object I/O
+    """Buffered binary HTTP Object I/O.
 
     Args:
         name (path-like object): URL to the file which will be opened.
         mode (str): The mode can be 'r' for reading.
         buffer_size (int): The size of buffer.
         max_buffers (int): The maximum number of buffers to preload in read mode or
-            awaiting flush in write mode. 0 for no limit.
+            awaiting flush in "write" mode. 0 for no limit.
         max_workers (int): The maximum number of threads that can be used to execute
             the given calls.
     """
@@ -166,16 +154,14 @@ class HTTPBufferedIO(_ObjectBufferedIOBase):
     _RAW_CLASS = HTTPRawIO
 
     def _close_writable(self):
-        """
-        Closes the object in write mode.
+        """Closes the object in "write" mode.
 
         Performs any finalization operation required to complete the object writing on
         the storage.
         """
 
     def _flush(self):
-        """
-        Flush the write buffers of the stream if applicable.
+        """Flush the write buffers of the stream if applicable.
 
-        In write mode, send the buffer content to the storage object.
+        In "write" mode, send the buffer content to the storage object.
         """

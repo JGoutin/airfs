@@ -1,4 +1,4 @@
-"""Alibaba cloud OSS"""
+"""Alibaba cloud OSS."""
 from contextlib import contextmanager as _contextmanager
 import re as _re
 
@@ -28,8 +28,7 @@ _ERROR_CODES = {
 
 @_contextmanager
 def _handle_oss_error():
-    """
-    Handle OSS exception and convert to class IO exceptions
+    """Handle OSS exception and convert to class IO exceptions.
 
     Raises:
         OSError subclasses: IO error.
@@ -44,13 +43,12 @@ def _handle_oss_error():
 
 
 class _OSSSystem(_SystemBase):
-    """
-    OSS system.
+    """OSS system.
 
     Args:
         storage_parameters (dict): OSS2 Auth keyword arguments and endpoint.
             This is generally OSS credentials and configuration.
-        unsecure (bool): If True, disables TLS/SSL to improves transfer performance.
+        unsecure (bool): If True, disables TLS/SSL to improve transfer performance.
             But makes connection unsecure.
     """
 
@@ -75,8 +73,7 @@ class _OSSSystem(_SystemBase):
             self._endpoint = self._endpoint.replace("https://", "http://")
 
     def copy(self, src, dst, other_system=None):
-        """
-        Copy object of the same storage.
+        """Copy an object of the same storage.
 
         Args:
             src (str): Path or URL.
@@ -94,8 +91,7 @@ class _OSSSystem(_SystemBase):
             )
 
     def get_client_kwargs(self, path):
-        """
-        Get base keyword arguments for client for a specific path.
+        """Get base keyword arguments for the client for a specific path.
 
         Args:
             path (str): Absolute path or URL.
@@ -110,8 +106,7 @@ class _OSSSystem(_SystemBase):
         return kwargs
 
     def _get_client(self):
-        """
-        OSS2 Auth client
+        """OSS2 Auth client.
 
         Returns:
             oss2.Auth or oss2.StsAuth: client
@@ -119,19 +114,15 @@ class _OSSSystem(_SystemBase):
         return (
             _oss.StsAuth
             if "security_token" in self._storage_parameters
-            else _oss.Auth
-            if self._storage_parameters
-            else _oss.AnonymousAuth
+            else _oss.Auth if self._storage_parameters else _oss.AnonymousAuth
         )(**self._storage_parameters)
 
     def _get_roots(self):
-        """
-        Return URL roots for this storage.
+        """Return URL roots for this storage.
 
         Returns:
             tuple of str or re.Pattern: URL roots
         """
-
         return (
             # OSS Scheme
             # - oss://<bucket>/<key>
@@ -148,8 +139,7 @@ class _OSSSystem(_SystemBase):
         )
 
     def _get_bucket(self, client_kwargs):
-        """
-        Get bucket object.
+        """Get bucket object.
 
         Returns:
             oss2.Bucket
@@ -161,8 +151,7 @@ class _OSSSystem(_SystemBase):
         )
 
     def islink(self, path=None, client_kwargs=None, header=None):
-        """
-        Returns True if object is a symbolic link.
+        """Returns True if the object is a symbolic link.
 
         Args:
             path (str): File path or URL.
@@ -170,7 +159,7 @@ class _OSSSystem(_SystemBase):
             header (dict): Object header.
 
         Returns:
-            bool: True if object is Symlink.
+            bool: True if the object is Symlink.
         """
         header = self.head(path, client_kwargs, header)
 
@@ -182,8 +171,7 @@ class _OSSSystem(_SystemBase):
         return False
 
     def _head(self, client_kwargs):
-        """
-        Returns object HTTP header.
+        """Returns object HTTP header.
 
         Args:
             client_kwargs (dict): Client arguments.
@@ -200,10 +188,9 @@ class _OSSSystem(_SystemBase):
             return bucket.get_bucket_info().headers
 
     def _make_dir(self, client_kwargs):
-        """
-        Make a directory.
+        """Make a directory.
 
-        args:
+        Args:
             client_kwargs (dict): Client arguments.
         """
         with _handle_oss_error():
@@ -215,10 +202,9 @@ class _OSSSystem(_SystemBase):
             return bucket.create_bucket()
 
     def _remove(self, client_kwargs):
-        """
-        Remove an object.
+        """Remove an object.
 
-        args:
+        Args:
             client_kwargs (dict): Client arguments.
         """
         with _handle_oss_error():
@@ -231,8 +217,7 @@ class _OSSSystem(_SystemBase):
 
     @staticmethod
     def _model_to_dict(model, ignore):
-        """
-        Convert OSS model to dict.
+        """Convert OSS model to dict.
 
         Args:
             model (oss2.models.RequestResult): Model.
@@ -248,10 +233,9 @@ class _OSSSystem(_SystemBase):
         }
 
     def _list_locators(self, max_results):
-        """
-        Lists locators.
+        """List locators.
 
-        args:
+        Args:
             max_results (int): The maximum results that should return the method.
 
         Yields:
@@ -266,14 +250,13 @@ class _OSSSystem(_SystemBase):
             yield bucket.name, self._model_to_dict(bucket, ("name",)), True
 
     def _list_objects(self, client_kwargs, path, max_results, first_level):
-        """
-        Lists objects.
+        """List objects.
 
-        args:
+        Args:
             client_kwargs (dict): Client arguments.
             path (str): Path to list.
             max_results (int): The maximum results that should return the method.
-            first_level (bool): It True, may only first level objects.
+            first_level (bool): If True, may only first level objects.
 
         Yields:
             tuple: object path str, object header dict, has content bool
@@ -302,8 +285,7 @@ class _OSSSystem(_SystemBase):
                 break
 
     def read_link(self, path=None, client_kwargs=None, header=None):
-        """
-        Return the path linked by the symbolic link.
+        """Return the path linked by the symbolic link.
 
         Args:
             path (str): File path or URL.
@@ -326,8 +308,7 @@ class _OSSSystem(_SystemBase):
             )
 
     def symlink(self, target, path=None, client_kwargs=None):
-        """
-        Creates a symbolic link to target.
+        """Create a symbolic link to target.
 
         Args:
             target (str): Target path or URL.
@@ -354,7 +335,7 @@ class _OSSSystem(_SystemBase):
 
 
 class OSSRawIO(_ObjectRawIOBase):
-    """Binary OSS Object I/O
+    """Binary OSS Object I/O.
 
     Args:
         name (path-like object): URL or path to the file which will be opened.
@@ -362,7 +343,7 @@ class OSSRawIO(_ObjectRawIOBase):
             appending.
         storage_parameters (dict): OSS2 Auth keyword arguments and endpoint.
             This is generally OSS credentials and configuration.
-        unsecure (bool): If True, disables TLS/SSL to improves transfer performance.
+        unsecure (bool): If True, disables TLS/SSL to improve transfer performance.
             But makes connection unsecure.
     """
 
@@ -371,8 +352,7 @@ class OSSRawIO(_ObjectRawIOBase):
     @property  # type: ignore
     @_memoizedmethod
     def _bucket(self):
-        """
-        Bucket client.
+        """Bucket client.
 
         Returns:
             oss2.Bucket: Client.
@@ -382,8 +362,7 @@ class OSSRawIO(_ObjectRawIOBase):
     @property  # type: ignore
     @_memoizedmethod
     def _key(self):
-        """
-        Object key.
+        """Object key.
 
         Returns:
             str: key.
@@ -391,12 +370,11 @@ class OSSRawIO(_ObjectRawIOBase):
         return self._client_kwargs["key"]
 
     def _read_range(self, start, end=0):
-        """
-        Read a range of bytes in stream.
+        """Read a range of bytes in stream.
 
         Args:
             start (int): Start stream position.
-            end (int): End stream position. 0 To not specify end.
+            end (int): End stream position. 0 To not specify the end.
 
         Returns:
             bytes: number of bytes read
@@ -419,8 +397,7 @@ class OSSRawIO(_ObjectRawIOBase):
         return response.read()
 
     def _readall(self):
-        """
-        Read and return all the bytes from the stream until EOF.
+        """Read and return all the bytes from the stream until EOF.
 
         Returns:
             bytes: Object content
@@ -429,8 +406,7 @@ class OSSRawIO(_ObjectRawIOBase):
             return self._bucket.get_object(key=self._key).read()
 
     def _flush(self, buffer):
-        """
-        Flush the write buffers of the stream if applicable.
+        """Flush the write buffers of the stream if applicable.
 
         Args:
             buffer (memoryview): Buffer content.
@@ -440,21 +416,7 @@ class OSSRawIO(_ObjectRawIOBase):
 
 
 class OSSBufferedIO(_ObjectBufferedIOBase):
-    """Buffered binary OSS Object I/O
-
-    Args:
-        name (path-like object): URL or path to the file which will be opened.
-        mode (str): The mode can be 'r', 'w' for reading (default) or writing
-        buffer_size (int): The size of buffer.
-        max_buffers (int): The maximum number of buffers to preload in read mode or
-            awaiting flush in write mode. 0 for no limit.
-        max_workers (int): The maximum number of threads that can be used to execute the
-            given calls.
-        storage_parameters (dict): OSS2 Auth keyword arguments and endpoint.
-            This is generally OSS credentials and configuration.
-        unsecure (bool): If True, disables TLS/SSL to improves transfer performance.
-            But makes connection unsecure.
-    """
+    """Buffered binary OSS Object I/O."""
 
     __slots__ = ("_bucket", "_key", "_upload_id")
 
@@ -464,6 +426,21 @@ class OSSBufferedIO(_ObjectBufferedIOBase):
     MINIMUM_BUFFER_SIZE = 102400
 
     def __init__(self, *args, **kwargs):
+        """Init.
+
+        Args:
+            name (path-like object): URL or path to the file which will be opened.
+            mode (str): The mode can be 'r', 'w' for reading (default) or writing
+            buffer_size (int): The size of buffer.
+            max_buffers (int): The maximum number of buffers to preload in read mode or
+                awaiting flush in "write" mode. 0 for no limit.
+            max_workers (int): The maximum number of threads that can be used to execute
+                the given calls.
+            storage_parameters (dict): OSS2 Auth keyword arguments and endpoint.
+                This is generally OSS credentials and configuration.
+            unsecure (bool): If True, disables TLS/SSL to improve transfer performance.
+                But makes connection unsecure.
+        """
         _ObjectBufferedIOBase.__init__(self, *args, **kwargs)
 
         self._bucket = self._raw._bucket
@@ -471,9 +448,7 @@ class OSSBufferedIO(_ObjectBufferedIOBase):
         self._upload_id = None
 
     def _flush(self):
-        """
-        Flush the write buffers of the stream.
-        """
+        """Flush the write buffers of the stream."""
         if self._upload_id is None:
             with _handle_oss_error():
                 self._upload_id = self._bucket.init_multipart_upload(
@@ -491,9 +466,7 @@ class OSSBufferedIO(_ObjectBufferedIOBase):
         self._write_futures.append(dict(response=response, part_number=self._seek))
 
     def _close_writable(self):
-        """
-        Close the object in write mode.
-        """
+        """Close the object in "write" mode."""
         parts = [
             _PartInfo(
                 part_number=future["part_number"], etag=future["response"].result().etag

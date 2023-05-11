@@ -1,8 +1,8 @@
-"""Test Airfs configuration"""
+"""Test Airfs configuration."""
 
 
 def test_config_read_write(tmpdir):
-    """Test configuration read and write"""
+    """Test configuration read and write."""
     import airfs._core.config as core_config
     import airfs.config as config
     import airfs._core.storage_manager as storage_manager
@@ -13,7 +13,7 @@ def test_config_read_write(tmpdir):
     mounted = set()
 
     def mount(storage=None, **_):
-        """Mocked mount function"""
+        """Mocked mount function."""
         mounted.add(storage)
 
     storage_manager_mount = storage_manager.mount
@@ -59,29 +59,29 @@ def test_config_read_write(tmpdir):
 
 
 def test_config_directories():
-    """Test directories selection"""
+    """Test directories selection."""
     import airfs._core.config as config
     import os
     import posixpath
     import ntpath
 
     class OsMock:
-        """Mocked os module"""
+        """Mocked os module."""
 
         name = "posix"
         uid = 1000
 
         @classmethod
         def getuid(cls):
-            """Mocked os.getuid function"""
+            """Mocked os.getuid function."""
             return cls.uid
 
     def expanduser(path):
-        """Mocked os.path.expanduser function"""
+        """Mocked os.path.expanduser function."""
         return path.replace("~", "/home/user")
 
     def expandvars(path):
-        """Mocked os.path.expandvars function"""
+        """Mocked os.path.expandvars function."""
         for name, value in (
             ("%APPDATA%", r"C:\Users\user\AppData\Roaming"),
             ("%LOCALAPPDATA%", r"C:\Users\user\AppData\Local"),
@@ -90,7 +90,7 @@ def test_config_directories():
         return path
 
     def getenv(_, default=None):
-        """Mocked os.getenv function"""
+        """Mocked os.getenv function."""
         return default
 
     config.os = OsMock

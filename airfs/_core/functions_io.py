@@ -1,4 +1,4 @@
-"""Cloud object compatibles standard library 'io' equivalent functions"""
+"""Cloud object compatibles standard library 'io' equivalent functions."""
 from contextlib import contextmanager
 from io import open as io_open, TextIOWrapper
 
@@ -21,8 +21,7 @@ def cos_open(
     unsecure=None,
     **kwargs
 ):
-    """
-    Open file and return a corresponding file object.
+    """Open file and return a corresponding file object.
 
     Equivalent to "io.open" or builtin "open".
 
@@ -35,7 +34,7 @@ def cos_open(
             opened file-like object, or file descriptor.
         mode (str): mode in which the file is opened (default to 'rb').
             see "io.open" for all possible modes. Note that all modes may
-            not be supported by all kind of file and storage.
+            not be supported by all kinds of file and storage.
         buffering (int): Set the buffering policy.
             -1 to use default behavior,
             0 to switch buffering off,
@@ -63,11 +62,11 @@ def cos_open(
         storage (str): Storage name.
         storage_parameters (dict): Storage configuration parameters.
             Generally, client configuration and credentials.
-        unsecure (bool): If True, disables TLS/SSL to improves
+        unsecure (bool): If True, disables TLS/SSL to improve
             transfer performance. But makes connection unsecure.
             Default to False.
-        kwargs: Other arguments to pass to opened object.
-            Note that theses arguments may not be compatible with all kind of file and
+        kwargs: Other arguments to pass to the opened object.
+            Note that these arguments may not be compatible with all kinds of files and
             storage.
 
     Returns:

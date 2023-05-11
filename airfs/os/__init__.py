@@ -1,5 +1,4 @@
-# type: ignore
-"""Standard library "os" equivalents"""
+"""Standard library "os" equivalents."""
 
 from os import *  # noqa
 from airfs.os import path  # noqa

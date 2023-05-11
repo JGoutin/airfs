@@ -1,4 +1,4 @@
-"""Storage only extra functions"""
+"""Storage only extra functions."""
 from os import fsdecode
 from airfs._core.storage_manager import get_instance
 from airfs._core.functions_core import is_storage
@@ -6,8 +6,7 @@ from airfs._core.exceptions import handle_os_exceptions, ObjectUnsupportedOperat
 
 
 def shareable_url(path, expires_in=3600):
-    """
-    Get a shareable public URL for the specified path of an existing object.
+    """Get a shareable public URL for the specified path of an existing object.
 
     Only available for some storage and not for local paths.
 

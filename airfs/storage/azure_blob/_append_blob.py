@@ -1,4 +1,4 @@
-"""Microsoft Azure Blobs Storage: Append blobs"""
+"""Microsoft Azure Blobs Storage: Append blobs."""
 from azure.storage.blob.models import _BlobTypes  # type: ignore
 from azure.storage.blob import AppendBlobService  # type: ignore
 
@@ -16,19 +16,9 @@ _BLOB_TYPE = _BlobTypes.AppendBlob
 
 
 class AzureAppendBlobRawIO(AzureBlobRawIO, ObjectRawIORandomWriteBase):
-    """Binary Azure Append Blobs Storage Object I/O
+    """Binary Azure Append Blobs Storage Object I/O.
 
-    This blob type is not seekable in write mode.
-
-    Args:
-        name (path-like object): URL or path to the file which will be opened.
-        mode (str): The mode can be 'r', 'w', 'a' for reading (default), writing or
-            appending.
-        storage_parameters (dict): Azure service keyword arguments.
-            This is generally Azure credentials and configuration. See
-            "azure.storage.blob.baseblobservice.BaseBlobService" for more information.
-        unsecure (bool): If True, disables TLS/SSL to improves transfer performance.
-            But makes connection unsecure.
+    This blob type is not seekable in "write" mode.
     """
 
     __DEFAULT_CLASS = False
@@ -37,23 +27,33 @@ class AzureAppendBlobRawIO(AzureBlobRawIO, ObjectRawIORandomWriteBase):
     MAX_FLUSH_SIZE = AppendBlobService.MAX_BLOCK_SIZE
 
     def __init__(self, *args, **kwargs):
+        """Init.
+
+        Args:
+            name (path-like object): URL or path to the file which will be opened.
+            mode (str): The mode can be 'r', 'w', 'a' for reading (default), writing or
+                appending.
+            storage_parameters (dict): Azure service keyword arguments.
+                This is generally Azure credentials and configuration. See
+                "azure.storage.blob.baseblobservice.BaseBlobService" for more
+                information.
+            unsecure (bool): If True, disables TLS/SSL to improve transfer performance.
+                But makes connection unsecure.
+        """
         AzureBlobRawIO.__init__(self, *args, **kwargs)
 
         if self._writable:
             self._seekable = False
 
     def _create(self):
-        """
-        Create the file if not exists.
-        """
+        """Create the file if not exists."""
         with _handle_azure_exception():
             self._client.create_blob(**self._client_kwargs)
 
     @property  # type: ignore
     @memoizedmethod
     def _client(self):
-        """
-        Returns client instance.
+        """Returns client instance.
 
         Returns:
             client
@@ -61,8 +61,7 @@ class AzureAppendBlobRawIO(AzureBlobRawIO, ObjectRawIORandomWriteBase):
         return self._system.client[_BLOB_TYPE]
 
     def _flush(self, buffer, *_):
-        """
-        Flush the write buffer of the stream if applicable.
+        """Flush the write buffer of the stream if applicable.
 
         Args:
             buffer (memoryview): Buffer content.
@@ -71,7 +70,6 @@ class AzureAppendBlobRawIO(AzureBlobRawIO, ObjectRawIORandomWriteBase):
 
         if buffer_size > self.MAX_FLUSH_SIZE:
             for part_start in range(0, buffer_size, self.MAX_FLUSH_SIZE):
-
                 buffer_part = buffer[part_start : part_start + self.MAX_FLUSH_SIZE]
 
                 with _handle_azure_exception():
@@ -85,29 +83,32 @@ class AzureAppendBlobRawIO(AzureBlobRawIO, ObjectRawIORandomWriteBase):
 
 
 class AzureAppendBlobBufferedIO(AzureBlobBufferedIO, ObjectBufferedIORandomWriteBase):
-    """Buffered binary Azure Append Blobs Storage Object I/O
+    """Buffered binary Azure Append Blobs Storage Object I/O.
 
-    This blob type is not seekable in write mode.
-
-    Args:
-        name (path-like object): URL or path to the file which will be opened.
-        mode (str): The mode can be 'r', 'w' for reading (default) or writing
-        buffer_size (int): The size of buffer.
-        max_buffers (int): The maximum number of buffers to preload in read mode
-            or awaiting flush in write mode. 0 for no limit.
-        max_workers (int): The maximum number of threads that can be used to execute the
-            given calls.
-        storage_parameters (dict): Azure service keyword arguments.
-            This is generally Azure credentials and configuration. See
-            "azure.storage.blob.baseblobservice.BaseBlobService" for more information.
-        unsecure (bool): If True, disables TLS/SSL to improves transfer performance.
-            But makes connection unsecure.
+    This blob type is not seekable in "write" mode.
     """
 
     __DEFAULT_CLASS = False
     _RAW_CLASS = AzureAppendBlobRawIO
 
     def __init__(self, *args, **kwargs):
+        """Init.
+
+        Args:
+            name (path-like object): URL or path to the file which will be opened.
+            mode (str): The mode can be 'r', 'w' for reading (default) or writing
+            buffer_size (int): The size of buffer.
+            max_buffers (int): The maximum number of buffers to preload in read mode
+                or awaiting flush in "write" mode. 0 for no limit.
+            max_workers (int): The maximum number of threads that can be used to execute
+                the given calls.
+            storage_parameters (dict): Azure service keyword arguments.
+                This is generally Azure credentials and configuration. See
+                "azure.storage.blob.baseblobservice.BaseBlobService" for more
+                information.
+            unsecure (bool): If True, disables TLS/SSL to improve transfer performance.
+                But makes connection unsecure.
+        """
         ObjectBufferedIORandomWriteBase.__init__(self, *args, **kwargs)
 
         if self._writable:
@@ -116,9 +117,7 @@ class AzureAppendBlobBufferedIO(AzureBlobBufferedIO, ObjectBufferedIORandomWrite
             self._workers_count = 1
 
     def _flush(self):
-        """
-        Flush the write buffer of the stream.
-        """
+        """Flush the write buffer of the stream."""
         self._write_futures.append(
             self._workers.submit(
                 self._client.append_block,

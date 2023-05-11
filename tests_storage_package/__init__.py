@@ -2,9 +2,7 @@
 
 
 def init_test_storage():
-    """
-    Initialize test storage.
-    """
+    """Initialize test storage."""
     from airfs._core.storage_manager import STORAGE_PACKAGE
 
     if __package__ not in STORAGE_PACKAGE:
