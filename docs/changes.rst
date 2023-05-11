@@ -1,6 +1,13 @@
 Changelog
 =========
 
+1.5.2 (2023/05)
+---------------
+
+Deprecations:
+
+* Python 3.6 and 3.7 support are removed.
+
 1.5.1 (2021/11)
 ---------------
 

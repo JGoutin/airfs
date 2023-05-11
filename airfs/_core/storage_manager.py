@@ -2,13 +2,13 @@
 from collections import OrderedDict
 from importlib import import_module
 from importlib.util import find_spec
+from re import Pattern
 from threading import RLock
 
 from airfs._core.io_base_raw import ObjectRawIOBase
 from airfs._core.io_base_buffered import ObjectBufferedIOBase
 from airfs._core.io_base_system import SystemBase
 from airfs._core.config import read_config
-from airfs._core.compat import Pattern
 from airfs._core.exceptions import MountException
 
 #: Packages where to search for storage
@@ -40,7 +40,7 @@ def _automount():
         dict: storage names as keys, List of roots patterns as values.
     """
     import airfs._automount as package
-    from airfs._core.compat import contents
+    from importlib.resources import contents
     from importlib import import_module
     from os.path import splitext
     from sys import modules

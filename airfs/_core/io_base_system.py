@@ -1,13 +1,13 @@
 """Cloud storage abstract System"""
 from abc import abstractmethod, ABC
 from collections import OrderedDict, namedtuple
-from re import compile
+from re import compile, Pattern
 from stat import S_IFDIR, S_IFREG, S_IFLNK
 from posixpath import join, normpath, dirname
 from dateutil.parser import parse
 
 from airfs._core.io_base import WorkerPoolBase
-from airfs._core.compat import Pattern, getgid, getuid
+from airfs._core.compat import getgid, getuid
 from airfs._core.exceptions import (
     ObjectNotFoundError,
     ObjectPermissionError,
@@ -647,7 +647,6 @@ class SystemBase(ABC, WorkerPoolBase):
         dirs = list()
         add_dir = dirs.append
         for obj_path, header, is_dir in generator:
-
             if not obj_path:
                 # Do not yield itself
                 continue
@@ -704,7 +703,6 @@ class SystemBase(ABC, WorkerPoolBase):
                 obj_path, _ = obj_path.split("/", 1)
 
             except ValueError:
-
                 if is_dir:
                     add_dir(obj_path)
                     obj_path += "/"

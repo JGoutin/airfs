@@ -40,17 +40,7 @@ airfs is compatible with the following storage services:
 
 airfs can also access any publicly accessible file via HTTP/HTTPS (Read only).
 
-About airfs and Pycosio
------------------------
+---
 
-"airfs" is a fork of the Accelize's 
-"[Pycosio](https://github.com/Accelize/pycosio)" project.
-
-The "Pycosio" project was started in 2018 to complement the products of the Accelize 
-company. Over time and as Accelize products evolved, the library was no longer needed in
-the company's products and was maintained less and less. Since mid 2019, Accelize no
-longer has an interest in continuing to develop the library and no one is working on it.
-
-As creator and sole developer of the library at Accelize, I decided to create a fork of
-the project so that it is now maintained by the open source community under the name
-"airfs" (the name "Pycosio" being the property of Accelize).
+*"airfs" is a fork of the unmaintained "[Pycosio](https://github.com/Accelize/pycosio)" 
+project by its main developer.*

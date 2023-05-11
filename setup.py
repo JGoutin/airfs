@@ -21,11 +21,10 @@ PACKAGE_INFO = dict(
         "Topic :: System :: Filesystems",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "Operating System :: OS Independent",
     ],
     keywords=(
@@ -43,8 +42,6 @@ PACKAGE_INFO = dict(
     install_requires=[
         "requests>=2.20.0",
         "python-dateutil>=2.6.0"
-        # Python compatibility back ports
-        'importlib_resources>=2.0.0; python_version < "3.7"',
     ],
     extras_require={
         "azure_blob": ["azure-storage-blob>=1.3.0,<=2.1.0"],

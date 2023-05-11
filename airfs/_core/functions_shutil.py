@@ -4,9 +4,9 @@ from shutil import (
     copy as shutil_copy,
     copyfileobj,
     copyfile as shutil_copyfile,
+    COPY_BUFSIZE,
 )
 
-from airfs._core.compat import COPY_BUFSIZE
 from airfs._core.functions_io import cos_open
 from airfs._core.functions_os_path import isdir
 from airfs._core.functions_core import format_and_is_storage, ignore_exception
@@ -35,7 +35,6 @@ def _copy(src, dst, src_is_storage, dst_is_storage, follow_symlinks):
             system_dst = get_instance(dst)
 
             if system_src is system_dst:
-
                 if system_src.relpath(src) == system_dst.relpath(dst):
                     raise ObjectSameFileError(path1=src, path2=dst)
 
