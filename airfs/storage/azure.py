@@ -1,4 +1,5 @@
 """Microsoft Azure Storage."""
+
 from abc import abstractmethod as _abstractmethod
 from contextlib import contextmanager as _contextmanager
 from concurrent.futures import as_completed as _as_completed

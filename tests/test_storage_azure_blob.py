@@ -1,4 +1,5 @@
 """Test airfs.storage.azure_file."""
+
 import pytest
 
 pytest.importorskip("azure.storage.blob")

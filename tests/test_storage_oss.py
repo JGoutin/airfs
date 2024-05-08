@@ -1,4 +1,5 @@
 """Test airfs.storage.oss."""
+
 import pytest
 
 pytest.importorskip("oss2")

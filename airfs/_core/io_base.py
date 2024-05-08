@@ -1,4 +1,5 @@
 """Cloud storage abstract IO Base class."""
+
 from concurrent.futures import ThreadPoolExecutor
 from functools import wraps
 from io import IOBase, UnsupportedOperation

@@ -1,4 +1,5 @@
 """Microsoft Azure Blobs Storage: Base for all blob types."""
+
 from io import IOBase
 
 from airfs._core.io_base import memoizedmethod

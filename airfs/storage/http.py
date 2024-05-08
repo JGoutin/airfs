@@ -1,4 +1,5 @@
 """Access file over HTTP."""
+
 from io import UnsupportedOperation as _UnsupportedOperation
 
 from requests import Session as _Session

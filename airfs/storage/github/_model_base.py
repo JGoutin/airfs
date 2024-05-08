@@ -1,4 +1,5 @@
 """GitHub object base class."""
+
 from collections import ChainMap
 from collections.abc import Mapping
 from itertools import chain

@@ -1,4 +1,5 @@
 """Airfs configuration."""
+
 from json import dump as _dump
 from os import chmod
 from airfs._core.config import CONFIG_FILE as _CONFIG_FILE, read_config as _read_config

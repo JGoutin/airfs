@@ -1,4 +1,5 @@
 """Cloud object compatibles standard library 'shutil' equivalent functions."""
+
 from os.path import join, basename
 from shutil import (
     copy as shutil_copy,

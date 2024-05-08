@@ -1,4 +1,5 @@
 """Storage only extra functions."""
+
 from os import fsdecode
 from airfs._core.storage_manager import get_instance
 from airfs._core.functions_core import is_storage

@@ -1,4 +1,5 @@
 """Test airfs._core.storage_manager."""
+
 import re
 
 import pytest

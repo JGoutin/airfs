@@ -1,4 +1,5 @@
 """Cloud object compatibles standard library 'io' equivalent functions."""
+
 from contextlib import contextmanager
 from io import open as io_open, TextIOWrapper
 

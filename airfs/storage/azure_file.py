@@ -1,4 +1,5 @@
 """Microsoft Azure Files Storage."""
+
 import re as _re
 
 from azure.storage.file import (  # type: ignore

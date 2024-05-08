@@ -1,4 +1,5 @@
 """Application directories."""
+
 from json import load
 import os
 from os import getenv

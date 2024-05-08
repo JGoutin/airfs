@@ -1,4 +1,5 @@
 """GitHub as a filesystem model."""
+
 from airfs._core.exceptions import ObjectNotImplementedError
 from airfs.storage.github._model_archive import Archive
 from airfs.storage.github._model_base import GithubObject

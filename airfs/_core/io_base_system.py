@@ -1,4 +1,5 @@
 """Cloud storage abstract System."""
+
 from abc import abstractmethod, ABC
 from collections import OrderedDict, namedtuple
 from re import compile, Pattern

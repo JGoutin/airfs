@@ -1,4 +1,5 @@
 """Git objects."""
+
 from posixpath import commonpath, dirname
 
 from airfs._core.exceptions import ObjectNotASymlinkError, ObjectNotFoundError

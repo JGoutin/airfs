@@ -1,4 +1,5 @@
 """airfs exceptions."""
+
 from contextlib import contextmanager as _contextmanager
 from io import UnsupportedOperation as _UnsupportedOperation
 from os import getenv as _getenv

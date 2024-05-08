@@ -1,4 +1,5 @@
 """Cloud storage abstract IO classes with random write support."""
+
 from abc import abstractmethod
 from functools import partial
 from io import UnsupportedOperation

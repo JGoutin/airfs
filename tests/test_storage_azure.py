@@ -1,4 +1,5 @@
 """Test airfs.storage.azure."""
+
 from datetime import datetime
 from time import time
 

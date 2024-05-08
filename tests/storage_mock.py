@@ -1,4 +1,5 @@
 """Test airfs.storage."""
+
 from contextlib import contextmanager as _contextmanager
 from copy import deepcopy as _deepcopy
 from threading import Lock as _Lock

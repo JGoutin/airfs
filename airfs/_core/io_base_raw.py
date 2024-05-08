@@ -1,4 +1,5 @@
 """Cloud storage abstract Raw IO class."""
+
 from abc import abstractmethod
 from io import RawIOBase, UnsupportedOperation
 from os import SEEK_CUR, SEEK_END, SEEK_SET

@@ -1,4 +1,5 @@
 """Microsoft Azure Blobs Storage: Append blobs."""
+
 from azure.storage.blob.models import _BlobTypes  # type: ignore
 from azure.storage.blob import AppendBlobService  # type: ignore
 

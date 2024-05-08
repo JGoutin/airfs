@@ -1,4 +1,5 @@
 """Python older versions compatibility."""
+
 import os as _os
 from sys import version_info as _py
 

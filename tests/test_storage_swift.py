@@ -1,4 +1,5 @@
 """Test airfs.storage.swift."""
+
 import pytest
 
 pytest.importorskip("swiftclient")

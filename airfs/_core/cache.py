@@ -8,6 +8,7 @@ Cache modes:
         Long cache has a far greater expiration delay that is reset on access.
         This is useful to store data that will not change.
 """
+
 from gzip import open as open_archive
 from hashlib import blake2b
 from json import load, dump

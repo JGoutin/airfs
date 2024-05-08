@@ -1,4 +1,5 @@
 """Test airfs.storage.github."""
+
 import json
 import pickle
 from os.path import realpath, join

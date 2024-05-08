@@ -1,4 +1,5 @@
 """Alibaba cloud OSS."""
+
 from contextlib import contextmanager as _contextmanager
 import re as _re
 

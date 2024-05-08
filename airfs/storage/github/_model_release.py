@@ -1,4 +1,5 @@
 """GitHub releases related objects."""
+
 from airfs._core.exceptions import ObjectNotFoundError
 from airfs.storage.github._model_archive import Archive
 from airfs.storage.github._model_git import Commit, Tag, Tree

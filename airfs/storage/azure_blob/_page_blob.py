@@ -1,4 +1,5 @@
 """Microsoft Azure Blobs Storage: Pages blobs."""
+
 from os import SEEK_SET, SEEK_END
 
 from azure.storage.blob import PageBlobService  # type: ignore

@@ -1,4 +1,5 @@
 """Test airfs._core.io_buffered."""
+
 import os
 import time
 

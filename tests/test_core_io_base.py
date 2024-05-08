@@ -1,4 +1,5 @@
 """Test airfs._core.io_base."""
+
 import pytest
 
 

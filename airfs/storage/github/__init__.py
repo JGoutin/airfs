@@ -1,4 +1,5 @@
 """GitHub."""
+
 from collections import deque as _deque
 from re import compile as _compile
 

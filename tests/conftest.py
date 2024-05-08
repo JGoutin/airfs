@@ -1,4 +1,5 @@
 """Pytest configuration."""
+
 from os import environ as _environ
 
 _environ["AIRFS_FULLTRACEBACK"] = "1"

@@ -1,4 +1,5 @@
 """Test airfs.storage.http."""
+
 import pytest
 
 UNSUPPORTED_OPERATIONS = (

@@ -1,4 +1,5 @@
 """Microsoft Azure Blobs Storage: Block blobs."""
+
 from secrets import choice
 from string import ascii_lowercase as _ascii_lowercase
 

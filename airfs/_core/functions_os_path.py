@@ -1,4 +1,5 @@
 """Cloud object compatibles standard library 'os.path' equivalent functions."""
+
 import os
 from os.path import relpath as os_path_relpath, samefile as os_path_samefile
 

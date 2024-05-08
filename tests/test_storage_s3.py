@@ -1,4 +1,5 @@
 """Test airfs.storage.s3."""
+
 import pytest
 
 pytest.importorskip("boto3")

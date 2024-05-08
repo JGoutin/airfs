@@ -1,4 +1,5 @@
 """Wildcard reference object."""
+
 from airfs._core.exceptions import ObjectNotFoundError
 from airfs.storage.github._model_base import GithubObject
 from airfs.storage.github._model_git import Branch, Commit, Tag, Tree
